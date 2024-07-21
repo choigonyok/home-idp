@@ -86,6 +86,13 @@ func GetInstallCmd() *cobra.Command {
 		Use:   "install",
 		Short: "Install home-idp app",
 		Long:  "Install home-idp application in kubernetes cluster with CLI",
+		Args:  cobra.ExactArgs(0),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
 	}
 	return installCmd
 }
@@ -95,6 +102,13 @@ func GetStatusCmd() *cobra.Command {
 		Use:   "status",
 		Short: "show status home-idp app",
 		Long:  "Show status of home-idp application deployed in kubernetes cluster with CLI",
+		Args:  cobra.ExactArgs(0),
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return nil
+		},
 	}
 	return statusCmd
 }
