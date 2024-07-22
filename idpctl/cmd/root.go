@@ -2,10 +2,15 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/choigonyok/home-idp/idpctl/pkg/cli"
+	"github.com/choigonyok/home-idp/pkg/file"
 	"github.com/choigonyok/home-idp/pkg/kube"
+	"github.com/choigonyok/home-idp/pkg/object"
+	ptr "github.com/choigonyok/home-idp/pkg/pointer"
 	"github.com/spf13/cobra"
+	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
 const (
@@ -113,7 +118,14 @@ func GetInstallCmd() *cobra.Command {
 // 	return kubeClient, client, nil
 // }
 
+type statusFlags struct {
+	config *string
+}
+
 func GetStatusCmd() *cobra.Command {
+	f := &statusFlags{
+		config: ptr.Of[string](""),
+	}
 
 	statusCmd := &cobra.Command{
 		Use:   "status",
@@ -129,9 +141,30 @@ func GetStatusCmd() *cobra.Command {
 			for _, podName := range serviceList.Items {
 				fmt.Println(podName.Name)
 			}
+			fmt.Println()
+			fmt.Println()
+			fmt.Println()
+
+			configFilePath, nil := cmd.PersistentFlags().GetString("config")
+			fileContent, nil := file.ReadFile(configFilePath, os.Stdin)
+			// fileContent, nil := file.ReadYamlFile(*f.config, os.Stdin)
+			// if yamlSyntaxErr := file.ValidateYamlFileFormat(fileContent); yamlSyntaxErr != nil {
+			// 	return yamlSyntaxErr
+			// }
+
+			object.ParseObjectsFromManifest(fileContent)
+
+			mapIOP := make(map[string]any)
+			yaml.Unmarshal([]byte(fileContent), &mapIOP)
+			// yaml.NewYAMLToJSONDecoder(bytes.NewReader([]byte(mapIOP)))
+
+			fmt.Println(mapIOP)
 			return nil
 		},
 	}
+
+	statusCmd.PersistentFlags().StringVarP(f.config, "config", "f", "", "Configuration File")
+
 	return statusCmd
 }
 

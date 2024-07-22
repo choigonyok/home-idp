@@ -47,6 +47,19 @@ func AddRootFlags(flags *pflag.FlagSet) *RootFlags {
 	return rootFlag
 }
 
+func AddFlags(flags *pflag.FlagSet) *RootFlags {
+	rootFlag := &RootFlags{
+		// namespace: ptr.Of[string](""),
+		namespace: ptr.Of[string](""),
+		config:    ptr.Of[string](""),
+	}
+	// flags.StringVar(f.configContext, FlagContext, "", "Kubernetes configuration context")
+	flags.StringVarP(rootFlag.namespace, "namespace", "n", v1.NamespaceAll, "Kubernetes namespace")
+	flags.StringVarP(rootFlag.config, "config", "f", v1.NamespaceAll, "home-idp config file")
+
+	return rootFlag
+}
+
 func NewCLIContext(rootFlags *RootFlags) *RootFlags {
 	if rootFlags == nil {
 		rootFlags = &RootFlags{
