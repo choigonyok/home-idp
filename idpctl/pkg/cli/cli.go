@@ -47,13 +47,13 @@ func AddRootFlags(flags *pflag.FlagSet) *RootFlags {
 	return rootFlag
 }
 
-// func NewCLIContext(rootFlags *RootFlags) Context {
-// 	if rootFlags == nil {
-// 		rootFlags = &RootFlags{
-// 			namespace: ptr.Of[string](""),
-// 		}
-// 	}
-// 	return &instance{
-// 		RootFlags: *rootFlags,
-// 	}
-// }
+func NewCLIContext(rootFlags *RootFlags) *RootFlags {
+	if rootFlags == nil {
+		rootFlags = &RootFlags{
+			namespace:        ptr.Of[string](""),
+			config:           ptr.Of[string](""),
+			defaultNamespace: "",
+		}
+	}
+	return rootFlags
+}

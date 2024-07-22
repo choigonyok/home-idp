@@ -1,7 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/choigonyok/home-idp/idpctl/pkg/cli"
+	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/spf13/cobra"
 )
 
@@ -95,9 +98,23 @@ func GetInstallCmd() *cobra.Command {
 		},
 	}
 	return installCmd
+	// return Install(kubeClient, rootArgs, iArgs, logOpts, cmd.OutOrStdout(), l, p)
 }
 
+// func install(kubeClient kube.CLIClient, rootArgs *RootArgs, iArgs *InstallArgs, logOpts *log.Options, stdOut io.Writer, p Printer) error {
+// 	cliClient, client, err := KubernetesClients(kubeClient)
+// }
+
+// func KubernetesClients(kubeClient kube.CLIClient) (kube.CLIClient, client.Client, error) {
+// 	client, err := client.New(kubeClient.RESTConfig(), client.Options{Scheme: kube.IstioScheme})
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+// 	return kubeClient, client, nil
+// }
+
 func GetStatusCmd() *cobra.Command {
+
 	statusCmd := &cobra.Command{
 		Use:   "status",
 		Short: "show status home-idp app",
@@ -107,6 +124,11 @@ func GetStatusCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			client, _, _, _ := kube.GetKubeConfig()
+			serviceList, _ := kube.ListServices("log-system", client)
+			for _, podName := range serviceList.Items {
+				fmt.Println(podName.Name)
+			}
 			return nil
 		},
 	}
