@@ -4,10 +4,11 @@ import (
 	"fmt"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/util/yaml"
 )
 
-func ParseObjectsFromManifest(manifest string) {
+func ParseObjectsFromManifest(manifest string) (schema.GroupVersionKind, *unstructured.Unstructured) {
 	var objects unstructured.Unstructured
 
 	json, _ := yaml.ToJSON([]byte(manifest))
@@ -20,4 +21,6 @@ func ParseObjectsFromManifest(manifest string) {
 	for i, annotation := range objects.GetAnnotations() {
 		fmt.Println("ANNOTATION", i, ":", annotation)
 	}
+
+	return gvk, &objects
 }

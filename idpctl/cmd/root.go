@@ -136,7 +136,8 @@ func GetStatusCmd() *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			client, _, _, _ := kube.GetKubeConfig()
+			client, restConfig, _, _ := kube.GetKubeConfig()
+			dc, _ := kube.GetDynamicClient(restConfig)
 			serviceList, _ := kube.ListServices("log-system", client)
 			for _, podName := range serviceList.Items {
 				fmt.Println(podName.Name)
@@ -152,11 +153,13 @@ func GetStatusCmd() *cobra.Command {
 			// 	return yamlSyntaxErr
 			// }
 
-			object.ParseObjectsFromManifest(fileContent)
+			gvk, obj := object.ParseObjectsFromManifest(fileContent)
 
 			mapIOP := make(map[string]any)
 			yaml.Unmarshal([]byte(fileContent), &mapIOP)
 			// yaml.NewYAMLToJSONDecoder(bytes.NewReader([]byte(mapIOP)))
+
+			kube.ApplyManifest("pods", "default", dc, obj, gvk)
 
 			fmt.Println(mapIOP)
 			return nil
