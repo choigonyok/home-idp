@@ -2,7 +2,6 @@ package kube
 
 import (
 	"context"
-	"fmt"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -53,6 +52,5 @@ func ApplyManifest(resource, namespace string, client dynamic.Interface, obj *un
 		Resource: resource,
 	}
 
-	result, _ := client.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
-	fmt.Println("Result: ", result.GetName())
+	client.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
 }

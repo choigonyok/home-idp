@@ -6,6 +6,7 @@ import (
 
 	"github.com/choigonyok/home-idp/idpctl/pkg/cli"
 	"github.com/choigonyok/home-idp/pkg/file"
+	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/object"
 	ptr "github.com/choigonyok/home-idp/pkg/pointer"
@@ -162,6 +163,21 @@ func GetStatusCmd() *cobra.Command {
 			kube.ApplyManifest("pods", "default", dc, obj, gvk)
 
 			fmt.Println(mapIOP)
+
+			gc := git.NewClient("choigonyok", "")
+			// git.ValidateClient(c)
+			fmt.Println("TEST5")
+			// fmt.Println(git.CreateRepository("test3", true, gc))
+			git.ConnectRepository(gc, "test2")
+			fmt.Println(git.CreateWebhook("https://argocd.slexn.com/api/webhook", gc))
+
+			// fmt.Println(git.DeleteRepository("test1", gc))
+			// fmt.Println(git.DeleteRepository("test2", gc))
+			// fmt.Println(git.DeleteRepository("test3", gc))
+			// fmt.Println(git.DeleteRepository("test4", gc))
+			// fmt.Println(git.DeleteRepository("test5", gc))
+			// fmt.Println(git.DeleteRepository("test6", gc))
+			// fmt.Println(git.DeleteRepository("test7", gc))
 			return nil
 		},
 	}
