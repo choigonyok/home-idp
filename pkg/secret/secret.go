@@ -1,25 +1,29 @@
 package secret
 
 import (
-	"math/rand"
+	"context"
+	"fmt"
 )
 
-const (
-	letterBytes  = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
-	specialBytes = "!@#$%^&*()_+-=[]{}\\|;':\",.<>/?`~"
-	numBytes     = "0123456789"
-)
+func (sc *SecretClient) GetSecretV2(token, rootPath, path, key string) (string, error) {
 
-func GeneratePassword(length int, useLetters bool, useSpecial bool, useNum bool) string {
-	b := make([]byte, length)
-	for i := range b {
-		if useLetters {
-			b[i] = letterBytes[rand.Intn(len(letterBytes))]
-		} else if useSpecial {
-			b[i] = specialBytes[rand.Intn(len(specialBytes))]
-		} else if useNum {
-			b[i] = numBytes[rand.Intn(len(numBytes))]
-		}
+	secret, err := sc.Client.KVv2(rootPath).Get(context.Background(), path)
+	if err != nil {
+		return "", fmt.Errorf("unable to read secret: %w", err)
 	}
-	return string(b)
+
+	value, ok := secret.Data[key].(string)
+	if !ok {
+		return "", fmt.Errorf("value type assertion failed: %T %#v", secret.Data["password"], secret.Data["password"])
+	}
+
+	return value, nil
+}
+
+func (sc *SecretClient) PutSecretV2(roleID, rootPath, path string, kv map[string]any) error {
+	_, err := sc.Client.KVv2(rootPath).Put(context.Background(), path, kv)
+	if err != nil {
+		return fmt.Errorf("unable to write secret: %w", err)
+	}
+	return nil
 }
