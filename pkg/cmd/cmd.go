@@ -5,6 +5,7 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/server"
+
 	"github.com/spf13/cobra"
 )
 

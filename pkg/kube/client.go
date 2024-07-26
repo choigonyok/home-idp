@@ -15,26 +15,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func GetKubeConfig() (*kubernetes.Clientset, *rest.Config, string, error) {
-	var err error
-
+func GetKubeConfig() (*rest.Config, error) {
 	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
 
-	namespace, _, err := clientConfig.Namespace()
-	if err != nil {
-		return nil, nil, "", err
-	}
+	return clientConfig.ClientConfig()
+}
 
-	config, err := clientConfig.ClientConfig()
-	if err != nil {
-		return nil, nil, "", err
-	}
-
-	client, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return client, config, namespace, nil
+func NewClient(cfg *rest.Config) (*kubernetes.Clientset, error) {
+	return kubernetes.NewForConfig(cfg)
 }
 
 func ListServices(namespace string, client kubernetes.Interface) (*apiv1.ServiceList, error) {
