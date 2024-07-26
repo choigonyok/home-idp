@@ -1,3 +1,14 @@
+keycloak:
+  enabled: true
+  # default username: idpadmin
+  # password is stored at 'keycloak-secret' secret
+
+postgresql:
+  enabled: true
+  # default username: idpadmin
+  # password is stored at 'idp-secret' secret
+
+
 # Default values for home-idp.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.

@@ -3,6 +3,7 @@ apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
   name: {{ include "home-idp.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "home-idp.labels" . | nindent 4 }}
 spec:

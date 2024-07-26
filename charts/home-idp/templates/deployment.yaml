@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: {{ include "home-idp.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
   labels:
     {{- include "home-idp.labels" . | nindent 4 }}
 spec:
