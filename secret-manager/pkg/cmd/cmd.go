@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"github.com/choigonyok/home-idp/pkg/cmd"
+	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -33,5 +34,5 @@ func addRootFlags(c *cobra.Command) {
 }
 
 func addSubCmds(c *cobra.Command) {
-	c.AddCommand(cmd.GetServerCmd(cmd.SecretManager))
+	c.AddCommand(cmd.GetServerCmd(config.SecretManager))
 }

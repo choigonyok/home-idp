@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/choigonyok/home-idp/idpctl/pkg/cmd"
+	"github.com/choigonyok/home-idp/secret-manager/pkg/cmd"
 )
 
 func main() {
