@@ -1,0 +1,5 @@
+secret-manager:
+  enabled: true
+  replicas: 3
+  service:
+    port: 5103
