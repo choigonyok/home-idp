@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/server"
 
 	"github.com/spf13/cobra"
 )
@@ -26,11 +25,10 @@ func GetServerCmd(component config.Components) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("INSTALL " + c + " START")
 
-			cfg := config.New(component)
-			cfg.Set()
+			// cfg := config.New(filepath)
 
-			svr := server.New(cfg)
-			svr.Run()
+			// svr := server.New(cfg)
+			// svr.Run()
 
 			return nil
 		},

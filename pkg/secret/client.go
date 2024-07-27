@@ -33,8 +33,6 @@ func NewClient() *SecretClient {
 		log.Fatalf("unable to initialize Vault client: %v", err)
 	}
 
-	client.SetToken(env.Get("IDP_VAULT_ROOT_TOKEN"))
-
 	return &SecretClient{
 		Client:  client,
 		ctx:     context.TODO(),
@@ -42,11 +40,15 @@ func NewClient() *SecretClient {
 	}
 }
 
-func (sc *SecretClient) LogInWithAppRole(roleID string) error {
-	secretID := &auth.SecretID{FromString: ""}
+func (sc *SecretClient) LogInWithRoot() {
+	sc.Client.SetToken(env.Get("IDP_VAULT_ROOT_TOKEN"))
+}
+
+func (sc *SecretClient) LogInWithAppRole(roleID, secretID string) error {
+	sid := &auth.SecretID{FromString: secretID}
 	appRoleAuth, err := auth.NewAppRoleAuth(
 		roleID,
-		secretID,
+		sid,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to initialize AppRole auth method: %w", err)

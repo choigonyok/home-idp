@@ -129,13 +129,13 @@ func getStatusCmd() *cobra.Command {
 			fmt.Println()
 
 			configFilePath, nil := cmd.PersistentFlags().GetString("config")
-			fileContent, nil := file.ReadFile(configFilePath, os.Stdin)
+			fileContent, nil := file.ReadFile(configFilePath)
 			// fileContent, nil := file.ReadYamlFile(*f.config, os.Stdin)
 			// if yamlSyntaxErr := file.ValidateYamlFileFormat(fileContent); yamlSyntaxErr != nil {
 			// 	return yamlSyntaxErr
 			// }
 
-			gvk, obj := object.ParseObjectsFromManifest(fileContent)
+			gvk, obj := object.ParseObjectsFromManifest(string(fileContent))
 
 			mapIOP := make(map[string]any)
 			yaml.Unmarshal([]byte(fileContent), &mapIOP)

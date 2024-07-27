@@ -9,8 +9,9 @@ import (
 
 func CreateRepository(name string, private bool, gc *GitClient) error {
 	r := &github.Repository{
-		Name:    github.String(name),
-		Private: github.Bool(private),
+		Name:                github.String(name),
+		Private:             github.Bool(private),
+		SecurityAndAnalysis: nil,
 	}
 	r, _, err := gc.Client.Repositories.Create(context.TODO(), "", r)
 	if err != nil {

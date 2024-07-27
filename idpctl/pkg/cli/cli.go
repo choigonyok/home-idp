@@ -2,8 +2,6 @@ package cli
 
 import (
 	ptr "github.com/choigonyok/home-idp/pkg/pointer"
-	"github.com/spf13/pflag"
-	v1 "k8s.io/api/core/v1"
 )
 
 type RootFlags struct {
@@ -33,32 +31,6 @@ type RootFlags struct {
 // 	clients map[string]kube.CLIClient
 // 	RootFlags
 // }
-
-func AddRootFlags(flags *pflag.FlagSet) *RootFlags {
-	rootFlag := &RootFlags{
-		// namespace: ptr.Of[string](""),
-		namespace: ptr.Of[string](""),
-		config:    ptr.Of[string](""),
-	}
-	// flags.StringVar(f.configContext, FlagContext, "", "Kubernetes configuration context")
-	flags.StringVarP(rootFlag.namespace, "namespace", "n", v1.NamespaceAll, "Kubernetes namespace")
-	flags.StringVarP(rootFlag.config, "config", "f", v1.NamespaceAll, "home-idp config file")
-
-	return rootFlag
-}
-
-func AddFlags(flags *pflag.FlagSet) *RootFlags {
-	rootFlag := &RootFlags{
-		// namespace: ptr.Of[string](""),
-		namespace: ptr.Of[string](""),
-		config:    ptr.Of[string](""),
-	}
-	// flags.StringVar(f.configContext, FlagContext, "", "Kubernetes configuration context")
-	flags.StringVarP(rootFlag.namespace, "namespace", "n", v1.NamespaceAll, "Kubernetes namespace")
-	flags.StringVarP(rootFlag.config, "config", "f", v1.NamespaceAll, "home-idp config file")
-
-	return rootFlag
-}
 
 func NewCLIContext(rootFlags *RootFlags) *RootFlags {
 	if rootFlags == nil {
