@@ -1,13 +1,23 @@
 package grpc
 
-import "net"
+import (
+	"net"
 
-func NewListenerConn(port string) net.Conn {
-	l, _ := net.Listen("tcp", "127.0.0.1:"+port)
-	c, _ := l.Accept()
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+)
 
-	defer l.Close()
-	defer c.Close()
+func NewListener(port string) net.Listener {
+	l, _ := net.Listen("tcp", ":"+port)
+	return l
+}
 
-	return c
+func NewClientConn(port string) *grpc.ClientConn {
+	// tlsOpt, _ := credentials.NewClientTLSFromFile()
+	grpcOptions := []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		// grpc.WithTransportCredentials(tlsOpt),
+	}
+	conn, _ := grpc.NewClient("localhost:5103", grpcOptions...)
+	return conn
 }

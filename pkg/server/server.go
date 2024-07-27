@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/choigonyok/home-idp/pkg/kube"
+	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -36,6 +37,15 @@ var (
 		},
 	}
 )
+
+func New() *grpc.Server {
+	svr := grpc.NewServer(
+		grpc.MaxConcurrentStreams(100),
+		// grpc.ConnectionTimeout(time.Duration(30)),
+	)
+
+	return svr
+}
 
 // func (svr *Server) Run() error {
 // fmt.Println("SERVER IS RUNING NOW")
