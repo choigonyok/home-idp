@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	svc "github.com/choigonyok/home-idp/secret-manager/pkg/service"
@@ -17,9 +18,11 @@ type SecretManager struct {
 }
 
 type SecretManagerConfig struct {
-	Enabled    bool                        `yaml:"enabled,omitempty"`
-	Service    *svc.SecretManagerSvcConfig `yaml:"service,omitempty"`
-	Replicas   int                         `yaml:"replicas,omitempty"`
+	Enabled  bool                        `yaml:"enabled,omitempty"`
+	Service  *svc.SecretManagerSvcConfig `yaml:"service,omitempty"`
+	Replicas int                         `yaml:"replicas,omitempty"`
+	Storage  *config.StorageConfig       `yaml:"storage,omitempty"`
+
 	KubeConfig *rest.Config
 }
 
@@ -35,6 +38,12 @@ func (c *SecretManager) Init(filepath string) error {
 
 func (c *SecretManager) setEnvFromConfig() {
 	env.Set("SECRET_MANAGER_PORT", strconv.Itoa(c.Config.Service.Port))
+	env.Set("SECRET_MANAGER_STORAGE_TYPE", c.Config.Storage.Type)
+	env.Set("SECRET_MANAGER_STORAGE_HOST", c.Config.Storage.Host)
+	env.Set("SECRET_MANAGER_STORAGE_USERNAME", c.Config.Storage.Username)
+	env.Set("SECRET_MANAGER_STORAGE_PASSWORD", c.Config.Storage.Password)
+	env.Set("SECRET_MANAGER_STORAGE_DATABASE", c.Config.Storage.Database)
+	env.Set("SECRET_MANAGER_STORAGE_PORT", strconv.Itoa(c.Config.Storage.Port))
 }
 
 func (c *SecretManager) Get(key string) (any, bool, error) {

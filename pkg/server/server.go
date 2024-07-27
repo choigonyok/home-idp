@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/kube"
+	"github.com/choigonyok/home-idp/pkg/storage"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,11 +40,21 @@ var (
 	}
 )
 
-func New() *grpc.Server {
-	svr := grpc.NewServer(
-		grpc.MaxConcurrentStreams(100),
-		// grpc.ConnectionTimeout(time.Duration(30)),
-	)
+type Server struct {
+	Server        *grpc.Server
+	StorageClient storage.StorageClient
+}
+
+func New(component config.Components) *Server {
+	svr := &Server{
+		Server: grpc.NewServer(
+			grpc.MaxConcurrentStreams(100),
+			// grpc.ConnectionTimeout(time.Duration(30)),
+		),
+	}
+	client, _ := storage.NewClient(component)
+	client.Init(component)
+	svr.StorageClient = client
 
 	return svr
 }

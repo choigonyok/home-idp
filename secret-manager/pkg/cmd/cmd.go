@@ -70,21 +70,17 @@ func getTestCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("TEST COMMAND START")
 
-			fmt.Println("WATING GRPC CONNECTION")
+			fmt.Println("SERVER CONFIGURATION START")
+			s := server.New(config.SecretManager)
+			defer s.StorageClient.Close()
 
-			s := server.New()
-			pb.RegisterGreeterServer(s, &grpcServer{})
+			fmt.Println("REGISTER GRPC")
+			pb.RegisterGreeterServer(s.Server, &grpcServer{})
 			l := grpc.NewListener(env.Get("SECRET_MANAGER_PORT"))
 			defer l.Close()
 
-			s.Serve(l)
-
-			// cfg := config.New(component)
-			// cfg.Set()
-
-			// svr := server.New(cfg)
-			// svr.Run()
-
+			fmt.Println("LISTENER START")
+			s.Server.Serve(l)
 			return nil
 		},
 	}
@@ -108,7 +104,7 @@ func getTestClientCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			fmt.Println("TEST COMMAND START")
 
-			conn := grpc.NewClientConn("5103")
+			conn := grpc.NewClientConn("localhost", "5103")
 			defer conn.Close()
 			c := pb.NewGreeterClient(conn)
 

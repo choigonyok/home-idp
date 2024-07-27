@@ -12,12 +12,12 @@ func NewListener(port string) net.Listener {
 	return l
 }
 
-func NewClientConn(port string) *grpc.ClientConn {
+func NewClientConn(dst, port string) *grpc.ClientConn {
 	// tlsOpt, _ := credentials.NewClientTLSFromFile()
 	grpcOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		// grpc.WithTransportCredentials(tlsOpt),
 	}
-	conn, _ := grpc.NewClient("localhost:5103", grpcOptions...)
+	conn, _ := grpc.NewClient(dst+":"+port, grpcOptions...)
 	return conn
 }
