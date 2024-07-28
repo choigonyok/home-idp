@@ -4,6 +4,7 @@ type Components int
 
 const (
 	SecretManager Components = iota
+	DeployManager
 )
 
 type StorageConfig struct {

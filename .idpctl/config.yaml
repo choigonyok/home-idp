@@ -11,4 +11,9 @@ secret-manager:
     database: secretmanager
     port: 5432
 
+deploy-manager:
+  enabled: true
+  replicas: 3
+  
+  
     

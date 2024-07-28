@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"log"
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
@@ -29,6 +30,7 @@ func (pc *PostgreSQLClient) Close() error {
 func (pc *PostgreSQLClient) Init(component config.Components) error {
 	switch component {
 	case 0: // Secret-Manager
+		log.Printf("Start initializing postgresql database...")
 		pc.initSecretManagerPostgreSQL()
 	}
 	return nil
@@ -36,6 +38,7 @@ func (pc *PostgreSQLClient) Init(component config.Components) error {
 
 func newPostgreSQLClient(component config.Components) *PostgreSQLClient {
 	url := getPostgresqlUrl(component)
+	log.Printf("Start connecting with postgresql database...")
 	db, _ := sql.Open("pgx", url)
 
 	return &PostgreSQLClient{
@@ -56,22 +59,18 @@ func getPostgresqlUrl(component config.Components) string {
 	port := env.Get(prefix + "_STORAGE_PORT")
 	database := env.Get(prefix + "_STORAGE_DATABASE")
 
-	fmt.Printf("URL: postgres://%s:%s@%s:%s/%s", username, password, host, port,
-		database)
-	fmt.Printf("URL: postgres://%s:%s@%s:%s/%s", username, password, host, port,
-		database)
-	fmt.Printf("URL: postgres://%s:%s@%s:%s/%s", username, password, host, port,
-		database)
-
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", username, password, host, port, database)
 }
 
 func (pc *PostgreSQLClient) initSecretManagerPostgreSQL() error {
+	log.Printf("--- Start creating initial postgresql database tables")
 	if err := initializeSecretManagerPostgrSQLTables(pc.client); err != nil {
-		return err
+		return fmt.Errorf("\nFailed to create initial postgresql database tables")
 	}
+
+	log.Printf("--- Start creating initial postgresql database functions")
 	if err := initializeSecretManagerPostgreSQLFuncions(pc.client); err != nil {
-		return err
+		return fmt.Errorf("\nFailed to create initial postgresql database functions")
 	}
 	pc.getQuery = getSecretManagerPostgreSQLQuery("get")
 	pc.listQuery = getSecretManagerPostgreSQLQuery("list")

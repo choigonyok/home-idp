@@ -16,8 +16,10 @@ func NewClient(component config.Components) (StorageClient, error) {
 	switch component {
 	case 0: // Secret-Manager
 		client := newClient(env.Get("SECRET_MANAGER_STORAGE_TYPE"), component)
+		client.Init(component)
 		return client, nil
-
+	case 1: // Deploy-Manager
+		return nil, nil
 	}
 	return nil, fmt.Errorf("%s", "INVALID STORAGE TYPE")
 }

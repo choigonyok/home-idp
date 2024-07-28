@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/kube"
@@ -52,8 +53,8 @@ func New(component config.Components) *Server {
 			// grpc.ConnectionTimeout(time.Duration(30)),
 		),
 	}
+	log.Printf("Start configuring storage backend for the server...")
 	client, _ := storage.NewClient(component)
-	client.Init(component)
 	svr.StorageClient = client
 
 	return svr

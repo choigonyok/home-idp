@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/choigonyok/home-idp/pkg/config"
 
 	"github.com/spf13/cobra"
@@ -13,23 +11,15 @@ func GetServerCmd(component config.Components) *cobra.Command {
 	switch component {
 	case 0:
 		c = "secret-manager"
+	case 1:
+		c = "deploy-manager"
 	}
 
 	serverCmd := &cobra.Command{
 		Use:   "server",
-		Short: "Start home-idp " + c + " server",
-		Args:  cobra.ExactArgs(0),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			return nil
-		},
+		Short: "home-idp " + c + " server",
+		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("INSTALL " + c + " START")
-
-			// cfg := config.New(filepath)
-
-			// svr := server.New(cfg)
-			// svr.Run()
-
 			return nil
 		},
 	}
