@@ -4,6 +4,7 @@ import (
 	"errors"
 	"log"
 
+	"github.com/choigonyok/home-idp/deploy-manager/pkg/service"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	"gopkg.in/yaml.v2"
@@ -15,8 +16,9 @@ type DeployManager struct {
 }
 
 type DeployManagerConfig struct {
-	Enabled  bool `yaml:"enabled,omitempty"`
-	Replicas int  `yaml:"replicas,omitempty"`
+	Enabled  bool                            `yaml:"enabled,omitempty"`
+	Replicas int                             `yaml:"replicas,omitempty"`
+	Service  *service.DeployManagerSvcConfig `yaml:"service,omitempty"`
 
 	KubeConfig *rest.Config
 }

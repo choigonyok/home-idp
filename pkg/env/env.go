@@ -1,6 +1,10 @@
 package env
 
-import "os"
+import (
+	"os"
+
+	"github.com/choigonyok/home-idp/pkg/config"
+)
 
 func Get(key string) string {
 	return os.Getenv(key)
@@ -8,4 +12,16 @@ func Get(key string) string {
 
 func Set(key, value string) error {
 	return os.Setenv(key, value)
+}
+
+func GetEnvPrefix(c config.Components) string {
+	switch c {
+	case 0: // Secret-Manager
+		return "SECRET"
+	case 1: // Deploy-Manager
+		return "DEPLOY"
+	case 2: // Rbac-Manager
+		return "RBAC"
+	}
+	return ""
 }

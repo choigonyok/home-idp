@@ -4,8 +4,10 @@ import (
 	"errors"
 	"log"
 
+	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
 )
@@ -15,8 +17,10 @@ type RbacManager struct {
 }
 
 type RbacManagerConfig struct {
-	Enabled  bool `yaml:"enabled,omitempty"`
-	Replicas int  `yaml:"replicas,omitempty"`
+	Enabled  bool                          `yaml:"enabled,omitempty"`
+	Service  *service.RbacManagerSvcConfig `yaml:"service,omitempty"`
+	Replicas int                           `yaml:"replicas,omitempty"`
+	Storage  *config.StorageConfig         `yaml:"storage,omitempty"`
 
 	KubeConfig *rest.Config
 }

@@ -7,6 +7,7 @@ import (
 	"net"
 
 	"github.com/choigonyok/home-idp/pkg/config"
+	"github.com/choigonyok/home-idp/pkg/env"
 	idpgrpc "github.com/choigonyok/home-idp/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/kube"
 	pb "github.com/choigonyok/home-idp/pkg/proto"
@@ -50,7 +51,7 @@ type Server struct {
 }
 
 func New(component config.Components) *Server {
-	l := idpgrpc.NewListener("5105")
+	l := idpgrpc.NewListener(env.GetEnvPrefix(component) + env.Get("_MANAGER_PORT"))
 
 	svr := &Server{
 		Server:   idpgrpc.NewServer(),
