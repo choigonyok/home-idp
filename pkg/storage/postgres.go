@@ -36,10 +36,7 @@ func (pc *PostgreSQLClient) Init(component config.Components) error {
 
 func newPostgreSQLClient(component config.Components) *PostgreSQLClient {
 	url := getPostgresqlUrl(component)
-	db, err := sql.Open("pgx", url)
-	fmt.Println("OPEN ERR:", err)
-	fmt.Println("OPEN ERR:", err)
-	fmt.Println("OPEN ERR:", err)
+	db, _ := sql.Open("pgx", url)
 
 	return &PostgreSQLClient{
 		client: db,
@@ -86,15 +83,13 @@ func (pc *PostgreSQLClient) initSecretManagerPostgreSQL() error {
 
 // createInitialTables create initial tables for components
 func initializeSecretManagerPostgrSQLTables(db *sql.DB) error {
-	_, err := db.Exec(`
-CREATE TABLE ` + secretManagerDefaultTableName + ` (
+	_, err := db.Exec(`CREATE TABLE ` + secretManagerDefaultTableName + ` (
 	secret_id SERIAL PRIMARY KEY,
 	user_id INT NOT NULL,
 	project VARCHAR(100) NOT NULL,
 	value_hash TEXT NOT NULL,
-	key_hash VARCHAR(100) NOT NULL,
-);
-	`)
+	key_hash VARCHAR(100) NOT NULL
+);`)
 	return err
 }
 
@@ -125,3 +120,11 @@ func getSecretManagerPostgreSQLQuery(method string) string {
 	}
 	return ""
 }
+
+// CREATE TABLE testtable (
+// 	secret_id SERIAL PRIMARY KEY,
+// 	user_id INT NOT NULL,
+// 	project VARCHAR(100) NOT NULL,
+// 	value_hash TEXT NOT NULL,
+// 	key_hash VARCHAR(100) NOT NULL
+// );
