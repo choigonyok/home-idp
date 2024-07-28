@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net"
 
 	"github.com/choigonyok/home-idp/pkg/config"
+	idpgrpc "github.com/choigonyok/home-idp/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/kube"
+	pb "github.com/choigonyok/home-idp/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/storage"
-	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -42,20 +44,23 @@ var (
 )
 
 type Server struct {
-	Server        *grpc.Server
+	Server        *idpgrpc.GrpcServer
 	StorageClient storage.StorageClient
+	Listener      net.Listener
 }
 
 func New(component config.Components) *Server {
+	l := idpgrpc.NewListener("5105")
+
 	svr := &Server{
-		Server: grpc.NewServer(
-			grpc.MaxConcurrentStreams(100),
-			// grpc.ConnectionTimeout(time.Duration(30)),
-		),
+		Server:   idpgrpc.NewServer(),
+		Listener: l,
 	}
 	log.Printf("Start configuring storage backend for the server...")
 	client, _ := storage.NewClient(component)
 	svr.StorageClient = client
+
+	pb.RegisterGreeterServer(svr.Server.GrpcServer, svr.Server.PbServer)
 
 	return svr
 }

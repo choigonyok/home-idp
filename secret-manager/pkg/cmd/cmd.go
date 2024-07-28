@@ -9,7 +9,6 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/grpc"
 	pb "github.com/choigonyok/home-idp/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/server"
@@ -68,19 +67,14 @@ func getTestCmd() *cobra.Command {
 			return sm.Init(filepath)
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("TEST COMMAND START")
+			log.Printf("Start installing secret-manager server...")
+			svr := server.New(config.SecretManager)
+			defer svr.StorageClient.Close()
+			defer svr.Listener.Close()
+			log.Printf("Installing secret-manager server is completed successfully!")
 
-			fmt.Println("SERVER CONFIGURATION START")
-			s := server.New(config.SecretManager)
-			defer s.StorageClient.Close()
-
-			fmt.Println("REGISTER GRPC")
-			pb.RegisterGreeterServer(s.Server, &grpcServer{})
-			l := grpc.NewListener(env.Get("SECRET_MANAGER_PORT"))
-			defer l.Close()
-
-			fmt.Println("LISTENER START")
-			s.Server.Serve(l)
+			log.Printf("Every installation has been finished successfully!\n")
+			svr.Server.GrpcServer.Serve(svr.Listener)
 			return nil
 		},
 	}

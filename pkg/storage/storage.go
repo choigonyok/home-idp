@@ -20,6 +20,10 @@ func NewClient(component config.Components) (StorageClient, error) {
 		return client, nil
 	case 1: // Deploy-Manager
 		return nil, nil
+	case 2: // Rbac-Manager
+		client := newClient(env.Get("RBAC_MANAGER_STORAGE_TYPE"), component)
+		client.Init(component)
+		return client, nil
 	}
 	return nil, fmt.Errorf("%s", "INVALID STORAGE TYPE")
 }

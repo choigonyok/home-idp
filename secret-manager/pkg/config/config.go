@@ -46,6 +46,19 @@ func (c *SecretManager) setEnvFromConfig() {
 	env.Set("SECRET_MANAGER_STORAGE_PORT", strconv.Itoa(c.Config.Storage.Port))
 }
 
+func (c *SecretManager) parseSecretManagerConfigFile(filepath string) error {
+	if !file.Exist(filepath) {
+		return fmt.Errorf("%s", "Config File Required")
+	}
+
+	bytes, _ := file.ReadFile(filepath)
+
+	if err := yaml.Unmarshal(bytes, c); err != nil {
+		return fmt.Errorf("FAIL CONFIG YAML UNMARSHAL")
+	}
+	return nil
+}
+
 func (c *SecretManager) Get(key string) (any, bool, error) {
 	fmt.Println("START FINDING", key)
 	v := reflect.ValueOf(c)
@@ -63,17 +76,4 @@ func (c *SecretManager) Get(key string) (any, bool, error) {
 	}
 	fmt.Println("ELEM:", v.FieldByName(sf.Name))
 	return v.FieldByName(sf.Name), true, nil
-}
-
-func (c *SecretManager) parseSecretManagerConfigFile(filepath string) error {
-	if !file.Exist(filepath) {
-		return fmt.Errorf("%s", "Config File Required")
-	}
-
-	bytes, _ := file.ReadFile(filepath)
-
-	if err := yaml.Unmarshal(bytes, c); err != nil {
-		return fmt.Errorf("FAIL CONFIG YAML UNMARSHAL")
-	}
-	return nil
 }

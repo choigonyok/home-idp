@@ -1,14 +1,11 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	deploymanagerconfig "github.com/choigonyok/home-idp/deploy-manager/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/grpc"
-	pb "github.com/choigonyok/home-idp/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/server"
 	"github.com/spf13/cobra"
 )
@@ -16,10 +13,6 @@ import (
 const (
 	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
 )
-
-type grpcServer struct {
-	pb.UnimplementedGreeterServer
-}
 
 // type grpcServer struct {
 // 	pb.UnimplementedGreeterServer
@@ -73,22 +66,17 @@ func getServerStartCmd() *cobra.Command {
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			dm := deploymanagerconfig.New()
 			dm.Init(filepath)
-			fmt.Println("ENABELD:", dm.Config.Enabled)
-			fmt.Println("REPLICAS:", dm.Config.Replicas)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Printf("Start installing deploy-manager server...")
-			s := server.New(config.DeployManager)
+			svr := server.New(config.DeployManager)
+			defer svr.Listener.Close()
+			defer svr.StorageClient.Close()
 			log.Printf("Installing deploy-manager server is completed successfully!")
 
-			log.Printf("Start attach grpc server to deploy-manager server...")
-			pb.RegisterGreeterServer(s.Server, &grpcServer{})
-			l := grpc.NewListener("5104")
-			defer l.Close()
-
-			log.Printf("Every installation has finished successfully!\n")
-			s.Server.Serve(l)
+			log.Printf("Every installation has been finished successfully!\n")
+			svr.Server.GrpcServer.Serve(svr.Listener)
 			return nil
 		},
 	}

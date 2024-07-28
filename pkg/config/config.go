@@ -5,6 +5,7 @@ type Components int
 const (
 	SecretManager Components = iota
 	DeployManager
+	RbacManager
 )
 
 type StorageConfig struct {
