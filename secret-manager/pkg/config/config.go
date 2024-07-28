@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 
@@ -31,12 +32,13 @@ func New() *SecretManager {
 }
 
 func (c *SecretManager) Init(filepath string) error {
-	c.parseSecretManagerConfigFile(filepath)
+	c.parseManagerConfigFile(filepath)
 	c.setEnvFromConfig()
 	return nil
 }
 
 func (c *SecretManager) setEnvFromConfig() {
+	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("SECRET_MANAGER_PORT", strconv.Itoa(c.Config.Service.Port))
 	env.Set("SECRET_MANAGER_STORAGE_TYPE", c.Config.Storage.Type)
 	env.Set("SECRET_MANAGER_STORAGE_HOST", c.Config.Storage.Host)
@@ -46,7 +48,7 @@ func (c *SecretManager) setEnvFromConfig() {
 	env.Set("SECRET_MANAGER_STORAGE_PORT", strconv.Itoa(c.Config.Storage.Port))
 }
 
-func (c *SecretManager) parseSecretManagerConfigFile(filepath string) error {
+func (c *SecretManager) parseManagerConfigFile(filepath string) error {
 	if !file.Exist(filepath) {
 		return fmt.Errorf("%s", "Config File Required")
 	}

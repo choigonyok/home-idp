@@ -10,10 +10,6 @@ import (
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
-const (
-	secretManagerDefaultTableName = "secret"
-)
-
 type PostgreSQLClient struct {
 	table       string
 	client      *sql.DB
@@ -32,6 +28,9 @@ func (pc *PostgreSQLClient) Init(component config.Components) error {
 	case 0: // Secret-Manager
 		log.Printf("Start initializing postgresql database...")
 		pc.initSecretManagerPostgreSQL()
+	case 2: // Rbac-Manager
+		log.Printf("Start initializing postgresql database...")
+		pc.initRbacManagerPostgreSQL()
 	}
 	return nil
 }
@@ -47,17 +46,13 @@ func newPostgreSQLClient(component config.Components) *PostgreSQLClient {
 }
 
 func getPostgresqlUrl(component config.Components) string {
-	prefix := ""
-	switch component {
-	case 0:
-		prefix = "SECRET_MANAGER"
-	}
+	prefix := env.GetEnvPrefix(component)
 
-	username := env.Get(prefix + "_STORAGE_USERNAME")
-	password := env.Get(prefix + "_STORAGE_PASSWORD")
-	host := env.Get(prefix + "_STORAGE_HOST")
-	port := env.Get(prefix + "_STORAGE_PORT")
-	database := env.Get(prefix + "_STORAGE_DATABASE")
+	username := env.Get(prefix + "_MANAGER_STORAGE_USERNAME")
+	password := env.Get(prefix + "_MANAGER_STORAGE_PASSWORD")
+	host := env.Get(prefix + "_MANAGER_STORAGE_HOST")
+	port := env.Get(prefix + "_MANAGER_STORAGE_PORT")
+	database := env.Get(prefix + "_MANAGER_STORAGE_DATABASE")
 
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", username, password, host, port, database)
 }
@@ -80,15 +75,53 @@ func (pc *PostgreSQLClient) initSecretManagerPostgreSQL() error {
 	return nil
 }
 
+func (pc *PostgreSQLClient) initRbacManagerPostgreSQL() error {
+	log.Printf("--- Start creating initial postgresql database tables")
+	if err := initializeRbacManagerPostgrSQLTables(pc.client); err != nil {
+		return fmt.Errorf("\nFailed to create initial postgresql database tables")
+	}
+
+	log.Printf("--- Start creating initial postgresql database functions")
+	if err := initializeRbacManagerPostgreSQLFuncions(pc.client); err != nil {
+		return fmt.Errorf("\nFailed to create initial postgresql database functions")
+	}
+	pc.getQuery = getRbacManagerPostgreSQLQuery("get")
+	pc.listQuery = getRbacManagerPostgreSQLQuery("list")
+	pc.deleteQuery = getRbacManagerPostgreSQLQuery("delete")
+	pc.putQuery = getRbacManagerPostgreSQLQuery("put")
+
+	return nil
+}
+
 // createInitialTables create initial tables for components
 func initializeSecretManagerPostgrSQLTables(db *sql.DB) error {
-	_, err := db.Exec(`CREATE TABLE ` + secretManagerDefaultTableName + ` (
+	_, err := db.Exec(`CREATE TABLE secrets (
 	secret_id SERIAL PRIMARY KEY,
 	user_id INT NOT NULL,
 	project VARCHAR(100) NOT NULL,
 	value_hash TEXT NOT NULL,
 	key_hash VARCHAR(100) NOT NULL
 );`)
+	return err
+}
+
+// createInitialTables create initial tables for components
+func initializeRbacManagerPostgrSQLTables(db *sql.DB) error {
+	_, err := db.Exec(`
+CREATE TABLE users (
+	user_id SERIAL PRIMARY KEY,
+	name VARCHAR(100) NOT NULL,
+	email VARCHAR(100) NOT NULL,
+	role_id INT NOT NULL
+);
+
+CREATE TABLE roles (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(100) NOT NULL,
+	policy JSON NOT NULL,
+	project VARCHAR(100) NOT NULL
+);
+`)
 	return err
 }
 
@@ -106,16 +139,34 @@ func initializeSecretManagerPostgreSQLFuncions(db *sql.DB) error {
 	return nil
 }
 
+func initializeRbacManagerPostgreSQLFuncions(db *sql.DB) error {
+	return nil
+}
+
 func getSecretManagerPostgreSQLQuery(method string) string {
 	switch method {
 	case "put":
-		return "INSERT INTO " + secretManagerDefaultTableName + " VALUES($1, $2, $3, $4)" + " ON CONFLICT (path, key) DO " + " UPDATE SET (project, path, key, value) = ($1, $2, $3, $4)"
+		return "INSERT INTO secrets VALUES($1, $2, $3, $4)" + " ON CONFLICT (path, key) DO " + " UPDATE SET (project, path, key, value) = ($1, $2, $3, $4)"
 	case "get":
-		return "SELECT value FROM " + secretManagerDefaultTableName + " WHERE path = $1 AND key = $2"
+		return "SELECT value FROM secrets WHERE path = $1 AND key = $2"
 	case "delete":
-		return "DELETE FROM " + secretManagerDefaultTableName + " WHERE path = $1 AND key = $2"
+		return "DELETE FROM secrets WHERE path = $1 AND key = $2"
 	case "list":
-		return "SELECT key FROM " + secretManagerDefaultTableName + " WHERE path = $1" + " UNION ALL SELECT DISTINCT substring(substr(path, length($1)+1) from '^.*?/') FROM " + secretManagerDefaultTableName + " WHERE parent_path LIKE $1 || '%'"
+		return "SELECT key FROM secrets WHERE path = $1" + " UNION ALL SELECT DISTINCT substring(substr(path, length($1)+1) from '^.*?/') FROM secrets WHERE parent_path LIKE $1 || '%'"
+	}
+	return ""
+}
+
+func getRbacManagerPostgreSQLQuery(method string) string {
+	switch method {
+	case "put":
+		return "INSERT INTO {TABLE_NAME} VALUES($1, $2, $3, $4)"
+	case "get":
+		return "SELECT value FROM {TABLE_NAME}"
+	case "delete":
+		return "DELETE FROM {TABLE_NAME}"
+	case "list":
+		return "SELECT key FROM {TABLE_NAME}"
 	}
 	return ""
 }

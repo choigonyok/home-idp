@@ -8,7 +8,7 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
-	idpgrpc "github.com/choigonyok/home-idp/pkg/grpc"
+	"github.com/choigonyok/home-idp/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/kube"
 	pb "github.com/choigonyok/home-idp/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/storage"
@@ -45,22 +45,23 @@ var (
 )
 
 type Server struct {
-	Server        *idpgrpc.GrpcServer
+	Server        *grpc.GrpcServer
 	StorageClient storage.StorageClient
 	Listener      net.Listener
 }
 
 func New(component config.Components) *Server {
-	l := idpgrpc.NewListener(env.GetEnvPrefix(component) + env.Get("_MANAGER_PORT"))
+	l := grpc.NewListener(env.Get(env.GetEnvPrefix(component) + "_MANAGER_PORT"))
 
 	svr := &Server{
-		Server:   idpgrpc.NewServer(),
+		Server:   grpc.NewServer(),
 		Listener: l,
 	}
 	log.Printf("Start configuring storage backend for the server...")
 	client, _ := storage.NewClient(component)
 	svr.StorageClient = client
 
+	log.Printf("Start integrating grpc server...")
 	pb.RegisterGreeterServer(svr.Server.GrpcServer, svr.Server.PbServer)
 
 	return svr

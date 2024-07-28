@@ -50,7 +50,7 @@ func getServerStartCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Printf("Start installing rbac-manager server...")
-			svr := server.New(config.DeployManager)
+			svr := server.New(config.RbacManager)
 			defer svr.Listener.Close()
 			defer svr.StorageClient.Close()
 

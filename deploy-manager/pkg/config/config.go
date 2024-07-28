@@ -29,7 +29,7 @@ func New() *DeployManager {
 
 func (c *DeployManager) Init(filepath string) error {
 	log.Printf("Start reading home-idp configuration file...")
-	c.parseSecretManagerConfigFile(filepath)
+	c.parseManagerConfigFile(filepath)
 	c.setEnvFromConfig()
 	return nil
 }
@@ -39,7 +39,7 @@ func (c *DeployManager) setEnvFromConfig() {
 	env.Set("KUBECONFIG", "$HOME/.kube/config")
 }
 
-func (c *DeployManager) parseSecretManagerConfigFile(filepath string) error {
+func (c *DeployManager) parseManagerConfigFile(filepath string) error {
 	if !file.Exist(filepath) {
 		log.Fatalf("Cannot find config file in %s", filepath)
 		return errors.New("Cannot find config file")

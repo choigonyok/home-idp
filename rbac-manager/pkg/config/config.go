@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"log"
+	"strconv"
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
@@ -31,17 +32,23 @@ func New() *RbacManager {
 
 func (c *RbacManager) Init(filepath string) error {
 	log.Printf("Start reading home-idp configuration file...")
-	c.parseSecretManagerConfigFile(filepath)
+	c.parseManagerConfigFile(filepath)
 	c.setEnvFromConfig()
 	return nil
 }
 
 func (c *RbacManager) setEnvFromConfig() {
 	log.Printf("Start injecting appropriate environments variables...")
-	env.Set("KUBECONFIG", "$HOME/.kube/config")
+	env.Set("RBAC_MANAGER_PORT", strconv.Itoa(c.Config.Service.Port))
+	env.Set("RBAC_MANAGER_STORAGE_TYPE", c.Config.Storage.Type)
+	env.Set("RBAC_MANAGER_STORAGE_HOST", c.Config.Storage.Host)
+	env.Set("RBAC_MANAGER_STORAGE_USERNAME", c.Config.Storage.Username)
+	env.Set("RBAC_MANAGER_STORAGE_PASSWORD", c.Config.Storage.Password)
+	env.Set("RBAC_MANAGER_STORAGE_DATABASE", c.Config.Storage.Database)
+	env.Set("RBAC_MANAGER_STORAGE_PORT", strconv.Itoa(c.Config.Storage.Port))
 }
 
-func (c *RbacManager) parseSecretManagerConfigFile(filepath string) error {
+func (c *RbacManager) parseManagerConfigFile(filepath string) error {
 	if !file.Exist(filepath) {
 		log.Fatalf("Cannot find config file in %s", filepath)
 		return errors.New("Cannot find config file")
