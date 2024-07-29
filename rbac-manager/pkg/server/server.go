@@ -9,6 +9,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/grpc"
+	rbacstorage "github.com/choigonyok/home-idp/rbac-manager/pkg/storage"
 )
 
 type RbacServer struct {
@@ -32,7 +33,7 @@ func (s *RbacServer) Run() {
 }
 
 func New(component util.Components) server.Server {
-	sc, _ := storage.NewClient(component)
+	sc, _ := rbacstorage.NewClient(component)
 	svr := &RbacServer{
 		Grpc:          grpc.NewServer(),
 		StorageClient: sc,
