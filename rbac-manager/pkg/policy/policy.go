@@ -13,7 +13,7 @@ type Policy struct {
 	Action []string      `json:"action"`
 }
 
-func ParseToStruct(policy []byte) (*Policy, error) {
+func parseToStruct(policy []byte) (*Policy, error) {
 	if !json.Valid(policy) {
 		log.Fatalf("Invalid policy format!")
 		fmt.Println("ERROR")
@@ -32,4 +32,34 @@ func ParseToStruct(policy []byte) (*Policy, error) {
 	}
 
 	return tmp.Policy, nil
+}
+
+func GetDefaultPolicy() *Policy {
+	p := &Policy{
+		Name:   "admin",
+		Effect: "Allow",
+		Target: &PolicyTarget{
+			Deploy: &PolicyTargetDeploy{
+				Namespace: []string{"*"},
+				GVK:       []string{"*"},
+				Resource: &PolicyTargetDeployResource{
+					CPU:    "",
+					Memory: "",
+					Disk:   "",
+				},
+			},
+			Secret: &PolicyTargetSecret{
+				Path: []string{"*"},
+			},
+		},
+		Action: []string{"*"},
+	}
+
+	Store(p)
+	return p
+}
+
+func Store(p *Policy) error {
+	// STORE TO STORAGE
+	return nil
 }

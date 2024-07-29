@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/server"
 	rbacmanagerconfig "github.com/choigonyok/home-idp/rbac-manager/pkg/config"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/policy"
 	rbacserver "github.com/choigonyok/home-idp/rbac-manager/server"
 	"github.com/spf13/cobra"
 )
@@ -58,53 +56,6 @@ func getServerStartCmd() *cobra.Command {
 			log.Printf("Installing rbac-manager server is completed successfully!")
 			log.Printf("Every installation has been finished successfully!\n")
 
-			p, _ := policy.ParseToStruct([]byte(`
-			{
-				"policy": {
-					"name": "example-policy",
-					"effect": "Ask/Allow/Deny",
-					"target": {
-						"deploy": {
-							"namespace": [
-								"default",
-								"test"
-							],
-							"resource": {
-								"cpu": "500m",
-								"memory": "1024Mi",
-								"disk": "200Gi"
-							},
-							"gvk": [
-								"apps/v1/Deployments",
-								"networking.k8s.io/v1/Ingress",
-								"/vi/Pod"
-							]
-						},
-						"secret": {
-							"path": [
-								"/path1/to/secret/*",
-								"/path2/to/secret/*"
-							]
-						}			
-					},
-					"action": [
-						"Get",
-						"Put",
-						"Delete",
-						"List"
-					]
-				}
-			}
-			`))
-			fmt.Println("Name:", p.Name)
-			fmt.Println("Effect:", p.Effect)
-			fmt.Println("Actions:", p.Action)
-			fmt.Println("Deploy.GVKs:", p.Target.Deploy.GVK)
-			fmt.Println("Deploy.Namespace:", p.Target.Deploy.Namespace)
-			fmt.Println("Deploy.CPU:", p.Target.Deploy.Resource.CPU)
-			fmt.Println("Deploy.Memory:", p.Target.Deploy.Resource.Memory)
-			fmt.Println("Deploy.Disk:", p.Target.Deploy.Resource.Disk)
-			fmt.Println("Secret.path:", p.Target.Secret.Path)
 			svr.Server.Serve()
 			return nil
 		},
