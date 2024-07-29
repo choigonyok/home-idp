@@ -1,0 +1,36 @@
+// protoc --go_out=rbac-manager/pkg/proto --go-grpc_out=rbac-manager/pkg/proto rbac-manager/pkg/proto/rbac.proto
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./";
+
+service User {
+    rpc PutUser (UserRequest) returns (UserReply) {}
+    rpc ListUser (UserRequest) returns (UserReply) {}
+    rpc GetUser (UserRequest) returns (UserReply) {}
+    rpc DeleteUser (UserRequest) returns (UserReply) {}
+}
+
+service Role {
+  rpc PutRole (RoleRequest) returns (RoleReply) {}
+  rpc ListRole (RoleRequest) returns (RoleReply) {}
+  rpc GetRole (RoleRequest) returns (RoleReply) {}
+  rpc DeleteRole (RoleRequest) returns (RoleReply) {}
+}
+
+message RoleRequest {
+    string name = 1;
+}
+
+message RoleReply {
+  string message = 1;
+}
+
+message UserRequest {
+  string name = 1;
+}
+
+message UserReply {
+string message = 1;
+}

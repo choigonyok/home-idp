@@ -1,23 +1,22 @@
 package cmd
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/config"
+
 	"github.com/choigonyok/home-idp/pkg/server"
 	rbacmanagerconfig "github.com/choigonyok/home-idp/rbac-manager/pkg/config"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/policy"
+	rbacserver "github.com/choigonyok/home-idp/rbac-manager/server"
 	"github.com/spf13/cobra"
 )
 
 const (
 	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
 )
-
-// func (s *grpcServer) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-// 	log.Printf("Received: %v", in.GetName())
-// 	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
-// }
 
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
@@ -30,6 +29,7 @@ func NewRootCmd() *cobra.Command {
 }
 
 func addSubCmds(c *cobra.Command) {
+
 	serverCmd := cmd.GetServerCmd(config.RbacManager)
 	c.AddCommand(serverCmd)
 	serverCmd.AddCommand(getServerStartCmd())
@@ -51,13 +51,61 @@ func getServerStartCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Printf("Start installing rbac-manager server...")
 			svr := server.New(config.RbacManager)
-			defer svr.Listener.Close()
+			rbacserver.IntegrateGrpcServerToServer(svr)
+			defer svr.Server.CloseListner()
 			defer svr.StorageClient.Close()
 
 			log.Printf("Installing rbac-manager server is completed successfully!")
-
 			log.Printf("Every installation has been finished successfully!\n")
-			svr.Server.GrpcServer.Serve(svr.Listener)
+
+			p, _ := policy.ParseToStruct([]byte(`
+			{
+				"policy": {
+					"name": "example-policy",
+					"effect": "Ask/Allow/Deny",
+					"target": {
+						"deploy": {
+							"namespace": [
+								"default",
+								"test"
+							],
+							"resource": {
+								"cpu": "500m",
+								"memory": "1024Mi",
+								"disk": "200Gi"
+							},
+							"gvk": [
+								"apps/v1/Deployments",
+								"networking.k8s.io/v1/Ingress",
+								"/vi/Pod"
+							]
+						},
+						"secret": {
+							"path": [
+								"/path1/to/secret/*",
+								"/path2/to/secret/*"
+							]
+						}			
+					},
+					"action": [
+						"Get",
+						"Put",
+						"Delete",
+						"List"
+					]
+				}
+			}
+			`))
+			fmt.Println("Name:", p.Name)
+			fmt.Println("Effect:", p.Effect)
+			fmt.Println("Actions:", p.Action)
+			fmt.Println("Deploy.GVKs:", p.Target.Deploy.GVK)
+			fmt.Println("Deploy.Namespace:", p.Target.Deploy.Namespace)
+			fmt.Println("Deploy.CPU:", p.Target.Deploy.Resource.CPU)
+			fmt.Println("Deploy.Memory:", p.Target.Deploy.Resource.Memory)
+			fmt.Println("Deploy.Disk:", p.Target.Deploy.Resource.Disk)
+			fmt.Println("Secret.path:", p.Target.Secret.Path)
+			svr.Server.Serve()
 			return nil
 		},
 	}

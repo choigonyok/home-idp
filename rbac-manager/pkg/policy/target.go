@@ -1,13 +1,18 @@
 package policy
 
-type PolicyTarget interface {
-	StoreTarget()
+// type PolicyTarget interface {
+// 	StoreTarget()
+// }
+
+type PolicyTarget struct {
+	Deploy *PolicyTargetDeploy `json:"deploy"`
+	Secret *PolicyTargetSecret `json:"secret"`
 }
 
 type PolicyTargetDeploy struct {
 	Namespace []string                    `json:"namespace"`
 	Resource  *PolicyTargetDeployResource `json:"resource"`
-	GVKs      []string                    `json:"gvk"`
+	GVK       []string                    `json:"gvk"`
 }
 
 type PolicyTargetDeployResource struct {
@@ -17,7 +22,7 @@ type PolicyTargetDeployResource struct {
 }
 
 type PolicyTargetSecret struct {
-	Path string `json:"path"`
+	Path []string `json:"path"`
 }
 
 func (s *PolicyTargetSecret) StoreTarget() {}
