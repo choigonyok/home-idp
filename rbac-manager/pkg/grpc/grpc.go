@@ -10,22 +10,22 @@ import (
 	"google.golang.org/grpc"
 )
 
-type RbacGrpcServer struct {
+type GrpcServer struct {
 	Server   *grpc.Server
 	PbUser   pb.UnimplementedUserServer
 	PbRole   pb.UnimplementedRoleServer
 	Listener net.Listener
 }
 
-func (s *RbacGrpcServer) PutRole(ctx context.Context, in *pb.RoleRequest) (*pb.RoleReply, error) {
+func (s *GrpcServer) PutRole(ctx context.Context, in *pb.RoleRequest) (*pb.RoleReply, error) {
 	log.Printf("Received: %v", in.GetName())
 	return &pb.RoleReply{Message: "Hello " + in.GetName()}, nil
 }
 
-func NewRbacGrpcServer() *RbacGrpcServer {
+func NewServer() *GrpcServer {
 	l, _ := net.Listen("tcp", ":"+env.Get("RBAC_MANAGER_PORT"))
 
-	s := &RbacGrpcServer{
+	s := &GrpcServer{
 		Server: grpc.NewServer(
 			grpc.MaxConcurrentStreams(100),
 			// grpc.ConnectionTimeout(time.Duration(30)),

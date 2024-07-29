@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/util"
 	_ "github.com/jackc/pgx/v4/stdlib"
 )
 
@@ -23,7 +23,7 @@ func (pc *PostgreSQLClient) Close() error {
 	return pc.client.Close()
 }
 
-func (pc *PostgreSQLClient) Init(component config.Components) error {
+func (pc *PostgreSQLClient) Init(component util.Components) error {
 	switch component {
 	case 0: // Secret-Manager
 		log.Printf("Start initializing postgresql database...")
@@ -35,7 +35,7 @@ func (pc *PostgreSQLClient) Init(component config.Components) error {
 	return nil
 }
 
-func newPostgreSQLClient(component config.Components) *PostgreSQLClient {
+func newPostgreSQLClient(component util.Components) *PostgreSQLClient {
 	url := getPostgresqlUrl(component)
 	log.Printf("Start connecting with postgresql database...")
 	db, _ := sql.Open("pgx", url)
@@ -45,7 +45,7 @@ func newPostgreSQLClient(component config.Components) *PostgreSQLClient {
 	}
 }
 
-func getPostgresqlUrl(component config.Components) string {
+func getPostgresqlUrl(component util.Components) string {
 	prefix := env.GetEnvPrefix(component)
 
 	username := env.Get(prefix + "_MANAGER_STORAGE_USERNAME")

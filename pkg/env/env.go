@@ -3,7 +3,7 @@ package env
 import (
 	"os"
 
-	"github.com/choigonyok/home-idp/pkg/config"
+	"github.com/choigonyok/home-idp/pkg/util"
 )
 
 func Get(key string) string {
@@ -14,7 +14,7 @@ func Set(key, value string) error {
 	return os.Setenv(key, value)
 }
 
-func GetEnvPrefix(c config.Components) string {
+func GetEnvPrefix(c util.Components) string {
 	switch c {
 	case 0: // Secret-Manager
 		return "SECRET"

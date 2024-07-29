@@ -4,11 +4,10 @@ import (
 	"log"
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
-	"github.com/choigonyok/home-idp/pkg/config"
+	"github.com/choigonyok/home-idp/pkg/util"
 
-	"github.com/choigonyok/home-idp/pkg/server"
 	rbacmanagerconfig "github.com/choigonyok/home-idp/rbac-manager/pkg/config"
-	rbacserver "github.com/choigonyok/home-idp/rbac-manager/server"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/server"
 	"github.com/spf13/cobra"
 )
 
@@ -28,7 +27,7 @@ func NewRootCmd() *cobra.Command {
 
 func addSubCmds(c *cobra.Command) {
 
-	serverCmd := cmd.GetServerCmd(config.RbacManager)
+	serverCmd := cmd.GetServerCmd(util.RbacManager)
 	c.AddCommand(serverCmd)
 	serverCmd.AddCommand(getServerStartCmd())
 }
@@ -48,15 +47,15 @@ func getServerStartCmd() *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Printf("Start installing rbac-manager server...")
-			svr := server.New(config.RbacManager)
-			rbacserver.IntegrateGrpcServerToServer(svr)
-			defer svr.Server.CloseListner()
-			defer svr.StorageClient.Close()
+			svr := server.New(util.RbacManager)
+			defer svr.Close()
 
 			log.Printf("Installing rbac-manager server is completed successfully!")
 			log.Printf("Every installation has been finished successfully!\n")
 
-			svr.Server.Serve()
+			svr.TestSendEmail()
+
+			svr.Run()
 			return nil
 		},
 	}

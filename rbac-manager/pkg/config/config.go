@@ -8,6 +8,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/mail"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
@@ -22,6 +23,7 @@ type RbacManagerConfig struct {
 	Service  *service.RbacManagerSvcConfig `yaml:"service,omitempty"`
 	Replicas int                           `yaml:"replicas,omitempty"`
 	Storage  *config.StorageConfig         `yaml:"storage,omitempty"`
+	Smtp     *mail.SmtpClient              `yaml:"smtp,omitempty"`
 
 	KubeConfig *rest.Config
 }
@@ -46,6 +48,14 @@ func (c *RbacManager) setEnvFromConfig() {
 	env.Set("RBAC_MANAGER_STORAGE_PASSWORD", c.Config.Storage.Password)
 	env.Set("RBAC_MANAGER_STORAGE_DATABASE", c.Config.Storage.Database)
 	env.Set("RBAC_MANAGER_STORAGE_PORT", strconv.Itoa(c.Config.Storage.Port))
+	if c.Config.Smtp.Enabled == true {
+		env.Set("RBAC_MANAGER_SMTP_HOST", c.Config.Smtp.Config.Host)
+		env.Set("RBAC_MANAGER_SMTP_PORT", c.Config.Smtp.Config.Port)
+		env.Set("RBAC_MANAGER_SMTP_USER", c.Config.Smtp.Config.User)
+		env.Set("RBAC_MANAGER_SMTP_PASSWORD", c.Config.Smtp.Config.Password)
+		env.Set("RBAC_MANAGER_SMTP_DOMAIN", c.Config.Smtp.Config.Domain)
+		env.Set("RBAC_MANAGER_SMTP_ENABLED", strconv.FormatBool(c.Config.Smtp.Enabled))
+	}
 }
 
 func (c *RbacManager) parseManagerConfigFile(filepath string) error {

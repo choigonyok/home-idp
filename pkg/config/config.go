@@ -1,11 +1,8 @@
 package config
 
-type Components int
-
-const (
-	SecretManager Components = iota
-	DeployManager
-	RbacManager
+import (
+	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/util"
 )
 
 type StorageConfig struct {
@@ -15,4 +12,19 @@ type StorageConfig struct {
 	Password string `yaml:"password,omitempty"`
 	Database string `yaml:"database,omitempty"`
 	Port     int    `yaml:"port,omitempty"`
+}
+
+func Enabled(component util.Components, client string) bool {
+	prefix := env.GetEnvPrefix(component)
+	switch client {
+	case "mail":
+		if env.Get(prefix+"_MANAGER_SMTP_ENABLED") == "true" {
+			return true
+		}
+	case "storage":
+		if env.Get(prefix+"_MANAGER_SMTP_ENABLED") == "true" {
+			return true
+		}
+	}
+	return false
 }

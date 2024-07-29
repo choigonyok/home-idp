@@ -1,12 +1,11 @@
 package cmd
 
 import (
-	"github.com/choigonyok/home-idp/pkg/config"
-
+	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/spf13/cobra"
 )
 
-func GetServerCmd(component config.Components) *cobra.Command {
+func GetServerCmd(component util.Components) *cobra.Command {
 	c := ""
 	switch component {
 	case 0:
