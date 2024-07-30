@@ -1,30 +1,45 @@
 package storage
 
-import "database/sql"
-
-type PostgresClient struct {
-	table       string
-	client      *sql.DB
-	putQuery    string
-	getQuery    string
-	deleteQuery string
-	listQuery   string
-}
+import (
+	"database/sql"
+)
 
 func initPostgresTables(db *sql.DB) error {
 	_, err := db.Exec(`
-CREATE TABLE users (
-	user_id SERIAL PRIMARY KEY,
-	name VARCHAR(100) NOT NULL,
-	email VARCHAR(100) NOT NULL,
-	role_id INT NOT NULL
+CREATE TABLE project (
+	id SERIAL PRIMARY KEY,
+	create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE roles (
+CREATE TABLE users (
 	id SERIAL PRIMARY KEY,
 	name VARCHAR(100) NOT NULL,
+	email VARCHAR(100) NOT NULL,
+	password_hash VARCHAR(100) NOT NULL,
+	project_id INTEGER NOT NULL,
+	FOREIGN KEY (project_id) REFERENCES project(id)
+);
+
+CREATE TABLE role (
+	id SERIAL PRIMARY KEY,
+	name VARCHAR(100) NOT NULL,
+	project_id INTEGER NOT NULL,
+	FOREIGN KEY (project_id) REFERENCES project(id)
+);
+
+CREATE TABLE userrolemapping (
+	user_id INTEGER NOT NULL,
+	role_id INTEGER NOT NULL,
+	PRIMARY KEY (user_id, role_id),
+	FOREIGN KEY (user_id) REFERENCES users(id),
+	FOREIGN KEY (role_id) REFERENCES role(id)
+);
+
+CREATE TABLE policy (
+	id SERIAL PRIMARY KEY,
 	policy JSON NOT NULL,
-	project VARCHAR(100) NOT NULL
+	role_id INTEGER NOT NULL,
+	FOREIGN KEY (role_id) REFERENCES role(id)
 );
 `)
 	return err
