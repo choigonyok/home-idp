@@ -1,8 +1,6 @@
 package grpc
 
 import (
-	"context"
-	"log"
 	"net"
 
 	"github.com/choigonyok/home-idp/pkg/env"
@@ -10,30 +8,26 @@ import (
 	"google.golang.org/grpc"
 )
 
-type GrpcServer struct {
-	Server   *grpc.Server
-	PbUser   pb.UnimplementedUserServer
-	PbRole   pb.UnimplementedRoleServer
-	Listener net.Listener
+type RbacManagerServer struct {
+	// PbRole   pb.UnimplementedUserServiceServer
+	Server       *grpc.Server
+	PbUserServer *UserServiceServer
+	Listener     net.Listener
 }
 
-func (s *GrpcServer) PutRole(ctx context.Context, in *pb.RoleRequest) (*pb.RoleReply, error) {
-	log.Printf("Received: %v", in.GetName())
-	return &pb.RoleReply{Message: "Hello " + in.GetName()}, nil
-}
-
-func NewServer() *GrpcServer {
+func NewServer() *RbacManagerServer {
 	l, _ := net.Listen("tcp", ":"+env.Get("RBAC_MANAGER_PORT"))
 
-	s := &GrpcServer{
+	s := &RbacManagerServer{
 		Server: grpc.NewServer(
 			grpc.MaxConcurrentStreams(100),
 			// grpc.ConnectionTimeout(time.Duration(30)),
 		),
-		Listener: l,
+		Listener:     l,
+		PbUserServer: &UserServiceServer{},
 	}
-	pb.RegisterRoleServer(s.Server, s.PbRole)
-	pb.RegisterUserServer(s.Server, s.PbUser)
+
+	pb.RegisterUserServiceServer(s.Server, s.PbUserServer)
 
 	return s
 }

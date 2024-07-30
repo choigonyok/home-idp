@@ -13,7 +13,7 @@ import (
 )
 
 type RbacServer struct {
-	Grpc          *grpc.GrpcServer
+	Grpc          *grpc.RbacManagerServer
 	StorageClient storage.StorageClient
 	MailClient    *mail.SmtpClient
 }
@@ -48,6 +48,6 @@ func New(component util.Components) server.Server {
 	return svr
 }
 
-func (s *RbacServer) TestSendEmail() error {
-	return s.MailClient.SendMail([]string{"achoistic98@naver.com"})
-}
+// func (s *RbacServer) TestSendEmail() error {
+// 	return s.MailClient.SendMail([]string{"achoistic98@naver.com"})
+// }

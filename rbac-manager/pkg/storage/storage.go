@@ -15,5 +15,9 @@ func NewClient(component util.Components) (storage.StorageClient, error) {
 		return nil, err
 	}
 
+	client.SetDeleteQuery(getDeleteQuery())
+	client.SetGetQuery(getGetQuery())
+	client.SetPutQuery(getPutQuery())
+	client.SetListQuery(getListQuery())
 	return client, nil
 }
