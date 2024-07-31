@@ -25,3 +25,12 @@ func NewServer() *RbacManagerServer {
 
 	return s
 }
+
+func (s *RbacManagerServer) Close() error {
+	s.Server.Stop()
+	return s.Listener.Close()
+}
+
+func (s *RbacManagerServer) Run() {
+	s.Server.Serve(s.Listener)
+}

@@ -2,7 +2,6 @@ package grpc
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
@@ -49,7 +48,6 @@ func (s *UserServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) 
 		util.Hash(in.Password),
 		in.ProjectId,
 	)
-	fmt.Println("ERROR:", err)
 	if err != nil {
 		return &pb.Success{
 			Succeed: false,

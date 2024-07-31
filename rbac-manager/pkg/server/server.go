@@ -13,31 +13,34 @@ import (
 	rbacstorage "github.com/choigonyok/home-idp/rbac-manager/pkg/storage"
 )
 
-type RbacServer struct {
-	Grpc          *grpc.RbacManagerServer
+type RbacManager struct {
+	Server        server.Server
 	StorageClient storage.StorageClient
-	MailClient    *mail.SmtpClient
+	MailClient    mail.MailClient
+	Config        config.Config
 }
 
-func (s *RbacServer) Close() error {
-	if err := s.Grpc.Listener.Close(); err != nil {
+func (rbac *RbacManager) Close() error {
+	if err := rbac.Server.Close(); err != nil {
 		return err
 	}
 
-	if err := s.StorageClient.Close(); err != nil {
+	if err := rbac.StorageClient.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *RbacServer) Run() {
-	s.Grpc.Server.Serve(s.Grpc.Listener)
+func (s *RbacManager) Run() {
+	s.Server.Run()
 }
 
-func New(component util.Components) server.Server {
+func New(component util.Components, cfg config.Config) server.Server {
+	s := grpc.NewServer()
 	sc, _ := rbacstorage.NewClient(component)
-	svr := &RbacServer{
-		Grpc:          grpc.NewServer(),
+
+	svr := &RbacManager{
+		Server:        s,
 		StorageClient: sc,
 	}
 
@@ -50,7 +53,7 @@ func New(component util.Components) server.Server {
 	pbServer := &grpc.UserServiceServer{
 		StorageClient: svr.StorageClient,
 	}
-	pb.RegisterUserServiceServer(svr.Grpc.Server, pbServer)
+	pb.RegisterUserServiceServer(s.Server, pbServer)
 
 	return svr
 }
