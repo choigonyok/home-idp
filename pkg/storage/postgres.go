@@ -50,13 +50,26 @@ func getPostgresqlUrl(component util.Components) string {
 	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", username, password, host, port, database)
 }
 
-// func initializeSecretManagerPostgrSQLTables(db *sql.DB) error {
-// 	_, err := db.Exec(`CREATE TABLE secrets (
-// 	secret_id SERIAL PRIMARY KEY,
-// 	user_id INT NOT NULL,
-// 	project VARCHAR(100) NOT NULL,
-// 	value_hash TEXT NOT NULL,
-// 	key_hash VARCHAR(100) NOT NULL
+//	func initializeSecretManagerPostgrSQLTables(db *sql.DB) error {
+//		_, err := db.Exec(`CREATE TABLE secrets (
+//		secret_id SERIAL PRIMARY KEY,
+//		user_id INT NOT NULL,
+//		project VARCHAR(100) NOT NULL,
+//		value_hash TEXT NOT NULL,
+//		key_hash VARCHAR(100) NOT NULL
+//
 // );`)
+//
+//		return err
+//	}
+// func (s *RbacServer) PutQuery(table string, data storage.Data) error {
+// 	_, err := s.StorageClient.DB().Exec(
+// 		s.StorageClient.GetPutQuery(),
+// 		table,
+// 		"'"+data.UsersName+"'",
+// 		data.UsersEmail,
+// 		util.Hash(data.UsersPassword),
+// 		data.ProjectId,
+// 	)
 // 	return err
 // }

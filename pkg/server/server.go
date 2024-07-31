@@ -40,7 +40,6 @@ var (
 type Server interface {
 	Close() error
 	Run()
-	TestSendEmail() error
 }
 
 func run() {

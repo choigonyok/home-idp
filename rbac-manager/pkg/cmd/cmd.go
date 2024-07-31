@@ -90,26 +90,24 @@ func getTestClientCmd() *cobra.Command {
 			// log.Printf("Every installation has been finished successfully!\n")
 
 			// svr.Run()
-			fmt.Println("T1")
 			conn1 := grpc.NewClientConn("localhost", "5105")
-			fmt.Println("T2")
 			defer conn1.Close()
-
 			c1 := pb.NewUserServiceClient(conn1)
-			fmt.Println("T3")
 			ctx1, cancel := context.WithTimeout(context.Background(), time.Second*1)
-			fmt.Println("T4")
 			defer cancel()
-			fmt.Println("T5")
 
-			r1, err := c1.GetUserInfo(ctx1, &pb.GetUserInfoRequest{
-				Id: int32(1),
+			// r1, err := c1.GetUserInfo(ctx1, &pb.GetUserInfoRequest{
+			// 	Id: int32(1),
+			// })
+			r2, err := c1.PutUser(ctx1, &pb.PutUserRequest{
+				Email:     "tester1234@naver.com",
+				Name:      "TESTER-choi",
+				Password:  "HEWWL",
+				ProjectId: 1,
 			})
-			fmt.Println("T6")
-			fmt.Println(err)
-			fmt.Println(r1.GetPassword())
-			fmt.Println(r1.GetName())
-			fmt.Println(r1.GetEmail())
+
+			fmt.Println("ERROR:", err)
+			fmt.Println("SUCCESS: ", r2.GetSucceed())
 			return nil
 		},
 	}

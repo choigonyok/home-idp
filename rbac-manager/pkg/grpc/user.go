@@ -2,13 +2,17 @@ package grpc
 
 import (
 	"context"
+	"fmt"
 	"log"
 
+	"github.com/choigonyok/home-idp/pkg/storage"
+	"github.com/choigonyok/home-idp/pkg/util"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 )
 
 type UserServiceServer struct {
 	pb.UnimplementedUserServiceServer
+	StorageClient storage.StorageClient
 }
 
 func (s *UserServiceServer) GetUserInfo(ctx context.Context, in *pb.GetUserInfoRequest) (*pb.GetUserInfoReply, error) {
@@ -38,6 +42,20 @@ func (s *UserServiceServer) DeleteUser(ctx context.Context, in *pb.DeleteUserReq
 }
 
 func (s *UserServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.Success, error) {
+	_, err := s.StorageClient.DB().Exec(
+		`INSERT INTO users (email, name, password_hash, project_id) VALUES ($1, $2, $3, $4)`,
+		in.Email,
+		in.Name,
+		util.Hash(in.Password),
+		in.ProjectId,
+	)
+	fmt.Println("ERROR:", err)
+	if err != nil {
+		return &pb.Success{
+			Succeed: false,
+		}, err
+	}
+
 	return &pb.Success{
 		Succeed: true,
 	}, nil

@@ -8,35 +8,33 @@ import (
 	"github.com/choigonyok/home-idp/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/grpc"
-	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
-	rbacstorage "github.com/choigonyok/home-idp/rbac-manager/pkg/storage"
+	"github.com/choigonyok/home-idp/secret-manager/pkg/grpc"
+	secretstorage "github.com/choigonyok/home-idp/secret-manager/pkg/storage"
 )
 
-type RbacServer struct {
-	Grpc          *grpc.RbacManagerServer
+type SecretServer struct {
+	Grpc          *grpc.SecretManagerServer
 	StorageClient storage.StorageClient
 	MailClient    *mail.SmtpClient
 }
 
-func (s *RbacServer) Close() error {
+func (s *SecretServer) Close() error {
 	if err := s.Grpc.Listener.Close(); err != nil {
 		return err
 	}
-
 	if err := s.StorageClient.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *RbacServer) Run() {
+func (s *SecretServer) Run() {
 	s.Grpc.Server.Serve(s.Grpc.Listener)
 }
 
 func New(component util.Components) server.Server {
-	sc, _ := rbacstorage.NewClient(component)
-	svr := &RbacServer{
+	sc, _ := secretstorage.NewClient(component)
+	svr := &SecretServer{
 		Grpc:          grpc.NewServer(),
 		StorageClient: sc,
 	}
@@ -47,14 +45,5 @@ func New(component util.Components) server.Server {
 		svr.MailClient = mc
 	}
 
-	pbServer := &grpc.UserServiceServer{
-		StorageClient: svr.StorageClient,
-	}
-	pb.RegisterUserServiceServer(svr.Grpc.Server, pbServer)
-
 	return svr
 }
-
-// func (s *RbacServer) TestSendEmail() error {
-// 	return s.MailClient.SendMail([]string{"achoistic98@naver.com"})
-// }

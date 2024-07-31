@@ -1,18 +1,12 @@
 package cmd
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
-	"time"
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
-	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/grpc"
-	pb "github.com/choigonyok/home-idp/pkg/proto"
-	"github.com/choigonyok/home-idp/pkg/server"
-	secretmanagercfg "github.com/choigonyok/home-idp/secret-manager/pkg/config"
+	"github.com/choigonyok/home-idp/pkg/util"
+	secretmanagerconfig "github.com/choigonyok/home-idp/secret-manager/pkg/config"
+	"github.com/choigonyok/home-idp/secret-manager/pkg/server"
 	"github.com/spf13/cobra"
 )
 
@@ -20,103 +14,80 @@ const (
 	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
 )
 
-type grpcServer struct {
-	pb.UnimplementedGreeterServer
-}
-
-func (s *grpcServer) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
-	log.Printf("Received: %v", in.GetName())
-	return &pb.HelloReply{Message: "Hello " + in.GetName()}, nil
-}
-
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "secret-manager",
 		Short: "Home-idp Secret-Manager",
 		Args:  cobra.ExactArgs(0),
 	}
-
-	// c.PersistentFlags().AddGoFlagSet(flag.CommandLine)
-	// addRootFlags(c)
 	addSubCmds(c)
-
 	return c
 }
 
-func addRootFlags(c *cobra.Command) {
-	c.PersistentFlags().StringP("namespace", "n", "", "Kubernetes namespace")
-}
-
 func addSubCmds(c *cobra.Command) {
-	c.AddCommand(cmd.GetServerCmd(config.SecretManager))
-	c.AddCommand(getTestCmd())
-	c.AddCommand(getTestClientCmd())
+	serverCmd := cmd.GetServerCmd(util.SecretManager)
+	c.AddCommand(serverCmd)
 
-	getTestCmd().Flags().BoolP("float", "f", false, "Add Floating Numbers")
+	serverCmd.AddCommand(getServerStartCmd())
 }
 
-func getTestCmd() *cobra.Command {
+func getServerStartCmd() *cobra.Command {
 	var filepath string
+	var namespace string
 
-	testCmd := &cobra.Command{
-		Use:   "test",
-		Short: "test",
+	serverStartCmd := &cobra.Command{
+		Use:   "start",
+		Short: "start rbac-manager server",
 		Args:  cobra.ExactArgs(0),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
-			sm := secretmanagercfg.New()
-			return sm.Init(filepath)
+			sm := secretmanagerconfig.New()
+			sm.Init(filepath)
+			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			log.Printf("Start installing secret-manager server...")
-			svr := server.New(config.SecretManager)
-			defer svr.StorageClient.Close()
-			defer svr.Listener.Close()
-			log.Printf("Installing secret-manager server is completed successfully!")
+			svr := server.New(util.SecretManager)
+			defer svr.Close()
 
+			log.Printf("Installing rbac-manager server is completed successfully!")
 			log.Printf("Every installation has been finished successfully!\n")
-			svr.Server.GrpcServer.Serve(svr.Listener)
+
+			svr.Run()
 			return nil
 		},
 	}
 
-	testCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Secret Manager Configuration File")
+	serverStartCmd.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "Namespace where deploy-manager server is installed")
+	serverStartCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Configuration file path for deploy-manager")
 
-	return testCmd
+	return serverStartCmd
 }
 
-func getTestClientCmd() *cobra.Command {
-	var filepath string
+// func getTestCmd() *cobra.Command {
+// 	var filepath string
 
-	testCmd := &cobra.Command{
-		Use:   "test-client",
-		Short: "test-client",
-		// Args:  cobra.ExactArgs(1),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			sm := secretmanagercfg.New()
-			return sm.Init(filepath)
-		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			fmt.Println("TEST COMMAND START")
+// 	testCmd := &cobra.Command{
+// 		Use:   "test",
+// 		Short: "test",
+// 		Args:  cobra.ExactArgs(0),
+// 		PreRunE: func(cmd *cobra.Command, args []string) error {
+// 			sm := secretmanagercfg.New()
+// 			return sm.Init(filepath)
+// 		},
+// 		RunE: func(cmd *cobra.Command, args []string) error {
+// 			log.Printf("Start installing secret-manager server...")
+// 			svr := server.New(config.SecretManager)
+// 			defer svr.StorageClient.Close()
+// 			defer svr.Listener.Close()
+// 			log.Printf("Installing secret-manager server is completed successfully!")
 
-			conn := grpc.NewClientConn("localhost", "5103")
-			defer conn.Close()
-			c := pb.NewGreeterClient(conn)
+// 			log.Printf("Every installation has been finished successfully!\n")
+// 			svr.Server.GrpcServer.Serve(svr.Listener)
+// 			return nil
+// 		},
+// 	}
 
-			name := "world"
-			if len(os.Args) > 1 {
-				name = os.Args[1]
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*50)
-			defer cancel()
-			r, err := c.SayHello(ctx, &pb.HelloRequest{Name: name})
-			fmt.Println(err)
-			fmt.Println(r.GetMessage())
+// 	testCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Secret Manager Configuration File")
 
-			return nil
-		},
-	}
-
-	testCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Secret Manager Configuration File")
-
-	return testCmd
-}
+// 	return testCmd
+// }

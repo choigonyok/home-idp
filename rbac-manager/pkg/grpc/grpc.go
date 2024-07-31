@@ -4,15 +4,12 @@ import (
 	"net"
 
 	"github.com/choigonyok/home-idp/pkg/env"
-	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"google.golang.org/grpc"
 )
 
 type RbacManagerServer struct {
-	// PbRole   pb.UnimplementedUserServiceServer
-	Server       *grpc.Server
-	PbUserServer *UserServiceServer
-	Listener     net.Listener
+	Server   *grpc.Server
+	Listener net.Listener
 }
 
 func NewServer() *RbacManagerServer {
@@ -23,11 +20,8 @@ func NewServer() *RbacManagerServer {
 			grpc.MaxConcurrentStreams(100),
 			// grpc.ConnectionTimeout(time.Duration(30)),
 		),
-		Listener:     l,
-		PbUserServer: &UserServiceServer{},
+		Listener: l,
 	}
-
-	pb.RegisterUserServiceServer(s.Server, s.PbUserServer)
 
 	return s
 }

@@ -1,9 +1,8 @@
 package config
 
 import (
-	"fmt"
+	"errors"
 	"log"
-	"reflect"
 	"strconv"
 
 	"github.com/choigonyok/home-idp/pkg/config"
@@ -32,6 +31,7 @@ func New() *SecretManager {
 }
 
 func (c *SecretManager) Init(filepath string) error {
+	log.Printf("Start reading home-idp configuration file...")
 	c.parseManagerConfigFile(filepath)
 	c.setEnvFromConfig()
 	return nil
@@ -50,32 +50,35 @@ func (c *SecretManager) setEnvFromConfig() {
 
 func (c *SecretManager) parseManagerConfigFile(filepath string) error {
 	if !file.Exist(filepath) {
-		return fmt.Errorf("%s", "Config File Required")
+		log.Fatalf("Cannot find config file in %s", filepath)
+		return errors.New("Cannot find config file")
 	}
 
 	bytes, _ := file.ReadFile(filepath)
 
+	log.Printf("Start parsing home-idp configuration file...")
 	if err := yaml.Unmarshal(bytes, c); err != nil {
-		return fmt.Errorf("FAIL CONFIG YAML UNMARSHAL")
+		log.Fatalf("Invalid config file format")
+		return errors.New("Invalid config file format")
 	}
 	return nil
 }
 
-func (c *SecretManager) Get(key string) (any, bool, error) {
-	fmt.Println("START FINDING", key)
-	v := reflect.ValueOf(c)
+// func (c *SecretManager) Get(key string) (any, bool, error) {
+// 	fmt.Println("START FINDING", key)
+// 	v := reflect.ValueOf(c)
 
-	if v.Kind() != reflect.Pointer {
-		return nil, false, fmt.Errorf("%s", "IS NOT POINTER TYPE")
-	}
+// 	if v.Kind() != reflect.Pointer {
+// 		return nil, false, fmt.Errorf("%s", "IS NOT POINTER TYPE")
+// 	}
 
-	v = v.Elem()
+// 	v = v.Elem()
 
-	sf, ok := v.Type().FieldByName(key)
+// 	sf, ok := v.Type().FieldByName(key)
 
-	if !ok {
-		return nil, false, nil
-	}
-	fmt.Println("ELEM:", v.FieldByName(sf.Name))
-	return v.FieldByName(sf.Name), true, nil
-}
+// 	if !ok {
+// 		return nil, false, nil
+// 	}
+// 	fmt.Println("ELEM:", v.FieldByName(sf.Name))
+// 	return v.FieldByName(sf.Name), true, nil
+// }
