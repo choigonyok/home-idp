@@ -5,9 +5,9 @@ import (
 	"strconv"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/service"
+	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
-	"k8s.io/client-go/rest"
 )
 
 type Gateway struct {
@@ -15,31 +15,31 @@ type Gateway struct {
 }
 
 type GatewayConfig struct {
+	Name     string
 	Enabled  bool                      `yaml:"enabled,omitempty"`
 	Service  *service.GatewaySvcConfig `yaml:"service,omitempty"`
 	Replicas int                       `yaml:"replicas,omitempty"`
-
-	KubeConfig *rest.Config
 }
 
-func New() *Gateway {
-	return &Gateway{
-		Config: &GatewayConfig{
-			Service: &service.GatewaySvcConfig{},
-		},
+func New() *GatewayConfig {
+	cfg := &GatewayConfig{
+		Name: "gateway",
 	}
-}
 
-func (c *Gateway) Init(filepath string) error {
 	log.Printf("Start reading home-idp configuration file...")
-	file.ParseConfigFile(c, filepath)
-	setEnvFromConfig(c.Config)
-	return nil
+	file.ParseConfigFile(cfg, config.DefaultConfigFilePath)
+	cfg.SetEnvFromConfig()
+
+	return cfg
 }
 
-func setEnvFromConfig(cfg *GatewayConfig) {
+func (cfg *GatewayConfig) SetEnvFromConfig() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Service.Port))
 	env.Set("GATEWAY_SERVICE_TYPE", cfg.Service.Type)
 	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Enabled))
+}
+
+func (cfg *GatewayConfig) GetName() string {
+	return cfg.Name
 }

@@ -39,14 +39,10 @@ func getServerStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "start gateway server",
 		Args:  cobra.ExactArgs(0),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			cfg := gatewayconfig.New()
-			cfg.Init(filepath)
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := gatewayconfig.New()
 			log.Printf("Start installing gateway...")
-			svr := server.New()
+			svr := server.New(cfg)
 			defer svr.Close()
 
 			log.Printf("Installing rbac-manager server is completed successfully!")
