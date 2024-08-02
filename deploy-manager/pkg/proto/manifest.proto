@@ -1,0 +1,56 @@
+// protoc --go_out=rbac-manager/pkg/proto --go-grpc_out=rbac-manager/pkg/proto rbac-manager/pkg/proto/rbac.proto
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./";
+
+service ManifestService {
+  rpc ApplyManifest (ApplyManifestRequest) returns (SuccessReply) {}
+  rpc DeleteManifest (DeleteManifestRequest) returns (SuccessReply) {}
+}
+
+message Manifest {
+  string group = 1;
+  string version = 2;
+  string kind = 3;
+}
+
+message Metadata {
+  string name = 1;
+  string namespace = 2;
+  repeated string annotations = 3;
+  repeated Labels label = 4;
+}
+
+message Labels {
+  string key = 1;
+  string value = 2;
+}
+
+message Spec {
+  repeated string name = 1;;
+  string value = 2;
+}
+
+message SuccessReply {
+  bool Succeed = 1;
+}
+
+message ApplyManifestRequest {
+  Manifest group = 1;
+  Manifest version = 2;
+  Manifest kind = 3;
+  Metadata name = 4;
+  Metadata namespace = 5;
+  repeated Metadata annotations = 6;
+  repeated Metadata label = 7;
+}
+
+message DeleteManifestRequest {
+  Manifest group = 1;
+  Manifest version = 2;
+  Manifest kind = 3;
+  Metadata name = 4;
+  Metadata namespace = 5;
+}
