@@ -1,32 +1,32 @@
 {
-	"Policy": {
-		"Name": "example-policy",
-		"Effect": "Ask/Allow/Deny",
-		"Targets": {
-			"Deploy": {
-				"Namespaces": [
+	"policy": {
+		"name": "example-policy",
+		"effect": "Ask/Allow/Deny",
+		"target": {
+			"deploy": {
+				"namespace": [
 					"default",
 					"test"
 				],
-				"Resources": {
-					"CPU": "500m",
-					"Memory": "1024Mi",
-					"Disk": "200Gi"
+				"resource": {
+					"cpu": "500m",
+					"memory": "1024Mi",
+					"disk": "200Gi"
         },
-				"GVKs": [
+				"gvk": [
 					"apps/v1/Deployments",
 					"networking.k8s.io/v1/Ingress",
 					"/vi/Pod"
 				]
 			},
-			"Secret": {
-				"Paths": [
+			"secret": {
+				"path": [
 					"/path1/to/secret/*",
 					"/path2/to/secret/*"
 				]
 			}			
 		},
-		"Actions": [
+		"action": [
 			"Get",
       "Put",
       "Delete",
