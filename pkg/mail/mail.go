@@ -11,6 +11,10 @@ import (
 	"github.com/choigonyok/home-idp/pkg/util"
 )
 
+type MailClient interface {
+	SendMail(receivers []string) error
+}
+
 type SmtpClient struct {
 	Auth *smtp.Auth
 	Addr string

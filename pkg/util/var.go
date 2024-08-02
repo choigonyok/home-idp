@@ -6,4 +6,5 @@ const (
 	SecretManager Components = iota
 	DeployManager
 	RbacManager
+	Gateway
 )

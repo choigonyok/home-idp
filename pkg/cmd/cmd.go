@@ -14,6 +14,8 @@ func GetServerCmd(component util.Components) *cobra.Command {
 		c = "deploy-manager"
 	case 2:
 		c = "rbac-manager"
+	case 3:
+		c = "gateway"
 	}
 
 	serverCmd := &cobra.Command{

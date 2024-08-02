@@ -2,6 +2,7 @@ package kube
 
 import (
 	"context"
+	"fmt"
 
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
@@ -29,8 +30,12 @@ func ListServices(namespace string, client kubernetes.Interface) (*apiv1.Service
 	return client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
-func GetDynamicClient(restConfig *rest.Config) (*dynamic.DynamicClient, error) {
-	return dynamic.NewForConfig(restConfig)
+func GetDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
+	client, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return client, nil
 }
 
 func ApplyManifest(resource, namespace string, client dynamic.Interface, obj *unstructured.Unstructured, gvk schema.GroupVersionKind) {

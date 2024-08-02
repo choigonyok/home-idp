@@ -14,6 +14,15 @@ type StorageConfig struct {
 	Port     int    `yaml:"port,omitempty"`
 }
 
+type Config interface {
+	SetEnvFromConfig()
+	GetName() string
+}
+
+const (
+	DefaultConfigFilePath = "./.idtctl/config.yaml"
+)
+
 func Enabled(component util.Components, client string) bool {
 	prefix := env.GetEnvPrefix(component)
 	switch client {

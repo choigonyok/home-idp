@@ -11,7 +11,7 @@ type GrpcServer interface {
 	Serve()
 }
 
-func NewClientConn(dst, port string) *grpc.ClientConn {
+func NewClient(dst, port string) *grpc.ClientConn {
 	// tlsOpt, _ := credentials.NewClientTLSFromFile()
 	grpcOptions := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
