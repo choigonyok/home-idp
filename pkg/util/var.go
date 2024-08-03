@@ -7,4 +7,5 @@ const (
 	DeployManager
 	RbacManager
 	Gateway
+	InstallManager
 )
