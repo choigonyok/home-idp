@@ -65,7 +65,7 @@ func (c *HelmClient) AddRepository(repoName, repoUrl string, public bool) error 
 }
 
 // chartPath is like bitnami/mysql:10.2.1
-func (c *HelmClient) Install(repoChartVersion, namespace string) error {
+func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string) error {
 	repoName, after, _ := strings.Cut(repoChartVersion, "/")
 	chartName, versionName, found := strings.Cut(after, ":")
 	if !found {
@@ -97,7 +97,7 @@ func (c *HelmClient) Install(repoChartVersion, namespace string) error {
 		log.Fatalf("Failed to load chart: %s", err)
 	}
 
-	install.ReleaseName = fmt.Sprintf("%s-tester", chartName)
+	install.ReleaseName = releaseName
 
 	release, err := install.Run(chart, nil) // nil can be replaced with custom values
 	if err != nil {
@@ -105,6 +105,21 @@ func (c *HelmClient) Install(repoChartVersion, namespace string) error {
 	}
 
 	fmt.Printf("Chart %s has been installed to %s\n", release.Name, release.Namespace)
+
+	return nil
+}
+
+func (c *HelmClient) Uninstall(releaseName, namespace string) error {
+
+	actionConfig := new(action.Configuration)
+	c.Setting.SetNamespace(namespace)
+
+	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
+	}
+	uninstall := action.NewUninstall(actionConfig)
+
+	uninstall.Run(releaseName)
 
 	return nil
 }

@@ -53,7 +53,8 @@ func getServerStartCmd() *cobra.Command {
 
 			h := helm.New()
 			h.AddRepository("bitnami", "https://charts.bitnami.com/bitnami", true)
-			h.Install("bitnami/nginx:17.3.0", "default")
+			h.Install("bitnami/nginx:17.3.0", "default", "nginx-tester")
+			h.Uninstall("nginx-tester", "default")
 
 			svr.Run()
 			return nil
