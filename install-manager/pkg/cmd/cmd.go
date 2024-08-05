@@ -6,6 +6,7 @@ import (
 	installconfig "github.com/choigonyok/home-idp/deploy-manager/pkg/config"
 	"github.com/choigonyok/home-idp/install-manager/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/cmd"
+	"github.com/choigonyok/home-idp/pkg/helm"
 	"github.com/choigonyok/home-idp/pkg/util"
 
 	// pb "github.com/choigonyok/home-idp/instasll-manager/pkg/proto"
@@ -50,6 +51,10 @@ func getServerStartCmd() *cobra.Command {
 			log.Printf("Installing install-manager server is completed successfully!")
 			log.Printf("Every installation has been finished successfully!\n")
 
+			h := helm.New()
+			h.AddRepository("bitnami", "https://charts.bitnami.com/bitnami", true)
+			h.Install("bitnami/nginx:17.3.0", "default")
+
 			svr.Run()
 			return nil
 		},
@@ -60,51 +65,3 @@ func getServerStartCmd() *cobra.Command {
 
 	return serverStartCmd
 }
-
-// func getTestClientCmd() *cobra.Command {
-// 	var filepath string
-
-// 	testCmd := &cobra.Command{
-// 		Use:   "test-client",
-// 		Short: "test-client",
-// 		// Args:  cobra.ExactArgs(1),
-// 		// PreRunE: func(cmd *cobra.Command, args []string) error {
-// 		// 	dm := rbacmanagerconfig.New()
-// 		// 	dm.Init(filepath)
-// 		// 	return nil
-// 		// },
-// 		RunE: func(cmd *cobra.Command, args []string) error {
-// 			log.Printf("Start installing rbac-manager server...")
-// 			// svr := server.New(util.RbacManager)
-// 			// defer svr.Close()
-
-// 			// log.Printf("Installing rbac-manager server is completed successfully!")
-// 			// log.Printf("Every installation has been finished successfully!\n")
-
-// 			// svr.Run()
-// 			conn1 := grpc.NewClient("localhost", "5105")
-// 			defer conn1.Close()
-// 			c1 := pb.NewUserServiceClient(conn1)
-// 			ctx1, cancel := context.WithTimeout(context.Background(), time.Second*1)
-// 			defer cancel()
-
-// 			// r1, err := c1.GetUserInfo(ctx1, &pb.GetUserInfoRequest{
-// 			// 	Id: int32(1),
-// 			// })
-// 			r2, err := c1.PutUser(ctx1, &pb.PutUserRequest{
-// 				Email:     "tester1234@naver.com",
-// 				Name:      "TESTER-choi",
-// 				Password:  "HEWWL",
-// 				ProjectId: 1,
-// 			})
-
-// 			fmt.Println("ERROR:", err)
-// 			fmt.Println("SUCCESS: ", r2.GetSucceed())
-// 			return nil
-// 		},
-// 	}
-
-// 	testCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Secret Manager Configuration File")
-
-// 	return testCmd
-// }

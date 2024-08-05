@@ -2,91 +2,109 @@ package helm
 
 import (
 	"fmt"
+	"log"
+	"os"
+	"strings"
 
+	"helm.sh/helm/v3/pkg/action"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
 	"helm.sh/helm/v3/pkg/getter"
-	"helm.sh/helm/v3/pkg/registry"
 	"helm.sh/helm/v3/pkg/repo"
 )
 
 type HelmClient struct {
-	RegistryClient *registry.Client
+	Downloader *downloader.ChartDownloader
+	Setting    *cli.EnvSettings
+	Repository map[string]*repo.ChartRepository
 }
 
-func New() error {
-	set := &cli.EnvSettings{}
-	providers := getter.All(set)
+// func NewActionSetting
 
-	// helmRepoFilePath := filepath.Join(os.Getenv("HOME"), "Library", "Preferences", "helm", "repositories.yaml")
-	// 저장소 파일 로드
-	file := repo.NewFile()
+func New() *HelmClient {
+	settings := cli.New()
 
-	newEntry := &repo.Entry{
-		Name: "tesatest",
-		URL:  "https://charts.bitnami.com/bitnami",
+	downloader := &downloader.ChartDownloader{
+		Out:              os.Stdout,
+		RepositoryConfig: settings.RepositoryConfig,
+		RepositoryCache:  settings.RepositoryCache,
+		Getters:          getter.All(settings),
 	}
-	file.Update(newEntry)
 
-	e := file.Get("tesatest")
-	fmt.Println("e.String():", e.String())
+	return &HelmClient{
+		Downloader: downloader,
+		Setting:    settings,
+		Repository: make(map[string]*repo.ChartRepository),
+	}
+}
 
-	// 차트 저장소 설정
-	chartRepoURL := "https://charts.bitnami.com/bitnami"
-	chartRepo, err := repo.NewChartRepository(&repo.Entry{
-		URL:  chartRepoURL,
-		Name: "tesatest",
-	}, providers)
+func (c *HelmClient) AddRepository(repoName, repoUrl string, public bool) error {
+	repoEntry := &repo.Entry{
+		Name:               repoName,
+		URL:                repoUrl,
+		PassCredentialsAll: public,
+	}
+
+	chartRepo, err := repo.NewChartRepository(repoEntry, getter.All(c.Setting))
+
 	if err != nil {
-		fmt.Println("Failed to create chart repository:", err)
+		log.Fatalf("Failed to create chart repository: %s", err)
 		return err
 	}
 
-	path, err := chartRepo.DownloadIndexFile()
-	fmt.Println(path)
-	fmt.Println(err)
-
-	// repo.LoadFile()
-	indexFile, err := repo.LoadIndexFile(path)
+	_, err = chartRepo.DownloadIndexFile()
 	if err != nil {
-		fmt.Println("ERR:", err)
+		log.Fatalf("Failed to download index file: %s", err)
+		return err
 	}
 
-	chartVersion := "9.1.4"
-	chartName := "mysql"
-	chartInfo, _ := indexFile.Get(chartName, chartVersion)
-	fmt.Println(chartInfo.Name)
-	fmt.Println(chartInfo.Version)
-	fmt.Println("TEST1")
-	l := downloader.ChartDownloader{}
-	fmt.Println("TEST2")
-	fmt.Println(chartRepo.Config.Name + "/" + chartInfo.Name)
-	str, _, err := l.DownloadTo(chartRepo.Config.Name+"/"+chartInfo.Name, chartVersion, "Tester")
-	// chartInfo.Name+"-"+chartInfo.Version+".tgz"
-	fmt.Println("TEST3")
-	fmt.Println(str)
-	fmt.Println("TEST4")
-	fmt.Println("TEST5")
-	fmt.Println(err)
-	fmt.Println("TEST6")
+	c.Repository[repoEntry.Name] = chartRepo
 
-	// // 차트 로드
-	chart, err := loader.Load("Tester")
-	if err != nil {
-		fmt.Println(err)
+	return nil
+}
+
+// chartPath is like bitnami/mysql:10.2.1
+func (c *HelmClient) Install(repoChartVersion, namespace string) error {
+	repoName, after, _ := strings.Cut(repoChartVersion, "/")
+	chartName, versionName, found := strings.Cut(after, ":")
+	if !found {
+		versionName = "latest"
 	}
-	fmt.Println(chart.Values)
-	// // 차트 설치
-	// install := action.NewInstall(actionConfig)
-	// install.ReleaseName = chartName
-	// install.Namespace = settings.Namespace()
-	// release, err := install.Run(chart, nil) // 두 번째 인자는 values 파일로, 필요에 따라 설정
-	// if err != nil {
-	// 	log.Fatalf("Failed to install chart: %s", err)
-	// }
 
-	// fmt.Printf("Chart %s has been installed to %s\n", release.Name, release.Namespace)
+	c.Setting.SetNamespace(namespace)
+
+	actionConfig := new(action.Configuration)
+
+	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
+	}
+	install := action.NewInstall(actionConfig)
+
+	chartURL, err := repo.FindChartInAuthRepoURL(c.Repository[repoName].Config.URL, "", "", chartName, versionName, "", "", "", getter.All(c.Setting))
+	if err != nil {
+		log.Fatalf("Failed to find chart URL: %s", err)
+	}
+
+	chartPath, _, err := c.Downloader.DownloadTo(chartURL, versionName, ".")
+	if err != nil {
+		log.Fatalf("Failed to download chart: %s", err)
+	}
+
+	// 차트 로드
+	chart, err := loader.Load(chartPath)
+	if err != nil {
+		log.Fatalf("Failed to load chart: %s", err)
+	}
+
+	install.ReleaseName = fmt.Sprintf("%s-tester", chartName)
+
+	release, err := install.Run(chart, nil) // nil can be replaced with custom values
+	if err != nil {
+		log.Fatalf("Failed to install chart: %s", err)
+	}
+
+	fmt.Printf("Chart %s has been installed to %s\n", release.Name, release.Namespace)
 
 	return nil
 }
