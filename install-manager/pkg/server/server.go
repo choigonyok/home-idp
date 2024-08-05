@@ -1,10 +1,11 @@
 package server
 
 import (
+	"github.com/choigonyok/home-idp/install-manager/pkg/grpc"
+	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/util"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/grpc"
 )
 
 type InstallManager struct {
@@ -31,10 +32,8 @@ func New(component util.Components, cfg config.Config) server.Server {
 		Server: s,
 	}
 
-	// pbServer := &grpc.UserServiceServer{
-	// 	StorageClient: svr.StorageClient,
-	// }
-	// pb.RegisterUserServiceServer(s.Server, pbServer)
+	pbServer := &grpc.ArgoCDServer{}
+	pb.RegisterArgoCDServer(s.Server, pbServer)
 
 	return svr
 }

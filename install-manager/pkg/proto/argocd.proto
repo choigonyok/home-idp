@@ -1,0 +1,52 @@
+// protoc --go_out=rbac-manager/pkg/proto --go-grpc_out=rbac-manager/pkg/proto rbac-manager/pkg/proto/rbac.proto
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./";
+
+service ArgoCD {
+  rpc InstallArgoCDChart (InstallArgoCDChartRequest) returns (InstallArgoCDChartReply) {}
+  rpc UninstallArgoCDChart (UninstallArgoCDChartRequest) returns (UninstallArgoCDChartReply) {}
+}
+
+message Option {
+  bool redis_ha = 1;
+  int32 controller_repl = 2;
+  int32 server_repl = 3;
+  int32 repo_server_repl = 4;
+  int32 application_set_repl = 5;
+  string domain = 6;
+  
+  message OptionIngress {
+    bool enabled = 1;
+    string class_name = 2;
+    bool tls = 3;
+    map<string, string> annotation = 4;
+  }
+
+  OptionIngress ingress = 7;
+
+  message ArgoCD {
+    string namespace = 1;
+    string release_name = 2;
+  }
+
+  ArgoCD argocd = 8;
+}
+
+
+
+message InstallArgoCDChartRequest {
+  Option opt = 1;
+}
+
+message InstallArgoCDChartReply {
+  bool succeed = 1;
+}
+
+message UninstallArgoCDChartRequest {}
+
+message UninstallArgoCDChartReply {
+  bool succeed = 1;
+}

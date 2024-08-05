@@ -6,7 +6,6 @@ import (
 	installconfig "github.com/choigonyok/home-idp/deploy-manager/pkg/config"
 	"github.com/choigonyok/home-idp/install-manager/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/cmd"
-	"github.com/choigonyok/home-idp/pkg/helm"
 	"github.com/choigonyok/home-idp/pkg/util"
 
 	// pb "github.com/choigonyok/home-idp/instasll-manager/pkg/proto"
@@ -50,11 +49,6 @@ func getServerStartCmd() *cobra.Command {
 
 			log.Printf("Installing install-manager server is completed successfully!")
 			log.Printf("Every installation has been finished successfully!\n")
-
-			h := helm.New()
-			h.AddRepository("bitnami", "https://charts.bitnami.com/bitnami", true)
-			h.Install("bitnami/nginx:17.3.0", "default", "nginx-tester")
-			h.Uninstall("nginx-tester", "default")
 
 			svr.Run()
 			return nil
