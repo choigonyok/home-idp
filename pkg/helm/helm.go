@@ -65,7 +65,7 @@ func (c *HelmClient) AddRepository(repoName, repoUrl string, public bool) error 
 }
 
 // chartPath is like bitnami/mysql:10.2.1
-func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string) error {
+func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, values map[string]interface{}) error {
 	repoName, after, _ := strings.Cut(repoChartVersion, "/")
 	chartName, versionName, found := strings.Cut(after, ":")
 	if !found {
@@ -91,7 +91,6 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string) er
 		log.Fatalf("Failed to download chart: %s", err)
 	}
 
-	// 차트 로드
 	chart, err := loader.Load(chartPath)
 	if err != nil {
 		log.Fatalf("Failed to load chart: %s", err)
@@ -99,7 +98,7 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string) er
 
 	install.ReleaseName = releaseName
 
-	release, err := install.Run(chart, nil) // nil can be replaced with custom values
+	release, err := install.Run(chart, values)
 	if err != nil {
 		log.Fatalf("Failed to install chart: %s", err)
 	}
