@@ -1,12 +1,14 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strconv"
 
 	gwconfig "github.com/choigonyok/home-idp/gateway/pkg/config"
 	"github.com/choigonyok/home-idp/gateway/pkg/grpc"
+	"github.com/choigonyok/home-idp/install-manager/pkg/helm"
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/server"
@@ -48,6 +50,7 @@ func New(cfg *gwconfig.GatewayConfig) *Gateway {
 
 	r.Handle("/test", http.HandlerFunc(svr.Test)).Methods("GET")
 	r.Handle("/deploy", http.HandlerFunc(svr.Test2)).Methods("POST")
+	r.Handle("/charts/argocd", http.HandlerFunc(svr.InstallArgoCDHandler)).Methods("POST")
 
 	return svr
 }
@@ -73,5 +76,22 @@ func (s *Gateway) Test2(resp http.ResponseWriter, req *http.Request) {
 	pid, _ := strconv.Atoi(projectId)
 
 	ok, _ := s.Grpc.PutUser(email, name, password, int32(pid))
+	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
+}
+
+func (s *Gateway) InstallArgoCDHandler(resp http.ResponseWriter, req *http.Request) {
+	opt := &helm.ArgoCDOption{}
+	metadata := &helm.ArgoCD{}
+	if err := json.NewDecoder(req.Body).Decode(&metadata); err != nil {
+		http.Error(resp, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if err := json.NewDecoder(req.Body).Decode(&opt); err != nil {
+		http.Error(resp, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	ok, _ := s.Grpc.InstallArgoCD(opt, metadata)
 	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
 }

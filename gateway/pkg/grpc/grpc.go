@@ -6,22 +6,32 @@ import (
 )
 
 const (
-	rbacManagerPort = "5105"
-	rbacManagerHost = "localhost"
+	rbacManagerPort    = "5105"
+	rbacManagerHost    = "localhost"
+	installManagerPort = "5107"
+	installManagerHost = "localhost"
 )
 
 type GrpcClient struct {
-	Conn *grpc.ClientConn
+	RbacConn    *grpc.ClientConn
+	InstallConn *grpc.ClientConn
 }
 
 func NewClient() *GrpcClient {
 	grpc := &GrpcClient{
-		Conn: gatewaygrpc.NewClient(rbacManagerHost, rbacManagerPort),
+		RbacConn:    gatewaygrpc.NewClient(rbacManagerHost, rbacManagerPort),
+		InstallConn: gatewaygrpc.NewClient(installManagerHost, installManagerPort),
 	}
 
 	return grpc
 }
 
 func (g *GrpcClient) Close() error {
-	return g.Conn.Close()
+	if err := g.RbacConn.Close(); err != nil {
+		return err
+	}
+	if err := g.InstallConn.Close(); err != nil {
+		return err
+	}
+	return nil
 }
