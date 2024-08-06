@@ -3,13 +3,13 @@ package server
 import "net/http"
 
 type GatewayServer struct {
-	Server *http.Server
+	Http *http.Server
 }
 
 func (svr *GatewayServer) Close() error {
-	return svr.Server.Close()
+	return svr.Http.Close()
 }
 
 func (svr *GatewayServer) Run() {
-	svr.Server.ListenAndServe()
+	svr.Http.ListenAndServe()
 }

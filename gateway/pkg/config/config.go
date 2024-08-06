@@ -2,11 +2,9 @@ package config
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/service"
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	"gopkg.in/yaml.v2"
 )
@@ -27,17 +25,15 @@ func New() *GatewayConfig {
 	log.Printf("Start reading home-idp configuration file...")
 	parseConfigFile(cfg, config.DefaultConfigFilePath)
 
-	cfg.SetEnvFromConfig()
-
 	return cfg
 }
 
-func (cfg *GatewayConfig) SetEnvFromConfig() {
-	log.Printf("Start injecting appropriate environments variables...")
-	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Service.Port))
-	env.Set("GATEWAY_SERVICE_TYPE", cfg.Service.Type)
-	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Enabled))
-}
+// func (cfg *GatewayConfig) SetEnvFromConfig() {
+// 	log.Printf("Start injecting appropriate environments variables...")
+// 	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Service.Port))
+// 	env.Set("GATEWAY_SERVICE_TYPE", cfg.Service.Type)
+// 	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Enabled))
+// }
 
 func parseConfigFile(cfg *GatewayConfig, filePath string) error {
 	bytes, err := file.ReadFile(filePath)

@@ -3,50 +3,52 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 
-	gwconfig "github.com/choigonyok/home-idp/gateway/pkg/config"
+	"github.com/choigonyok/home-idp/gateway/pkg/config"
 	"github.com/choigonyok/home-idp/gateway/pkg/grpc"
 	"github.com/choigonyok/home-idp/install-manager/pkg/helm"
-	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/server"
 	"github.com/gorilla/mux"
 )
 
 type Gateway struct {
-	Http   server.Server
-	Grpc   *grpc.GrpcClient
-	Config config.Config
+	Server server.Server
+	Client *grpc.GrpcClient
+	Config *config.GatewayConfig
 }
 
 func (gw *Gateway) Close() error {
-	if err := gw.Http.Close(); err != nil {
+	if err := gw.Server.Close(); err != nil {
 		return err
 	}
-	if err := gw.Grpc.Close(); err != nil {
+	if err := gw.Client.Close(); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (gw *Gateway) Run() {
-	gw.Http.Run()
+	gw.Server.Run()
 }
 
-func New(cfg *gwconfig.GatewayConfig) *Gateway {
+func New(cfg *config.GatewayConfig) *Gateway {
 	r := mux.NewRouter()
 	svr := &Gateway{
-		Http: &GatewayServer{
-			Server: &http.Server{
+		Server: &GatewayServer{
+			Http: &http.Server{
 				Addr:    ":" + env.Get("GATEWAY_SERVICE_PORT"),
 				Handler: r,
 			},
 		},
-		Grpc:   grpc.NewClient(),
+		Client: grpc.NewClient(),
 		Config: cfg,
 	}
+
+	svr.SetEnvFromConfig()
 
 	r.Handle("/test", http.HandlerFunc(svr.Test)).Methods("GET")
 	r.Handle("/deploy", http.HandlerFunc(svr.Test2)).Methods("POST")
@@ -54,6 +56,13 @@ func New(cfg *gwconfig.GatewayConfig) *Gateway {
 	r.Handle("/charts/upgrade", http.HandlerFunc(svr.UpgradeArgoCDHandler)).Methods("POST")
 
 	return svr
+}
+
+func (gw *Gateway) SetEnvFromConfig() {
+	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(gw.Config.Service.Port))
+	env.Set("GATEWAY_SERVICE_TYPE", gw.Config.Service.Type)
+	env.Set("GATEWAY_ENABLED", strconv.FormatBool(gw.Config.Enabled))
 }
 
 func (s *Gateway) Test(resp http.ResponseWriter, req *http.Request) {
@@ -64,7 +73,7 @@ func (s *Gateway) Test(resp http.ResponseWriter, req *http.Request) {
 	projectId := req.URL.Query().Get("project_id")
 	pid, _ := strconv.Atoi(projectId)
 
-	ok, _ := s.Grpc.PutUser(email, name, password, int32(pid))
+	ok, _ := s.Client.PutUser(email, name, password, int32(pid))
 	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
 }
 
@@ -76,7 +85,7 @@ func (s *Gateway) Test2(resp http.ResponseWriter, req *http.Request) {
 	projectId := req.URL.Query().Get("project_id")
 	pid, _ := strconv.Atoi(projectId)
 
-	ok, _ := s.Grpc.PutUser(email, name, password, int32(pid))
+	ok, _ := s.Client.PutUser(email, name, password, int32(pid))
 	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
 }
 
@@ -91,7 +100,7 @@ func (s *Gateway) InstallArgoCDHandler(resp http.ResponseWriter, req *http.Reque
 
 	fmt.Println(data)
 
-	ok, err := s.Grpc.InstallArgoCD(data)
+	ok, err := s.Client.InstallArgoCD(data)
 	fmt.Println(err)
 	fmt.Println(err)
 	fmt.Println(err)
@@ -109,7 +118,7 @@ func (s *Gateway) UpgradeArgoCDHandler(resp http.ResponseWriter, req *http.Reque
 
 	fmt.Println(data)
 
-	ok, err := s.Grpc.InstallArgoCD(data)
+	ok, err := s.Client.InstallArgoCD(data)
 	fmt.Println(err)
 	fmt.Println(err)
 	fmt.Println(err)

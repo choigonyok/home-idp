@@ -2,19 +2,13 @@ package config
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	svc "github.com/choigonyok/home-idp/secret-manager/pkg/service"
 	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/rest"
 )
-
-type SecretManager struct {
-	Config *SecretManagerConfig `yaml:"secret-manager,omitempty"`
-}
 
 type SecretManagerConfig struct {
 	Name     string
@@ -31,20 +25,8 @@ func New() *SecretManagerConfig {
 
 	log.Printf("Start reading home-idp configuration file...")
 	parseConfigFile(cfg, config.DefaultConfigFilePath)
-	cfg.SetEnvFromConfig()
 
 	return cfg
-}
-
-func (cfg *SecretManagerConfig) SetEnvFromConfig() {
-	log.Printf("Start injecting appropriate environments variables...")
-	env.Set("SECRET_MANAGER_PORT", strconv.Itoa(cfg.Service.Port))
-	env.Set("SECRET_MANAGER_STORAGE_TYPE", cfg.Storage.Type)
-	env.Set("SECRET_MANAGER_STORAGE_HOST", cfg.Storage.Host)
-	env.Set("SECRET_MANAGER_STORAGE_USERNAME", cfg.Storage.Username)
-	env.Set("SECRET_MANAGER_STORAGE_PASSWORD", cfg.Storage.Password)
-	env.Set("SECRET_MANAGER_STORAGE_DATABASE", cfg.Storage.Database)
-	env.Set("SECRET_MANAGER_STORAGE_PORT", strconv.Itoa(cfg.Storage.Port))
 }
 
 func parseConfigFile(cfg *SecretManagerConfig, filePath string) error {

@@ -2,11 +2,9 @@ package config
 
 import (
 	"log"
-	"strconv"
 
 	"github.com/choigonyok/home-idp/install-manager/pkg/service"
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	"gopkg.in/yaml.v3"
 )
@@ -23,14 +21,8 @@ func New() *InstallManagerConfig {
 
 	log.Printf("Start reading home-idp configuration file...")
 	parseConfigFile(cfg, config.DefaultConfigFilePath)
-	cfg.SetEnvFromConfig()
 
 	return cfg
-}
-
-func (cfg *InstallManagerConfig) SetEnvFromConfig() {
-	log.Printf("Start injecting appropriate environments variables...")
-	env.Set("INSTALL_MANAGER_PORT", strconv.Itoa(cfg.Service.Port))
 }
 
 func parseConfigFile(cfg *InstallManagerConfig, filePath string) error {
