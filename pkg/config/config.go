@@ -16,11 +16,10 @@ type StorageConfig struct {
 
 type Config interface {
 	SetEnvFromConfig()
-	GetName() string
 }
 
 const (
-	DefaultConfigFilePath = "./.idtctl/config.yaml"
+	DefaultConfigFilePath = "./.idpctl/config.yaml"
 )
 
 func Enabled(component util.Components, client string) bool {

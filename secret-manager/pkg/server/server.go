@@ -1,10 +1,7 @@
 package server
 
 import (
-	"log"
-
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/mail"
 	"github.com/choigonyok/home-idp/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -13,13 +10,13 @@ import (
 )
 
 type SecretServer struct {
-	Grpc          *grpc.SecretManagerServer
+	Server        *grpc.SecretManagerServer
 	StorageClient storage.StorageClient
-	MailClient    *mail.SmtpClient
+	Config        config.Config
 }
 
 func (s *SecretServer) Close() error {
-	if err := s.Grpc.Listener.Close(); err != nil {
+	if err := s.Server.Listener.Close(); err != nil {
 		return err
 	}
 	if err := s.StorageClient.Close(); err != nil {
@@ -29,21 +26,22 @@ func (s *SecretServer) Close() error {
 }
 
 func (s *SecretServer) Run() {
-	s.Grpc.Server.Serve(s.Grpc.Listener)
+	s.Server.Server.Serve(s.Server.Listener)
 }
 
-func New(component util.Components) server.Server {
+func New(component util.Components, cfg config.Config) server.Server {
+	s := grpc.NewServer()
 	sc, _ := secretstorage.NewClient(component)
 	svr := &SecretServer{
-		Grpc:          grpc.NewServer(),
+		Server:        s,
 		StorageClient: sc,
+		Config:        cfg,
 	}
 
-	log.Printf("---Start installing mail server...")
-	if config.Enabled(component, "mail") {
-		mc := mail.NewClient(component)
-		svr.MailClient = mc
-	}
+	// pbServer := &grpc.UserServiceServer{
+	// 	StorageClient: svr.StorageClient,
+	// }
+	// pb.RegisterUserServiceServer(s.Server, pbServer)
 
 	return svr
 }

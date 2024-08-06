@@ -5,7 +5,7 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/util"
-	secretmanagerconfig "github.com/choigonyok/home-idp/secret-manager/pkg/config"
+	secretconfig "github.com/choigonyok/home-idp/secret-manager/pkg/config"
 	"github.com/choigonyok/home-idp/secret-manager/pkg/server"
 	"github.com/spf13/cobra"
 )
@@ -39,14 +39,10 @@ func getServerStartCmd() *cobra.Command {
 		Use:   "start",
 		Short: "start rbac-manager server",
 		Args:  cobra.ExactArgs(0),
-		PreRunE: func(cmd *cobra.Command, args []string) error {
-			sm := secretmanagerconfig.New()
-			sm.Init(filepath)
-			return nil
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cfg := secretconfig.New()
 			log.Printf("Start installing secret-manager server...")
-			svr := server.New(util.SecretManager)
+			svr := server.New(util.RbacManager, cfg)
 			defer svr.Close()
 
 			log.Printf("Installing rbac-manager server is completed successfully!")

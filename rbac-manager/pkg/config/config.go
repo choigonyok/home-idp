@@ -9,6 +9,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/file"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/mail"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
+	"gopkg.in/yaml.v2"
 )
 
 type RbacManagerConfig struct {
@@ -24,7 +25,7 @@ func New() *RbacManagerConfig {
 	cfg := &RbacManagerConfig{Name: "rbac-manager"}
 
 	log.Printf("Start reading home-idp configuration file...")
-	file.ParseConfigFile(cfg, config.DefaultConfigFilePath)
+	parseConfigFile(cfg, config.DefaultConfigFilePath)
 	cfg.SetEnvFromConfig()
 
 	return cfg
@@ -49,6 +50,22 @@ func (cfg *RbacManagerConfig) SetEnvFromConfig() {
 	}
 }
 
-func (cfg *RbacManagerConfig) GetName() string {
-	return cfg.Name
+func parseConfigFile(cfg *RbacManagerConfig, filePath string) error {
+	bytes, err := file.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	tmp := &struct {
+		Config *RbacManagerConfig `yaml:"install-manager,omitempty"`
+	}{
+		Config: cfg,
+	}
+
+	if err := yaml.Unmarshal(bytes, tmp); err != nil {
+		log.Fatalf("Invalid config file format")
+		return err
+	}
+
+	return nil
 }

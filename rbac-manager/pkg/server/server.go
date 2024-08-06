@@ -42,6 +42,7 @@ func New(component util.Components, cfg config.Config) server.Server {
 	svr := &RbacManager{
 		Server:        s,
 		StorageClient: sc,
+		Config:        cfg,
 	}
 
 	log.Printf("---Start installing mail server...")

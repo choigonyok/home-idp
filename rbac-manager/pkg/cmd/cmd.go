@@ -6,11 +6,11 @@ import (
 	"log"
 	"time"
 
+	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacconfig "github.com/choigonyok/home-idp/rbac-manager/pkg/config"
-	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/server"
 	"github.com/spf13/cobra"
 )
@@ -72,35 +72,25 @@ func getTestClientCmd() *cobra.Command {
 	testCmd := &cobra.Command{
 		Use:   "test-client",
 		Short: "test-client",
-		// Args:  cobra.ExactArgs(1),
-		// PreRunE: func(cmd *cobra.Command, args []string) error {
-		// 	dm := rbacmanagerconfig.New()
-		// 	dm.Init(filepath)
-		// 	return nil
-		// },
 		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Printf("Start installing rbac-manager server...")
-			// svr := server.New(util.RbacManager)
-			// defer svr.Close()
-
-			// log.Printf("Installing rbac-manager server is completed successfully!")
-			// log.Printf("Every installation has been finished successfully!\n")
-
-			// svr.Run()
-			conn1 := grpc.NewClient("localhost", "5105")
+			log.Printf("Start installing install-manager server...")
+			conn1 := grpc.NewClient("localhost", "5107")
 			defer conn1.Close()
-			c1 := pb.NewUserServiceClient(conn1)
+			c1 := pb.NewArgoCDClient(conn1)
 			ctx1, cancel := context.WithTimeout(context.Background(), time.Second*1)
 			defer cancel()
 
-			// r1, err := c1.GetUserInfo(ctx1, &pb.GetUserInfoRequest{
-			// 	Id: int32(1),
-			// })
-			r2, err := c1.PutUser(ctx1, &pb.PutUserRequest{
-				Email:     "tester1234@naver.com",
-				Name:      "TESTER-choi",
-				Password:  "HEWWL",
-				ProjectId: 1,
+			r2, err := c1.InstallArgoCDChart(ctx1, &pb.InstallArgoCDChartRequest{
+				Opt: &pb.Option{
+					RedisHa:            true,
+					ControllerRepl:     2,
+					ServerRepl:         2,
+					RepoServerRepl:     2,
+					ApplicationSetRepl: 2,
+					Domain:             "test.slexn.com",
+					Ingress:            &pb.Option_OptionIngress{},
+					Argocd:             &pb.Option_ArgoCD{},
+				},
 			})
 
 			fmt.Println("ERROR:", err)
