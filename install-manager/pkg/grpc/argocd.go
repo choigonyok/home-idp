@@ -3,25 +3,27 @@ package grpc
 import (
 	"context"
 
-	"github.com/choigonyok/home-idp/install-manager/pkg/helm"
+	installhelm "github.com/choigonyok/home-idp/install-manager/pkg/helm"
 	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/pkg/helm"
 )
 
 type ArgoCDServer struct {
 	pb.UnimplementedArgoCDServer
+	HelmClient *helm.HelmClient
 }
 
-func (s *InstallManagerServer) InstallChart(ctx context.Context, in *pb.InstallArgoCDChartRequest) (*pb.InstallArgoCDChartReply, error) {
+func (s *ArgoCDServer) InstallArgoCDChart(ctx context.Context, in *pb.InstallArgoCDChartRequest) (*pb.InstallArgoCDChartReply, error) {
 	tls := in.GetOpt().GetIngress().GetAnnotation()
 
-	opt := &helm.ArgoCDOption{
+	opt := &installhelm.ArgoCDOption{
 		RedisHA:                in.GetOpt().GetRedisHa(),
 		ControllerReplicas:     int(in.GetOpt().GetControllerRepl()),
 		ServerReplicas:         int(in.GetOpt().GetServerRepl()),
 		RepoServerReplicas:     int(in.GetOpt().GetRepoServerRepl()),
 		ApplicationSetReplicas: int(in.GetOpt().GetApplicationSetRepl()),
 		Domain:                 in.Opt.Domain,
-		Ingress: &helm.ArgoCDIngressOption{
+		Ingress: &installhelm.ArgoCDIngressOption{
 			Enabled:          in.GetOpt().GetIngress().GetEnabled(),
 			IngressClassName: in.GetOpt().GetIngress().GetClassName(),
 			Annotation:       &tls,
@@ -29,7 +31,7 @@ func (s *InstallManagerServer) InstallChart(ctx context.Context, in *pb.InstallA
 		},
 	}
 
-	client := helm.NewArgoCDClient(in.GetOpt().GetArgocd().GetNamespace(), in.GetOpt().GetArgocd().GetReleaseName())
+	client := installhelm.NewArgoCDClient(in.GetOpt().GetArgocd().GetNamespace(), in.GetOpt().GetArgocd().GetReleaseName())
 	client.Install(s.HelmClient, opt)
 
 	return &pb.InstallArgoCDChartReply{
@@ -37,7 +39,7 @@ func (s *InstallManagerServer) InstallChart(ctx context.Context, in *pb.InstallA
 	}, nil
 }
 
-func (s *InstallManagerServer) UninstallChart(ctx context.Context, in *pb.UninstallArgoCDChartRequest) (*pb.UninstallArgoCDChartReply, error) {
+func (s *ArgoCDServer) UninstallArgoCDChart(ctx context.Context, in *pb.UninstallArgoCDChartRequest) (*pb.UninstallArgoCDChartReply, error) {
 	return &pb.UninstallArgoCDChartReply{
 		Succeed: true,
 	}, nil

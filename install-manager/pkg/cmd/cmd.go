@@ -3,7 +3,7 @@ package cmd
 import (
 	"log"
 
-	installconfig "github.com/choigonyok/home-idp/deploy-manager/pkg/config"
+	installconfig "github.com/choigonyok/home-idp/install-manager/pkg/config"
 	"github.com/choigonyok/home-idp/install-manager/pkg/server"
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/util"
