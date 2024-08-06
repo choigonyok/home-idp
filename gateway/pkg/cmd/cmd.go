@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
+	defaultHomeIdpConfig = ".idpctl/config.yaml"
 )
 
 func NewRootCmd() *cobra.Command {

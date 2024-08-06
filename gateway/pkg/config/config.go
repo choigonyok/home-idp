@@ -8,11 +8,8 @@ import (
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
+	"gopkg.in/yaml.v2"
 )
-
-type Gateway struct {
-	Config *GatewayConfig `yaml:"gateway,omitempty"`
-}
 
 type GatewayConfig struct {
 	Name     string
@@ -23,11 +20,13 @@ type GatewayConfig struct {
 
 func New() *GatewayConfig {
 	cfg := &GatewayConfig{
-		Name: "gateway",
+		Name:    "gateway",
+		Service: &service.GatewaySvcConfig{},
 	}
 
 	log.Printf("Start reading home-idp configuration file...")
-	file.ParseConfigFile(cfg, config.DefaultConfigFilePath)
+	parseConfigFile(cfg, config.DefaultConfigFilePath)
+
 	cfg.SetEnvFromConfig()
 
 	return cfg
@@ -40,6 +39,21 @@ func (cfg *GatewayConfig) SetEnvFromConfig() {
 	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Enabled))
 }
 
-func (cfg *GatewayConfig) GetName() string {
-	return cfg.Name
+func parseConfigFile(cfg *GatewayConfig, filePath string) error {
+	bytes, err := file.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	tmp := &struct {
+		Config *GatewayConfig `yaml:"gateway,omitempty"`
+	}{
+		Config: cfg,
+	}
+
+	if err := yaml.Unmarshal(bytes, tmp); err != nil {
+		log.Fatalf("Invalid config file format")
+		return err
+	}
+	return nil
 }

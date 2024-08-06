@@ -51,6 +51,7 @@ func New(cfg *gwconfig.GatewayConfig) *Gateway {
 	r.Handle("/test", http.HandlerFunc(svr.Test)).Methods("GET")
 	r.Handle("/deploy", http.HandlerFunc(svr.Test2)).Methods("POST")
 	r.Handle("/charts/argocd", http.HandlerFunc(svr.InstallArgoCDHandler)).Methods("POST")
+	r.Handle("/charts/upgrade", http.HandlerFunc(svr.UpgradeArgoCDHandler)).Methods("POST")
 
 	return svr
 }
@@ -80,18 +81,37 @@ func (s *Gateway) Test2(resp http.ResponseWriter, req *http.Request) {
 }
 
 func (s *Gateway) InstallArgoCDHandler(resp http.ResponseWriter, req *http.Request) {
-	opt := &helm.ArgoCDOption{}
-	metadata := &helm.ArgoCD{}
-	if err := json.NewDecoder(req.Body).Decode(&metadata); err != nil {
+	fmt.Println("START")
+	data := &helm.ArgoCDData{}
+
+	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	if err := json.NewDecoder(req.Body).Decode(&opt); err != nil {
+	fmt.Println(data)
+
+	ok, err := s.Grpc.InstallArgoCD(data)
+	fmt.Println(err)
+	fmt.Println(err)
+	fmt.Println(err)
+	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
+}
+
+func (s *Gateway) UpgradeArgoCDHandler(resp http.ResponseWriter, req *http.Request) {
+	fmt.Println("START")
+	data := &helm.ArgoCDData{}
+
+	if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
 		http.Error(resp, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	ok, _ := s.Grpc.InstallArgoCD(opt, metadata)
+	fmt.Println(data)
+
+	ok, err := s.Grpc.InstallArgoCD(data)
+	fmt.Println(err)
+	fmt.Println(err)
+	fmt.Println(err)
 	fmt.Println("TEST REQUEST RESULT: ", ok.Succeed)
 }
