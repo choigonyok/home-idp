@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"log"
-
-	gatewayconfig "github.com/choigonyok/home-idp/gateway/pkg/config"
 	"github.com/choigonyok/home-idp/gateway/pkg/server"
+	pkgclient "github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/spf13/cobra"
@@ -40,15 +38,14 @@ func getServerStartCmd() *cobra.Command {
 		Short: "start gateway server",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := gatewayconfig.New()
-			log.Printf("Start installing gateway...")
-			svr := server.New(cfg)
-			defer svr.Close()
+			// cfg := config.New()
+			svc := server.New(
+				5050,
+				pkgclient.WithGrpcClient("localhost", 5051),
+				pkgclient.WithGrpcClient("localhost", 5052),
+			)
 
-			log.Printf("Installing rbac-manager server is completed successfully!")
-			log.Printf("Every installation has been finished successfully!\n")
-
-			svr.Run()
+			svc.Start()
 			return nil
 		},
 	}
