@@ -1,14 +1,15 @@
 package cmd
 
 import (
-	"log"
+	"fmt"
+	"strconv"
 
-	installconfig "github.com/choigonyok/home-idp/install-manager/pkg/config"
-	"github.com/choigonyok/home-idp/install-manager/pkg/server"
+	"github.com/choigonyok/home-idp/install-manager/pkg/config"
+	"github.com/choigonyok/home-idp/install-manager/pkg/service"
+	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/cmd"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/util"
-
-	// pb "github.com/choigonyok/home-idp/instasll-manager/pkg/proto"
 
 	"github.com/spf13/cobra"
 )
@@ -42,15 +43,21 @@ func getServerStartCmd() *cobra.Command {
 		Short: "start install-manager server",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := installconfig.New()
-			log.Printf("Start installing install-manager server...")
-			svr := server.New(util.InstallManager, cfg)
-			defer svr.Close()
+			cfg := config.New()
+			cfg.SetEnvVars()
+			port, _ := strconv.Atoi(env.Get("INSTALL_MANAGER_SERVICE_PORT"))
 
-			log.Printf("Installing install-manager server is completed successfully!")
-			log.Printf("Every installation has been finished successfully!\n")
+			svc := service.New(
+				port,
+				client.WithGrpcRbacManagerClient(5054),
+				client.WithHelmClient(),
+			)
+			defer svc.Stop()
 
-			svr.Run()
+			fmt.Println(svc.ClientSet.GrpcClient[util.RbacManager].GetConnection().Target())
+			fmt.Println(svc.ClientSet.GrpcClient[util.RbacManager].GetConnection().GetState().String())
+
+			svc.Start()
 			return nil
 		},
 	}

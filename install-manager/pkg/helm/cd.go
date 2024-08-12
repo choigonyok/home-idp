@@ -63,22 +63,22 @@ func NewArgoCDClient(namespace, releaseName string) *ArgoCD {
 	}
 }
 
-func (c *ArgoCD) Install(h *helm.HelmClient, opt *ArgoCDOption) error {
+func (c *ArgoCD) Install(h helm.HelmClient, opt *ArgoCDOption) error {
 	fmt.Println("RELEASE: ", c.ReleaseName)
 	fmt.Println("NAMESPACE: ", c.Namespace)
 	h.Install("argo/argo-cd:7.4.0", c.Namespace, c.ReleaseName, c.MakeVaulesWithOption(opt))
 	return nil
 }
 
-func (c *ArgoCD) Upgrade(h *helm.HelmClient, opt *ArgoCDOption) error {
-	fmt.Println("RELEASE: ", c.ReleaseName)
-	fmt.Println("NAMESPACE: ", c.Namespace)
-	h.Upgrade("argo/argo-cd:7.4.0", c.Namespace, c.ReleaseName, c.MakeVaulesWithOption(opt))
+// func (c *ArgoCD) Upgrade(h *client.InstallManagerHelmClient, opt *ArgoCDOption) error {
+// 	fmt.Println("RELEASE: ", c.ReleaseName)
+// 	fmt.Println("NAMESPACE: ", c.Namespace)
+// 	h.Upgrade("argo/argo-cd:7.4.0", c.Namespace, c.ReleaseName, c.MakeVaulesWithOption(opt))
 
-	return nil
-}
+// 	return nil
+// }
 
-func (c *ArgoCD) Uninstall(h *helm.HelmClient) error {
+func (c *ArgoCD) Uninstall(h helm.HelmClient) error {
 	h.Uninstall(c.ReleaseName, c.Namespace)
 	return nil
 }

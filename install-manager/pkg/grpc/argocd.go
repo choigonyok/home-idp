@@ -32,7 +32,8 @@ func (s *ArgoCDServer) InstallArgoCDChart(ctx context.Context, in *pb.InstallArg
 	}
 
 	client := installhelm.NewArgoCDClient(in.GetOpt().GetArgocd().GetNamespace(), in.GetOpt().GetArgocd().GetReleaseName())
-	client.Install(s.HelmClient, opt)
+
+	client.Install(*s.HelmClient, opt)
 
 	return &pb.InstallArgoCDChartReply{
 		Succeed: true,
