@@ -27,7 +27,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 			Addr:    ":" + strconv.Itoa(port),
 			Handler: r.router,
 		},
-		Router: r,
+		Router:    r,
+		ClientSet: cs,
 	}
 }
 

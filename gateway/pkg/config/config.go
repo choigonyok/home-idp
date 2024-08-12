@@ -16,7 +16,6 @@ type Config struct {
 }
 
 type GatewayConfig struct {
-	Name     string
 	Enabled  bool                  `yaml:"enabled,omitempty"`
 	Service  *GatewayServiceConfig `yaml:"service,omitempty"`
 	Replicas int                   `yaml:"replicas,omitempty"`
@@ -32,10 +31,11 @@ func New() *Config {
 		Global:  &config.GlobalConfig{},
 		Service: &GatewayConfig{},
 	}
+	parseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg
 }
 
-func (cfg *Config) ParseFromFile(filePath string) error {
+func parseFromFile(cfg config.Config, filePath string) error {
 	bytes, err := file.ReadFile(filePath)
 	if err != nil {
 		return err

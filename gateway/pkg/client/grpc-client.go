@@ -15,3 +15,12 @@ func (gc *GatewayGrpcClient) Close() {
 func (gc *GatewayGrpcClient) GetConnection() *grpc.ClientConn {
 	return gc.Client
 }
+
+func (gc *GatewayGrpcClient) Set(i interface{}) {
+	gc.Client = parseGrpcClientFromInterface(i)
+}
+
+func parseGrpcClientFromInterface(i interface{}) *grpc.ClientConn {
+	test := i.(*grpc.ClientConn)
+	return test
+}
