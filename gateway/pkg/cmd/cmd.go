@@ -1,12 +1,13 @@
 package cmd
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/config"
-	"github.com/choigonyok/home-idp/gateway/pkg/server"
+	"github.com/choigonyok/home-idp/gateway/pkg/service"
 	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/cmd"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/spf13/cobra"
 )
@@ -43,19 +44,14 @@ func getServerStartCmd() *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cfg := config.New()
 			cfg.SetEnvVars()
+			port, _ := strconv.Atoi(env.Get("GATEWAY_SERVICE_PORT"))
 
-			svc := server.New(
-				5050,
+			svc := service.New(
+				port,
 				client.WithGrpcInstallManagerClient(5051),
-				client.WithGrpcDeployManagerClient(5052),
+				// client.WithGrpcDeployManagerClient(5052),
 			)
 			defer svc.Stop()
-
-			fmt.Println(svc.ClientSet.GrpcClient[util.InstallManager].GetConnection().Target())
-			fmt.Println(svc.ClientSet.GrpcClient[util.InstallManager].GetConnection().GetState().String())
-			fmt.Println()
-			fmt.Println(svc.ClientSet.GrpcClient[util.DeployManager].GetConnection().Target())
-			fmt.Println(svc.ClientSet.GrpcClient[util.DeployManager].GetConnection().GetState().String())
 
 			svc.Start()
 			return nil

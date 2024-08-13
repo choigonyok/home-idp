@@ -1,4 +1,4 @@
-package client
+package grpc
 
 import (
 	"google.golang.org/grpc"
@@ -21,6 +21,6 @@ func (gc *GatewayGrpcClient) Set(i interface{}) {
 }
 
 func parseGrpcClientFromInterface(i interface{}) *grpc.ClientConn {
-	test := i.(*grpc.ClientConn)
-	return test
+	client := i.(*grpc.ClientConn)
+	return client
 }

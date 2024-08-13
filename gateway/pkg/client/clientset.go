@@ -1,13 +1,12 @@
 package client
 
 import (
+	"github.com/choigonyok/home-idp/gateway/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/mail"
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
 )
-
-const clientCount = 5
 
 type GatewayClientSet struct {
 	GrpcClient    map[util.Components]client.GrpcClient
@@ -16,36 +15,30 @@ type GatewayClientSet struct {
 }
 
 func EmptyClientSet() *GatewayClientSet {
-	m := make(map[util.Components]client.GrpcClient, clientCount)
-
-	for i := range m {
-		m[i] = nil
-	}
-
 	return &GatewayClientSet{
-		GrpcClient: make(map[util.Components]client.GrpcClient, clientCount),
+		GrpcClient: make(map[util.Components]client.GrpcClient, client.ClientTotalCount),
 	}
 }
 
 func (cs *GatewayClientSet) Set(cli util.Clients, i interface{}) {
 	switch cli {
 	case util.GrpcInstallManagerClient:
-		tmp := &GatewayGrpcClient{}
+		tmp := &grpc.GatewayGrpcClient{}
 		tmp.Set(i)
 		cs.GrpcClient[util.InstallManager] = tmp
 		return
 	case util.GrpcRbacManagerClient:
-		tmp := &GatewayGrpcClient{}
+		tmp := &grpc.GatewayGrpcClient{}
 		tmp.Set(i)
 		cs.GrpcClient[util.RbacManager] = tmp
 		return
 	case util.GrpcDeployManagerClient:
-		tmp := &GatewayGrpcClient{}
+		tmp := &grpc.GatewayGrpcClient{}
 		tmp.Set(i)
 		cs.GrpcClient[util.DeployManager] = tmp
 		return
 	case util.GrpcSecretManagerClient:
-		tmp := &GatewayGrpcClient{}
+		tmp := &grpc.GatewayGrpcClient{}
 		tmp.Set(i)
 		cs.GrpcClient[util.SecretManager] = tmp
 		return
