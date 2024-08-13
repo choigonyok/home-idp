@@ -15,7 +15,18 @@ type StorageConfig struct {
 }
 
 type Config interface {
-	SetEnvFromConfig()
+	// SetEnvVars registers environment variables from configuration file.
+	SetEnvVars()
+}
+
+type GlobalConfig struct {
+	Namespace    string                    `yaml:"namespace,omitempty"`
+	StorageClass *GlobalConfigStorageClass `yaml:"storageClass,omitempty"`
+}
+
+type GlobalConfigStorageClass struct {
+	Name string `yaml:"name,omitempty"`
+	Size string `yaml:"size,omitempty"`
 }
 
 const (

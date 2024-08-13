@@ -1,12 +1,11 @@
 package client
 
-import "google.golang.org/grpc"
+import "github.com/choigonyok/home-idp/pkg/util"
 
 type ClientOption interface {
 	Apply(ClientSet) error
 }
 
 type ClientSet interface {
-	ApplyGrpcClient(conn GrpcClient)
-	New(conn *grpc.ClientConn) GrpcClient
+	Set(util.Clients, interface{})
 }

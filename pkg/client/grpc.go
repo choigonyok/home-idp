@@ -7,4 +7,5 @@ import (
 type GrpcClient interface {
 	Close()
 	GetConnection() *grpc.ClientConn
+	Set(interface{})
 }

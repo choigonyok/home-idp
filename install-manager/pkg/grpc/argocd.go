@@ -5,6 +5,7 @@ import (
 
 	installhelm "github.com/choigonyok/home-idp/install-manager/pkg/helm"
 	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/helm"
 )
 
@@ -14,26 +15,25 @@ type ArgoCDServer struct {
 }
 
 func (s *ArgoCDServer) InstallArgoCDChart(ctx context.Context, in *pb.InstallArgoCDChartRequest) (*pb.InstallArgoCDChartReply, error) {
-	tls := in.GetOpt().GetIngress().GetAnnotation()
+	// tls := in.GetOpt().GetIngress().GetAnnotation()
 
-	opt := &installhelm.ArgoCDOption{
-		RedisHA:                in.GetOpt().GetRedisHa(),
-		ControllerReplicas:     int(in.GetOpt().GetControllerRepl()),
-		ServerReplicas:         int(in.GetOpt().GetServerRepl()),
-		RepoServerReplicas:     int(in.GetOpt().GetRepoServerRepl()),
-		ApplicationSetReplicas: int(in.GetOpt().GetApplicationSetRepl()),
-		Domain:                 in.Opt.Domain,
-		Ingress: &installhelm.ArgoCDIngressOption{
-			Enabled:          in.GetOpt().GetIngress().GetEnabled(),
-			IngressClassName: in.GetOpt().GetIngress().GetClassName(),
-			Annotation:       &tls,
-			Tls:              in.GetOpt().GetIngress().GetTls(),
-		},
-	}
+	// opt := &installhelm.ArgoCDOption{
+	// 	RedisHA:                in.GetOpt().GetRedisHa(),
+	// 	ControllerReplicas:     int(in.GetOpt().GetControllerRepl()),
+	// 	ServerReplicas:         int(in.GetOpt().GetServerRepl()),
+	// 	RepoServerReplicas:     int(in.GetOpt().GetRepoServerRepl()),
+	// 	ApplicationSetReplicas: int(in.GetOpt().GetApplicationSetRepl()),
+	// 	Domain:                 in.Opt.Domain,
+	// 	Ingress: &installhelm.ArgoCDIngressOption{
+	// 		Enabled:          in.GetOpt().GetIngress().GetEnabled(),
+	// 		IngressClassName: in.GetOpt().GetIngress().GetClassName(),
+	// 		Annotation:       &tls,
+	// 		Tls:              in.GetOpt().GetIngress().GetTls(),
+	// 	},
+	// }
 
-	client := installhelm.NewArgoCDClient(in.GetOpt().GetArgocd().GetNamespace(), in.GetOpt().GetArgocd().GetReleaseName())
-
-	client.Install(*s.HelmClient, opt)
+	client := installhelm.NewArgoCDClient(env.Get("GLOBAL_NAMESPACE"), "home-idp")
+	client.Install(*s.HelmClient)
 
 	return &pb.InstallArgoCDChartReply{
 		Succeed: true,

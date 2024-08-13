@@ -3,8 +3,11 @@ package service
 import (
 	"github.com/choigonyok/home-idp/install-manager/pkg/client"
 	"github.com/choigonyok/home-idp/install-manager/pkg/grpc"
+	"github.com/choigonyok/home-idp/install-manager/pkg/helm"
+
 	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
+	"github.com/choigonyok/home-idp/pkg/env"
 )
 
 type InstallManager struct {
@@ -32,12 +35,27 @@ func (svc *InstallManager) Stop() {
 func (svc *InstallManager) Start() {
 	svc.ClientSet.HelmClient.AddRepository("bitnami", "https://charts.bitnami.com/bitnami", true)
 	svc.ClientSet.HelmClient.AddRepository("argo", "https://argoproj.github.io/argo-helm", true)
+	svc.ClientSet.HelmClient.AddRepository("harbor", "https://helm.goharbor.io", true)
 
 	pbServer := &grpc.ArgoCDServer{
 		HelmClient: svc.ClientSet.HelmClient,
 	}
 
 	pb.RegisterArgoCDServer(svc.Server.Grpc, pbServer)
+
+	svc.installDefaultServices()
+
 	svc.Server.Run()
 	return
+}
+
+func (svc *InstallManager) installDefaultServices() {
+	if env.Get("DEFAULT_REGISTRY_ENABLED") == "true" {
+		cli := helm.NewHarborClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-registry")
+		cli.Install(*svc.ClientSet.HelmClient)
+	}
+	if env.Get("DEFAULT_CD_ENABLED") == "true" {
+		cli := helm.NewArgoCDClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-cd")
+		cli.Install(*svc.ClientSet.HelmClient)
+	}
 }

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/choigonyok/home-idp/install-manager/pkg/config"
@@ -51,11 +50,9 @@ func getServerStartCmd() *cobra.Command {
 				port,
 				client.WithGrpcRbacManagerClient(5054),
 				client.WithHelmClient(),
+				client.WithDockerClient(),
 			)
 			defer svc.Stop()
-
-			fmt.Println(svc.ClientSet.GrpcClient[util.RbacManager].GetConnection().Target())
-			fmt.Println(svc.ClientSet.GrpcClient[util.RbacManager].GetConnection().GetState().String())
 
 			svc.Start()
 			return nil

@@ -9,3 +9,19 @@ const (
 	Gateway
 	InstallManager
 )
+
+type Clients int
+
+const (
+	GrpcClient Clients = iota
+	HelmClient
+	StorageClient
+	MailClient
+	GrpcInstallManagerClient
+	GrpcGatewayClient
+	GrpcRbacManagerClient
+	GrpcDeployManagerClient
+	GrpcSecretManagerClient
+	DockerClient
+	KubeClient
+)

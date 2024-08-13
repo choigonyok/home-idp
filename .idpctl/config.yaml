@@ -1,3 +1,9 @@
+global:
+  namespace: test-ns
+  storageClass:
+    name: test-sc
+    size: 10Gi
+
 secret-manager:
   enabled: true
   replicas: 3
@@ -16,6 +22,11 @@ deploy-manager:
   replicas: 3
   service:
     port: 5104
+  docker:
+    host: localhost
+    username: tester
+    password: tester1234
+    
   
 rbac-manager:
   enabled: true
@@ -40,3 +51,26 @@ rbac-manager:
       port: 1587
       user: idp@choigonyok.com
       password: tester1234
+
+gateway:
+  enabled: true
+  replicas: 3
+  service:
+    port: 5106
+    type: ClusterIP
+  
+install-manager:
+  enabled: true
+  replicas: 3
+  service:
+    port: 5051
+  docker:
+    host: localhost
+  defaultRegistry:
+    enabled: true
+    type: harbor # available values: harbor, docker-registry
+    adminPassword: tester1234 # username is 'admin'
+  defaultCD:
+    enabled: true
+    type: argocd # available values: argocd
+    adminPassword: tester1234 # username is 'admin'

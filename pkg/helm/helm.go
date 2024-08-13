@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"helm.sh/helm/v3/pkg/action"
-	"helm.sh/helm/v3/pkg/chart"
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/downloader"
@@ -21,23 +20,15 @@ type HelmClient struct {
 	Repository map[string]*repo.ChartRepository
 }
 
-// func NewActionSetting
+func (hc *HelmClient) Set(i interface{}) {
+	hc.Downloader = parseHelmClientFromInterface(i).Downloader
+	hc.Repository = parseHelmClientFromInterface(i).Repository
+	hc.Setting = parseHelmClientFromInterface(i).Setting
+}
 
-func New() *HelmClient {
-	settings := cli.New()
-
-	downloader := &downloader.ChartDownloader{
-		Out:              os.Stdout,
-		RepositoryConfig: settings.RepositoryConfig,
-		RepositoryCache:  settings.RepositoryCache,
-		Getters:          getter.All(settings),
-	}
-
-	return &HelmClient{
-		Downloader: downloader,
-		Setting:    settings,
-		Repository: make(map[string]*repo.ChartRepository),
-	}
+func parseHelmClientFromInterface(i interface{}) *HelmClient {
+	client := i.(*HelmClient)
+	return client
 }
 
 func (c *HelmClient) AddRepository(repoName, repoUrl string, public bool) error {
@@ -65,42 +56,6 @@ func (c *HelmClient) AddRepository(repoName, repoUrl string, public bool) error 
 	return nil
 }
 
-func (c *HelmClient) Find(releaseName, namespace string) *chart.Chart {
-	actionConfig := new(action.Configuration)
-
-	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
-	}
-
-	list := action.NewList(actionConfig)
-	releases, _ := list.Run()
-
-	for _, r := range releases {
-		if r.Name == releaseName && r.Namespace == namespace {
-			return r.Chart
-		}
-	}
-
-	return nil
-}
-
-func (c *HelmClient) Upgrade(repoChartVersion, namespace, releaseName string, values map[string]interface{}) error {
-	actionConfig := new(action.Configuration)
-
-	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
-		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
-	}
-	upgrade := action.NewUpgrade(actionConfig)
-	release, err := upgrade.Run("", c.Find(releaseName, namespace), values)
-	if err != nil {
-		return err
-	}
-
-	fmt.Printf("Chart %s has been upgraded to %s\n", release.Name, release.Namespace)
-
-	return nil
-}
-
 // chartPath is like bitnami/mysql:10.2.1
 func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, values map[string]interface{}) error {
 	repoName, after, _ := strings.Cut(repoChartVersion, "/")
@@ -108,7 +63,6 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, va
 	if !found {
 		versionName = "latest"
 	}
-
 	c.Setting.SetNamespace(namespace)
 
 	actionConfig := new(action.Configuration)
@@ -132,6 +86,9 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, va
 	if err != nil {
 		log.Fatalf("Failed to load chart: %s", err)
 	}
+
+	install.ReleaseName = releaseName
+	install.Namespace = c.Setting.Namespace()
 
 	release, err := install.Run(chart, values)
 	if err != nil {
@@ -157,3 +114,39 @@ func (c *HelmClient) Uninstall(releaseName, namespace string) error {
 
 	return nil
 }
+
+// func (c *HelmClient) Find(releaseName, namespace string) *chart.Chart {
+// 	actionConfig := new(action.Configuration)
+
+// 	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+// 		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
+// 	}
+
+// 	list := action.NewList(actionConfig)
+// 	releases, _ := list.Run()
+
+// 	for _, r := range releases {
+// 		if r.Name == releaseName && r.Namespace == namespace {
+// 			return r.Chart
+// 		}
+// 	}
+
+// 	return nil
+// }
+
+// func (c *HelmClient) Upgrade(repoChartVersion, namespace, releaseName string, values map[string]interface{}) error {
+// 	actionConfig := new(action.Configuration)
+
+// 	if err := actionConfig.Init(c.Setting.RESTClientGetter(), c.Setting.Namespace(), os.Getenv("HELM_DRIVER"), log.Printf); err != nil {
+// 		log.Fatalf("Failed to initialize Helm action configuration: %s", err)
+// 	}
+// 	upgrade := action.NewUpgrade(actionConfig)
+// 	release, err := upgrade.Run("", c.Find(releaseName, namespace), values)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	fmt.Printf("Chart %s has been upgraded to %s\n", release.Name, release.Namespace)
+
+// 	return nil
+// }

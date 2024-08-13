@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/choigonyok/home-idp/install-manager/pkg/grpc"
 	"github.com/choigonyok/home-idp/pkg/client"
+	"github.com/choigonyok/home-idp/pkg/docker"
 	"github.com/choigonyok/home-idp/pkg/helm"
 	"github.com/choigonyok/home-idp/pkg/mail"
 	"github.com/choigonyok/home-idp/pkg/storage"
@@ -14,6 +15,7 @@ type InstallManagerClientSet struct {
 	StorageClient storage.StorageClient
 	MailClient    mail.MailClient
 	HelmClient    *helm.HelmClient
+	DockerClient  *docker.DockerClient
 }
 
 func EmptyClientSet() *InstallManagerClientSet {
@@ -33,6 +35,11 @@ func (cs *InstallManagerClientSet) Set(cli util.Clients, i interface{}) {
 		tmp := &helm.HelmClient{}
 		tmp.Set(i)
 		cs.HelmClient = tmp
+		return
+	case util.DockerClient:
+		tmp := &docker.DockerClient{}
+		tmp.Set(i)
+		cs.DockerClient = tmp
 		return
 	default:
 		return

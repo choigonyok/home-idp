@@ -16,13 +16,27 @@ type Config struct {
 }
 
 type InstallManagerConfig struct {
-	Enabled  bool                         `yaml:"enabled,omitempty"`
-	Service  *InstallManagerServiceConfig `yaml:"service,omitempty"`
-	Replicas int                          `yaml:"replicas,omitempty"`
+	Enabled         bool                                 `yaml:"enabled,omitempty"`
+	Service         *InstallManagerServiceConfig         `yaml:"service,omitempty"`
+	Replicas        int                                  `yaml:"replicas,omitempty"`
+	DefaultRegistry *InstallManagerConfigDefaultRegistry `yaml:"defaultRegistry,omitempty"`
+	DefaultCD       *InstallManagerConfigDefaultCD       `yaml:"defaultCD,omitempty"`
 }
 
 type InstallManagerServiceConfig struct {
 	Port int `yaml:"port,omitempty"`
+}
+
+type InstallManagerConfigDefaultCD struct {
+	Enabled       bool   `yaml:"enabled,omitempty"`
+	Type          string `yaml:"type,omitempty"`
+	AdminPassword string `yaml:"adminPassword,omitempty"`
+}
+
+type InstallManagerConfigDefaultRegistry struct {
+	Enabled       bool   `yaml:"enabled,omitempty"`
+	Type          string `yaml:"type,omitempty"`
+	AdminPassword string `yaml:"adminPassword,omitempty"`
 }
 
 func New() *Config {
@@ -47,16 +61,14 @@ func parseFromFile(cfg config.Config, filePath string) error {
 	return nil
 }
 
-func (cfg *Config) GetPort() int {
-	return cfg.Service.Service.Port
-}
-
-func (cfg *Config) GetNamespace() string {
-	return cfg.Global.Namespace
-}
-
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("INSTALL_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
-	env.Set("INSTALL_MANAGER_ENABLED", strconv.FormatBool(cfg.Service.Enabled))
+	env.Set("DEFAULT_REGISTRY_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Enabled))
+	env.Set("DEFAULT_CD_ENABLED", strconv.FormatBool(cfg.Service.DefaultCD.Enabled))
+	env.Set("DEFAULT_CD_ADMIN_PASSWORD", cfg.Service.DefaultCD.AdminPassword)
+	env.Set("DEFAULT_REGISTRY_ADMIN_PASSWORD", cfg.Service.DefaultRegistry.AdminPassword)
+	env.Set("GLOBAL_STORAGE_CLASS_NAME", cfg.Global.StorageClass.Name)
+	env.Set("GLOBAL_STORAGE_CLASS_SIZE", cfg.Global.StorageClass.Size)
+	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
 }
