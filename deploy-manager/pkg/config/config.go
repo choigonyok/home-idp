@@ -2,52 +2,62 @@ package config
 
 import (
 	"log"
+	"strconv"
 
-	"github.com/choigonyok/home-idp/deploy-manager/pkg/service"
 	"github.com/choigonyok/home-idp/pkg/config"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/file"
 	"gopkg.in/yaml.v3"
-	"k8s.io/client-go/rest"
 )
+
+type Config struct {
+	Service *DeployManagerConfig `yaml:"deploy-manager,omitempty"`
+	Global  *config.GlobalConfig `yaml:"global,omitempty"`
+}
 
 type DeployManagerConfig struct {
 	Name     string
-	Enabled  bool                            `yaml:"enabled,omitempty"`
-	Replicas int                             `yaml:"replicas,omitempty"`
-	Service  *service.DeployManagerSvcConfig `yaml:"service,omitempty"`
-
-	KubeConfig *rest.Config
+	Enabled  bool                        `yaml:"enabled,omitempty"`
+	Replicas int                         `yaml:"replicas,omitempty"`
+	Service  *DeployManagerServiceConfig `yaml:"service,omitempty"`
+	Docker   *DeployManagerDockerConfig  `yaml:"docker,omitempty"`
 }
 
-func New() *DeployManagerConfig {
-	cfg := &DeployManagerConfig{Name: "deploy-manager"}
+type DeployManagerServiceConfig struct {
+	Port int `yaml:"port,omitempty"`
+}
 
-	log.Printf("Start reading home-idp configuration file...")
-	parseConfigFile(cfg, config.DefaultConfigFilePath)
-	cfg.SetEnvFromConfig()
+type DeployManagerDockerConfig struct {
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
+}
 
+// KubeConfig *rest.Config
+func New() *Config {
+	cfg := &Config{
+		Global:  &config.GlobalConfig{},
+		Service: &DeployManagerConfig{},
+	}
+	parseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg
 }
 
-func (cfg *DeployManagerConfig) SetEnvFromConfig() {
-	log.Printf("Start injecting appropriate environments variables...")
-}
-
-func parseConfigFile(cfg *DeployManagerConfig, filePath string) error {
+func parseFromFile(cfg config.Config, filePath string) error {
 	bytes, err := file.ReadFile(filePath)
 	if err != nil {
 		return err
 	}
 
-	tmp := &struct {
-		Config *DeployManagerConfig `yaml:"gateway,omitempty"`
-	}{
-		Config: cfg,
-	}
-
-	if err := yaml.Unmarshal(bytes, tmp); err != nil {
-		log.Fatalf("Invalid config file format")
+	if err := yaml.Unmarshal(bytes, cfg); err != nil {
 		return err
 	}
+
 	return nil
+}
+
+func (cfg *Config) SetEnvVars() {
+	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
+	env.Set("DEPLOY_MANAGER_DOCKER_USERNAME", cfg.Service.Docker.Username)
+	env.Set("DEPLOY_MANAGER_DOCKER_PASSWORD", cfg.Service.Docker.Password)
 }

@@ -18,25 +18,21 @@ type DockerClient struct {
 	AuthCredential *string
 }
 
-func New() *DockerClient {
-	client, _ := client.NewClientWithOpts(client.FromEnv, client.WithVersion("1.43"))
-	return &DockerClient{
-		Client: client,
-	}
+func (c *DockerClient) Set(i interface{}) {
+	c.Client = parseDockerClientFromInterface(i).Client
+	c.AuthCredential = parseDockerClientFromInterface(i).AuthCredential
+}
+
+func parseDockerClientFromInterface(i interface{}) *DockerClient {
+	client := i.(*DockerClient)
+	return client
 }
 
 func (c *DockerClient) Close() error {
 	return c.Client.Close()
 }
 
-func (c *DockerClient) LoginWithEnv() error {
-	cfg := registry.AuthConfig{
-		Username: "",
-		Password: "",
-	}
-	config, _ := registry.EncodeAuthConfig(cfg)
-	c.AuthCredential = &config
-
+func (c *DockerClient) LoginWithEnv(cfg registry.AuthConfig) error {
 	ok, err := c.Client.RegistryLogin(context.TODO(), cfg)
 	if ok.Status != "true" {
 		return err
