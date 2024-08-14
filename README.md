@@ -28,6 +28,7 @@ if you use Helm chart, there are subcharts for every dependency.
 
 ## Installation
 
+
 ### **With idpctl CLI**
 install idpctl CLI in you linux server with below link.
 
@@ -44,4 +45,46 @@ tar xzvf idpctl-1.0-linux-amd64.tar.gz
 helm repo add choigonyok https://registry.choigonyok.com
 helm repo update
 helm install home-idp -n idp-system choigonyok/home-idp -f values.yaml
+```
+
+
+## Test Environment
+
+### Kind
+
+You can simply run home-idp with KinD kubernetes cluster.
+KinD is kubernetes provisioning opensource software which install kubernetes cluster in docker container.
+KinD should be installed first in your local environment.
+And `idp-system` namespace should be created for home-idp.
+
+```
+# mac
+brew install kind
+kind create cluster
+kubectl create ns idp-system
+```
+
+```
+# window
+choco install kind
+kind create cluster
+kubectl create ns idp-system
+```
+
+### Manifest
+
+```
+kubectl apply -f - <<EOF
+apiVersion: v1
+kind: Pod
+metadata:
+  name: install-manager
+  namespace: test-ns
+spec:
+  containers:
+  - name: install-manager
+    image: achoistic98/install-manager:latest
+    ports:
+    - containerPort: 5051
+EOF
 ```
