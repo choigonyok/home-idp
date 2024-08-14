@@ -1,8 +1,6 @@
 global:
-  namespace: test-ns
-  storageClass:
-    name: test-sc
-    size: 10Gi
+  namespace: idp-system
+  storageClass: idp-sc    
 
 secret-manager:
   enabled: true
@@ -70,7 +68,20 @@ install-manager:
     enabled: true
     type: harbor # available values: harbor, docker-registry
     adminPassword: tester1234 # username is 'admin'
+    persistent:
+      enabled: false
+      size: 10Gi
   defaultCD:
     enabled: true
     type: argocd # available values: argocd
     adminPassword: tester1234 # username is 'admin'
+    persistent:
+      enabled: false
+      size: 10Gi
+  defaultCI:
+    enabled: true
+    type: jeknins # available values: jenkins
+    adminPassword: tester1234 # username is 'admin'
+    persistent:
+      enabled: false
+      size: 10Gi
