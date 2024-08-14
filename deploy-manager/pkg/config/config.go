@@ -35,8 +35,11 @@ type DeployManagerDockerConfig struct {
 // KubeConfig *rest.Config
 func New() *Config {
 	cfg := &Config{
-		Global:  &config.GlobalConfig{},
-		Service: &DeployManagerConfig{},
+		Global: &config.GlobalConfig{},
+		Service: &DeployManagerConfig{
+			Service: &DeployManagerServiceConfig{},
+			Docker:  &DeployManagerDockerConfig{},
+		},
 	}
 	parseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg
@@ -60,4 +63,5 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEPLOY_MANAGER_DOCKER_USERNAME", cfg.Service.Docker.Username)
 	env.Set("DEPLOY_MANAGER_DOCKER_PASSWORD", cfg.Service.Docker.Password)
+	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
 }
