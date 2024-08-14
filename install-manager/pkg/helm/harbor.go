@@ -12,21 +12,6 @@ type Harbor struct {
 	ReleaseName string `json:"release_name"`
 }
 
-// type HarborData struct {
-// 	MetadataNamespace         string            `json:"namespace"`
-// 	MetadataReleaseName       string            `json:"release_name"`
-// 	IngressEnabled            bool              `json:"enabled"`
-// 	IngressClassName          string            `json:"class_name"`
-// 	IngressTls                bool              `json:"tls"`
-// 	IngressAnnotation         map[string]string `json:"annotation"`
-// 	OptRedisHA                bool              `json:"redis_ha"`
-// 	OptControllerReplicas     int               `json:"controller_repl"`
-// 	OptServerReplicas         int               `json:"server_repl"`
-// 	OptRepoServerReplicas     int               `json:"repo_server_repl"`
-// 	OptApplicationSetReplicas int               `json:"application_set_repl"`
-// 	OptDomain                 string            `json:"domain"`
-// }
-
 func NewHarborClient(namespace, releaseName string) *Harbor {
 	return &Harbor{
 		Namespace:   namespace,
@@ -37,7 +22,7 @@ func NewHarborClient(namespace, releaseName string) *Harbor {
 func (c *Harbor) Install(h helm.HelmClient) error {
 	fmt.Println("RELEASE: ", c.ReleaseName)
 	fmt.Println("NAMESPACE: ", c.Namespace)
-	h.Install("harbor/harbor:1.15.0", c.Namespace, c.ReleaseName, c.MakeVaulesWithOption())
+	h.Install("harbor/harbor:1.15.0", c.Namespace, c.ReleaseName, harborOverrideValues())
 	return nil
 }
 
@@ -46,7 +31,7 @@ func (c *Harbor) Uninstall(h helm.HelmClient) error {
 	return nil
 }
 
-func (c *Harbor) MakeVaulesWithOption() map[string]interface{} {
+func harborOverrideValues() map[string]interface{} {
 	return map[string]interface{}{
 		"harborAdminPassword": env.Get("DEFAULT_REGISTRY_ADMIN_PASSWORD"),
 		"expose": map[string]interface{}{
@@ -59,6 +44,7 @@ func (c *Harbor) MakeVaulesWithOption() map[string]interface{} {
 			},
 		},
 		"persistence": map[string]interface{}{
+			"enabled": false,
 			"persistentVolumeClaim": map[string]interface{}{
 				"registry": map[string]interface{}{
 					"storageClass": env.Get("GLOBAL_STORAGE_CLASS_NAME"),

@@ -36,6 +36,7 @@ func (svc *InstallManager) Start() {
 	svc.ClientSet.HelmClient.AddRepository("bitnami", "https://charts.bitnami.com/bitnami", true)
 	svc.ClientSet.HelmClient.AddRepository("argo", "https://argoproj.github.io/argo-helm", true)
 	svc.ClientSet.HelmClient.AddRepository("harbor", "https://helm.goharbor.io", true)
+	svc.ClientSet.HelmClient.AddRepository("jenkins", "https://charts.jenkins.io", true)
 
 	pbServer := &grpc.ArgoCDServer{
 		HelmClient: svc.ClientSet.HelmClient,
@@ -45,17 +46,23 @@ func (svc *InstallManager) Start() {
 
 	svc.installDefaultServices()
 
+	svc.ClientSet.HttpClient.RequestJenkinsCrumb()
+
 	svc.Server.Run()
 	return
 }
 
 func (svc *InstallManager) installDefaultServices() {
 	if env.Get("DEFAULT_REGISTRY_ENABLED") == "true" {
-		cli := helm.NewHarborClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-registry")
+		cli := helm.NewHarborClient(env.Get("GLOBAL_NAMESPACE"), "home-idp")
 		cli.Install(*svc.ClientSet.HelmClient)
 	}
 	if env.Get("DEFAULT_CD_ENABLED") == "true" {
 		cli := helm.NewArgoCDClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-cd")
+		cli.Install(*svc.ClientSet.HelmClient)
+	}
+	if env.Get("DEFAULT_CI_ENABLED") == "true" {
+		cli := helm.NewJenkinsClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-ci")
 		cli.Install(*svc.ClientSet.HelmClient)
 	}
 }

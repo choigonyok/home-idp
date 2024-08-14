@@ -5,6 +5,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/docker"
 	"github.com/choigonyok/home-idp/pkg/helm"
+	"github.com/choigonyok/home-idp/pkg/http"
 	"github.com/choigonyok/home-idp/pkg/mail"
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -16,6 +17,7 @@ type InstallManagerClientSet struct {
 	MailClient    mail.MailClient
 	HelmClient    *helm.HelmClient
 	DockerClient  *docker.DockerClient
+	HttpClient    *http.HttpClient
 }
 
 func EmptyClientSet() *InstallManagerClientSet {
@@ -40,6 +42,11 @@ func (cs *InstallManagerClientSet) Set(cli util.Clients, i interface{}) {
 		tmp := &docker.DockerClient{}
 		tmp.Set(i)
 		cs.DockerClient = tmp
+		return
+	case util.HttpClient:
+		tmp := &http.HttpClient{}
+		tmp.Set(i)
+		cs.HttpClient = tmp
 		return
 	default:
 		return
