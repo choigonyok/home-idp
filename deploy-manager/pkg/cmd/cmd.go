@@ -51,11 +51,13 @@ func getServerStartCmd() *cobra.Command {
 			svc := service.New(
 				port,
 				client.WithDockerClient(),
+				client.WithKubeClient(),
 			)
 			defer svc.Stop()
 
-			time.Sleep(time.Second * 60)
-			svc.ClientSet.DockerClient.Test(env.Get("GLOBAL_NAMESPACE"))
+			svc.ClientSet.TestCreatHarborCredSecret()
+			svc.ClientSet.TestBuildWithKaniko("test123", "testimage2", "testtag2452")
+			time.Sleep(time.Second * 240)
 
 			// fmt.Println(*svc.ClientSet.DockerClient.AuthCredential)
 			// fmt.Println(*svc.ClientSet.DockerClient.AuthCredential)

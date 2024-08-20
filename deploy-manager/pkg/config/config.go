@@ -64,4 +64,6 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("DEPLOY_MANAGER_DOCKER_USERNAME", cfg.Service.Docker.Username)
 	env.Set("DEPLOY_MANAGER_DOCKER_PASSWORD", cfg.Service.Docker.Password)
 	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
+	env.Set("GLOBAL_GIT_USERNAME", cfg.Global.Git.Username)
+	env.Set("DEPLOY_MANAGER_REGISTRY_PASSWORD", "tester1234")
 }
