@@ -1,0 +1,21 @@
+FROM achoistic98/base:1.22.5
+
+WORKDIR /app
+
+COPY go.mod .
+
+COPY go.sum .
+
+RUN go mod download
+
+COPY ./.idpctl ./.idpctl
+
+COPY ./pkg ./pkg
+
+COPY ./deploy-manager/pkg/proto ./deploy-manager/pkg/proto
+
+COPY ./gateway ./gateway
+
+RUN go build -o ./gw ./gateway/cmd/main.go
+
+CMD [ "./gw", "server", "start", "-f", "/app/.idpctl/config.yaml" ]
