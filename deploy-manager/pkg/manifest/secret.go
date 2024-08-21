@@ -56,7 +56,7 @@ func GetHarborCredManifest(pw string) *corev1.Secret {
 			APIVersion: "v1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "harborcred-tt",
+			Name:      "harborcred",
 			Namespace: env.Get("GLOBAL_NAMESPACE"),
 		},
 		Type: "kubernetes.io/dockerconfigjson",

@@ -50,36 +50,11 @@ func getServerStartCmd() *cobra.Command {
 			log.Printf("Start installing deploy-manager server...")
 			svc := service.New(
 				port,
-				client.WithDockerClient(),
 				client.WithKubeClient(),
 			)
 			defer svc.Stop()
 
-			svc.ClientSet.TestCreatHarborCredSecret()
-			svc.ClientSet.TestBuildWithKaniko("test123", "testimage2", "testtag2452")
 			time.Sleep(time.Second * 240)
-
-			// fmt.Println(*svc.ClientSet.DockerClient.AuthCredential)
-			// fmt.Println(*svc.ClientSet.DockerClient.AuthCredential)
-			// err := svc.ClientSet.DockerClient.Build("testtag", `
-			// FROM nginx:latest
-
-			// # Nginx가 설치된 Debian 기반 이미지에 필요한 패키지 설치
-			// RUN apt-get update \
-			// 		&& apt-get install -y git \
-			// 		&& rm -rf /var/lib/apt/lists/*
-
-			// # Nginx 설정 파일 복사
-			// COPY nginx.conf /etc/nginx/nginx.conf
-
-			// # 포트 80 오픈
-			// EXPOSE 80
-
-			// # Nginx 실행
-			// CMD ["nginx", "-g", "daemon off;"]
-			// `)
-
-			// fmt.Println(err)
 
 			svc.Start()
 			return nil

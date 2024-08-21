@@ -1,8 +1,11 @@
 package service
 
 import (
+	"fmt"
+
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/client"
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/grpc"
+	pb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
 )
 
@@ -29,11 +32,15 @@ func (svc *DeployManager) Stop() {
 }
 
 func (svc *DeployManager) Start() {
-	// pbServer := &grpc.ArgoCDServer{
-	// 	HelmClient: svc.ClientSet.HelmClient,
-	// }
+	if err := svc.ClientSet.KubeClient.ApplyHarborCredentialSecret(); err != nil {
+		fmt.Println("TEST APPLY HARBOR CRED MANIFEST ERR:", err)
+	}
 
-	// pb.RegisterArgoCDServer(svc.Server.Grpc, pbServer)
+	pbBuildServer := &grpc.BuildServer{
+		KubeClient: svc.ClientSet.KubeClient,
+	}
+	pb.RegisterBuildServer(svc.Server.Server, pbBuildServer)
+
 	svc.Server.Run()
 	return
 }

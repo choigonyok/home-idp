@@ -9,14 +9,14 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetKanikoJobManifest(img docker.Image, repo string) *batchv1.Job {
+func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 	return &batchv1.Job{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Job",
 			APIVersion: "batch/v1",
 		},
 		ObjectMeta: v1.ObjectMeta{
-			Name:      "kaniko-" + img.GetName() + "-" + img.GetTag(),
+			Name:      "kaniko-" + img.Name + "-" + img.Version,
 			Namespace: env.Get("GLOBAL_NAMESPACE"),
 		},
 		Spec: batchv1.JobSpec{
@@ -24,7 +24,7 @@ func GetKanikoJobManifest(img docker.Image, repo string) *batchv1.Job {
 			TTLSecondsAfterFinished: util.PtrInt32(100),
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: v1.ObjectMeta{
-					Name:      "kaniko-" + img.GetName() + "-" + img.GetTag(),
+					Name:      "kaniko-" + img.Name + "-" + img.Version,
 					Namespace: env.Get("GLOBAL_NAMESPACE"),
 				},
 				Spec: corev1.PodSpec{
@@ -35,9 +35,9 @@ func GetKanikoJobManifest(img docker.Image, repo string) *batchv1.Job {
 							Args: []string{
 								"--insecure=true",
 								"--skip-tls-verify=true",
-								"--dockerfile=/docker/Dockerfile." + img.GetName(),
+								"--dockerfile=/docker/Dockerfile." + img.Name,
 								"--context=git://github.com/" + env.Get("GLOBAL_GIT_USERNAME") + "/" + repo + "#main",
-								"--destination=harbor.idp-system.svc.cluster.local:80/library/" + img.GetName() + ":" + img.GetTag(),
+								"--destination=harbor.idp-system.svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
 								"--cache=true",
 							},
 							VolumeMounts: []corev1.VolumeMount{

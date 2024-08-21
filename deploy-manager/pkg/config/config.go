@@ -61,9 +61,8 @@ func parseFromFile(cfg config.Config, filePath string) error {
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
-	env.Set("DEPLOY_MANAGER_DOCKER_USERNAME", cfg.Service.Docker.Username)
-	env.Set("DEPLOY_MANAGER_DOCKER_PASSWORD", cfg.Service.Docker.Password)
 	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
 	env.Set("GLOBAL_GIT_USERNAME", cfg.Global.Git.Username)
-	env.Set("DEPLOY_MANAGER_REGISTRY_PASSWORD", "tester1234")
+	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
+	env.Set("DEPLOY_MANAGER_REGISTRY_PASSWORD", cfg.Global.AdminPassword)
 }
