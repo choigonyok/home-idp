@@ -21,15 +21,6 @@ func parseKubeClientFromInterface(i interface{}) *kube.KubeClient {
 	return client
 }
 
-func (c *DeployManagerKubeClient) ApplyHarborCredentialSecret() error {
-	yml := manifest.GetHarborCredManifest(env.Get("DEPLOY_MANAGER_REGISTRY_PASSWORD"))
-	b, _ := yaml.Marshal(yml)
-	if err := c.Client.ApplyManifest(string(b), "secrets", yml.GetNamespace()); err != nil {
-		return err
-	}
-	return nil
-}
-
 func (c *DeployManagerKubeClient) ApplyKanikoBuildJob(tag string) error {
 	yml := manifest.GetKanikoJobManifest(docker.NewDockerImage(tag), env.Get("HOME_IDP_GIT_REPO"))
 	b, _ := yaml.Marshal(yml)

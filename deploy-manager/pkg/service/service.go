@@ -1,8 +1,6 @@
 package service
 
 import (
-	"fmt"
-
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/client"
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/grpc"
 	pb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
@@ -32,10 +30,6 @@ func (svc *DeployManager) Stop() {
 }
 
 func (svc *DeployManager) Start() {
-	if err := svc.ClientSet.KubeClient.ApplyHarborCredentialSecret(); err != nil {
-		fmt.Println("TEST APPLY HARBOR CRED MANIFEST ERR:", err)
-	}
-
 	pbBuildServer := &grpc.BuildServer{
 		KubeClient: svc.ClientSet.KubeClient,
 	}

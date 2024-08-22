@@ -17,7 +17,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 		},
 		ObjectMeta: v1.ObjectMeta{
 			Name:      "kaniko-" + img.Name + "-" + img.Version,
-			Namespace: env.Get("GLOBAL_NAMESPACE"),
+			Namespace: env.Get("HOME_IDP_NAMESPACE"),
 		},
 		Spec: batchv1.JobSpec{
 			BackoffLimit:            util.PtrInt32(3),
@@ -25,7 +25,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: v1.ObjectMeta{
 					Name:      "kaniko-" + img.Name + "-" + img.Version,
-					Namespace: env.Get("GLOBAL_NAMESPACE"),
+					Namespace: env.Get("HOME_IDP_NAMESPACE"),
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{
@@ -36,7 +36,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 								"--insecure=true",
 								"--skip-tls-verify=true",
 								"--dockerfile=/docker/Dockerfile." + img.Name,
-								"--context=git://github.com/" + env.Get("GLOBAL_GIT_USERNAME") + "/" + repo + "#main",
+								"--context=git://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + repo + "#main",
 								"--destination=harbor.idp-system.svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
 								"--cache=true",
 							},

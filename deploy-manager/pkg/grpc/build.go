@@ -27,5 +27,4 @@ func (svr *BuildServer) BuildDockerfile(ctx context.Context, in *pb.BuildDockerf
 	return &pb.BuildDockerfileReply{
 		Succeed: true,
 	}, nil
-	// in.Kind.GetKind()
 }

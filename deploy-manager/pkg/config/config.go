@@ -20,16 +20,10 @@ type DeployManagerConfig struct {
 	Enabled  bool                        `yaml:"enabled,omitempty"`
 	Replicas int                         `yaml:"replicas,omitempty"`
 	Service  *DeployManagerServiceConfig `yaml:"service,omitempty"`
-	Docker   *DeployManagerDockerConfig  `yaml:"docker,omitempty"`
 }
 
 type DeployManagerServiceConfig struct {
 	Port int `yaml:"port,omitempty"`
-}
-
-type DeployManagerDockerConfig struct {
-	Username string `yaml:"username,omitempty"`
-	Password string `yaml:"password,omitempty"`
 }
 
 // KubeConfig *rest.Config
@@ -38,7 +32,6 @@ func New() *Config {
 		Global: &config.GlobalConfig{},
 		Service: &DeployManagerConfig{
 			Service: &DeployManagerServiceConfig{},
-			Docker:  &DeployManagerDockerConfig{},
 		},
 	}
 	parseFromFile(cfg, config.DefaultConfigFilePath)
@@ -60,9 +53,9 @@ func parseFromFile(cfg config.Config, filePath string) error {
 
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
-	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
-	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
-	env.Set("GLOBAL_GIT_USERNAME", cfg.Global.Git.Username)
+	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
+	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
+	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEPLOY_MANAGER_REGISTRY_PASSWORD", cfg.Global.AdminPassword)
 }
