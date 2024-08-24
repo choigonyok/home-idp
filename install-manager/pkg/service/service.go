@@ -1,6 +1,9 @@
 package service
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/choigonyok/home-idp/install-manager/pkg/client"
 	"github.com/choigonyok/home-idp/install-manager/pkg/grpc"
 	"github.com/choigonyok/home-idp/install-manager/pkg/helm"
@@ -46,23 +49,44 @@ func (svc *InstallManager) Start() {
 
 	svc.installDefaultServices()
 
-	svc.ClientSet.HttpClient.RequestJenkinsCrumb()
-
 	svc.Server.Run()
 	return
 }
 
 func (svc *InstallManager) installDefaultServices() {
 	if env.Get("DEFAULT_REGISTRY_ENABLED") == "true" {
-		cli := helm.NewHarborClient(env.Get("GLOBAL_NAMESPACE"), "home-idp")
-		cli.Install(*svc.ClientSet.HelmClient)
+		svc.installHarbor()
 	}
-	if env.Get("DEFAULT_CD_ENABLED") == "true" {
-		cli := helm.NewArgoCDClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-cd")
-		cli.Install(*svc.ClientSet.HelmClient)
+	// if env.Get("DEFAULT_CI_ENABLED") == "true" {
+	// 	cli := helm.NewJenkinsClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-ci")
+	// 	cli.Install(*svc.ClientSet.HelmClient)
+	// }
+	// if env.Get("DEFAULT_CD_ENABLED") == "true" {
+	// 	cli := helm.NewArgoCDClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-cd")
+	// 	cli.Install(*svc.ClientSet.HelmClient)
+	// }
+}
+
+func (svc *InstallManager) installHarbor() {
+	cli := helm.NewHarborClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-harbor")
+
+	cli.Install(*svc.ClientSet.HelmClient)
+
+	if err := svc.ClientSet.KubeClient.ApplyHarborCredentialSecret(); err != nil {
+		fmt.Println("TEST APPLY HARBOR CRED MANIFEST ERR:", err)
 	}
-	if env.Get("DEFAULT_CI_ENABLED") == "true" {
-		cli := helm.NewJenkinsClient(env.Get("GLOBAL_NAMESPACE"), "home-idp-ci")
-		cli.Install(*svc.ClientSet.HelmClient)
+
+	for {
+		ok, err := svc.ClientSet.HttpClient.IsHarborHealthy()
+		fmt.Println("TEST HARBOR HEALTH CHECK REQUEST ERR: ", err)
+		if ok {
+			fmt.Println("@@@TEST HARBOR HEALTH CHECK SUCCESS@@@")
+			break
+		}
+		time.Sleep(time.Second * 1)
+	}
+
+	if err := svc.ClientSet.HttpClient.CreateHarborWebhook(); err != nil {
+		fmt.Println("TEST HARBOR WEBHOOK CREATE ERR:", err)
 	}
 }

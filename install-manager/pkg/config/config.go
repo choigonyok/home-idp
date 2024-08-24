@@ -90,9 +90,11 @@ func parseFromFile(cfg config.Config, filePath string) error {
 
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
+	env.Set("HOME_IDP_STORAGE_CLASS_NAME", cfg.Global.StorageClass)
+	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
 	env.Set("INSTALL_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEFAULT_REGISTRY_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Enabled))
-	env.Set("DEFAULT_REGISTRY_ADMIN_PASSWORD", cfg.Service.DefaultRegistry.AdminPassword)
 	env.Set("DEFAULT_REGISTRY_STORAGE_CLASS_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Persistent.Enabled))
 	env.Set("DEFAULT_REGISTRY_STORAGE_CLASS_SIZE", cfg.Service.DefaultRegistry.Persistent.Size)
 	env.Set("DEFAULT_CD_ENABLED", strconv.FormatBool(cfg.Service.DefaultCD.Enabled))
@@ -103,6 +105,4 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("DEFAULT_CI_ADMIN_PASSWORD", cfg.Service.DefaultCD.AdminPassword)
 	env.Set("DEFAULT_CI_STORAGE_CLASS_ENABLED", strconv.FormatBool(cfg.Service.DefaultCD.Persistent.Enabled))
 	env.Set("DEFAULT_CI_STORAGE_CLASS_SIZE", cfg.Service.DefaultCD.Persistent.Size)
-	env.Set("GLOBAL_STORAGE_CLASS_NAME", cfg.Global.StorageClass)
-	env.Set("GLOBAL_NAMESPACE", cfg.Global.Namespace)
 }

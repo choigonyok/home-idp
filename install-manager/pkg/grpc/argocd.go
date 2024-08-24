@@ -32,7 +32,7 @@ func (s *ArgoCDServer) InstallArgoCDChart(ctx context.Context, in *pb.InstallArg
 	// 	},
 	// }
 
-	client := installhelm.NewArgoCDClient(env.Get("GLOBAL_NAMESPACE"), "home-idp")
+	client := installhelm.NewArgoCDClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp")
 	client.Install(*s.HelmClient)
 
 	return &pb.InstallArgoCDChartReply{

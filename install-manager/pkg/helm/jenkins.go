@@ -34,7 +34,7 @@ func (c *Jenkins) Uninstall(h helm.HelmClient) error {
 func jenkinsOverrideValues() map[string]interface{} {
 	return map[string]interface{}{
 		"fullnameOverride:": "home-idp-jenkins",
-		"namespaceOverride": env.Get("GLOBAL_NAMESPACE"),
+		"namespaceOverride": env.Get("HOME_IDP_NAMESPACE"),
 		"persistence": map[string]interface{}{
 			"enabled": true,
 		},
@@ -47,6 +47,30 @@ func jenkinsOverrideValues() map[string]interface{} {
 					"enabled":            true,
 					"proxyCompatability": true,
 				},
+			},
+			"JCasC": map[string]interface{}{
+				"configScripts": `jenkins:
+	systemMessage: Welcome to our CI\CD server. This Jenkins is configured and managed 'as code'.
+  securityRealm:
+		local:
+			allowsSignup: false
+			enableCaptcha: false
+			users:
+			- id: "admin"
+				name: "Jenkins Admin"
+				password: "${DEFAULT_CI_ADMIN_PASSWORD}"
+tool:
+	git:
+		installations:
+			- name: git
+				home: /usr/local/bin/git
+`,
+			},
+			"installPlugins": []string{
+				"kubernetes:4253.v7700d91739e5",
+				"workflow-aggregator:600.vb_57cdd26fdd7",
+				"git:5.2.2",
+				"configuration-as-code:1810.v9b_c30a_249a_4c",
 			},
 		},
 	}

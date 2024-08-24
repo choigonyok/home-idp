@@ -50,12 +50,10 @@ func getServerStartCmd() *cobra.Command {
 				port,
 				client.WithGrpcRbacManagerClient(5054),
 				client.WithHelmClient(),
-				client.WithDockerClient(),
+				client.WithKubeClient(),
 				client.WithHttpClient(),
 			)
 			defer svc.Stop()
-
-			go svc.ClientSet.HttpClient.RequestJenkinsCrumb()
 
 			svc.Start()
 			return nil
