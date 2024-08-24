@@ -4,16 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/google/go-github/v63/github"
 )
 
 func CreateWebhook(url string, gc *GitClient) error {
-	env.Set("IDP_GIT_WEBHOOK_CONTENT_TYPE", "json") // REMOVE LATER
 	h := &github.Hook{
 		Active: github.Bool(true),
 		Config: &github.HookConfig{
-			ContentType: github.String(env.Get("IDP_GIT_WEBHOOK_CONTENT_TYPE")),
+			ContentType: github.String("json"),
 			URL:         github.String(url),
 		},
 	}

@@ -20,13 +20,22 @@ type Config interface {
 }
 
 type GlobalConfig struct {
-	Namespace    string                    `yaml:"namespace,omitempty"`
-	StorageClass *GlobalConfigStorageClass `yaml:"storageClass,omitempty"`
+	Namespace     string               `yaml:"namespace,omitempty"`
+	StorageClass  string               `yaml:"storageClass,omitempty"`
+	Git           *GlobalConfigGit     `yaml:"git,omitempty"`
+	Ingress       *GlobalConfigIngress `yaml:"ingress,omitempty"`
+	AdminPassword string               `yaml:"adminPassword,omitempty"`
 }
 
-type GlobalConfigStorageClass struct {
-	Name string `yaml:"name,omitempty"`
-	Size string `yaml:"size,omitempty"`
+type GlobalConfigIngress struct {
+	Host string `yaml:"host,omitempty"`
+	TLS  bool   `yaml:"tls,omitempty"`
+}
+
+type GlobalConfigGit struct {
+	Username string `yaml:"username,omitempty"`
+	Token    string `yaml:"token,omitempty"`
+	Repo     string `yaml:"repository,omitempty"`
 }
 
 const (

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/choigonyok/home-idp/pkg/object"
+	"gopkg.in/yaml.v2"
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -12,40 +14,65 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
-func GetKubeConfig() (*rest.Config, error) {
-	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
-
-	return clientConfig.ClientConfig()
+type KubeClient struct {
+	Dynamic   *dynamic.DynamicClient
+	ClientSet *kubernetes.Clientset
 }
 
-func NewClient(cfg *rest.Config) (*kubernetes.Clientset, error) {
-	return kubernetes.NewForConfig(cfg)
-}
-
-func ListServices(namespace string, client kubernetes.Interface) (*apiv1.ServiceList, error) {
-	return client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
-}
-
-func GetDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
-	client, err := dynamic.NewForConfig(kubeconfig)
-	if err != nil {
-		fmt.Println(err)
+func NewKubeClient() *KubeClient {
+	kubeconfig, _ := getKubeConfig()
+	dc, _ := getDynamicClient(kubeconfig)
+	cs, _ := kubernetes.NewForConfig(kubeconfig)
+	return &KubeClient{
+		Dynamic:   dc,
+		ClientSet: cs,
 	}
-	return client, nil
 }
 
-func ApplyManifest(resource, namespace string, client dynamic.Interface, obj *unstructured.Unstructured, gvk schema.GroupVersionKind) {
+func (c *KubeClient) Set(i interface{}) {
+	c.Dynamic = parseKubeClientFromInterface(i).Dynamic
+	c.ClientSet = parseKubeClientFromInterface(i).ClientSet
+}
+
+func parseKubeClientFromInterface(i interface{}) *KubeClient {
+	client := i.(*KubeClient)
+	return client
+}
+
+func (c *KubeClient) ApplyManifest(manifest, resource, namespace string) error {
+	gvk, obj := object.ParseObjectsFromManifest(manifest)
+
+	mapIOP := make(map[string]any)
+	yaml.Unmarshal([]byte(manifest), &mapIOP)
 	gvr := schema.GroupVersionResource{
 		Group:    gvk.Group,
 		Version:  gvk.Version,
 		Resource: resource,
 	}
 
-	client.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	_, err := c.Dynamic.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	return err
+}
+
+func getKubeConfig() (*rest.Config, error) {
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(clientcmd.NewDefaultClientConfigLoadingRules(), &clientcmd.ConfigOverrides{ClusterInfo: clientcmdapi.Cluster{Server: ""}})
+
+	return clientConfig.ClientConfig()
+}
+
+func ListServices(namespace string, client kubernetes.Interface) (*apiv1.ServiceList, error) {
+	return client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+}
+
+func getDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
+	client, err := dynamic.NewForConfig(kubeconfig)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return client, nil
 }
 
 // var (

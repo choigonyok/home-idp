@@ -10,7 +10,7 @@ import (
 
 func ParseObjectsFromManifest(manifest string) (schema.GroupVersionKind, *unstructured.Unstructured) {
 	var objects unstructured.Unstructured
-
+	fmt.Println(manifest)
 	json, _ := yaml.ToJSON([]byte(manifest))
 	objects.UnmarshalJSON(json)
 	gvk := objects.GetObjectKind().GroupVersionKind()

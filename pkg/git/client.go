@@ -1,8 +1,11 @@
 package git
 
 import (
+	"context"
+	"log"
 	"net/http"
 
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/google/go-github/v63/github"
 )
 
@@ -13,14 +16,63 @@ type GitClient struct {
 	Token      string
 }
 
-func NewClient(owner, token string) *GitClient {
+func NewGitClient(owner, token string) *GitClient {
 	dc := http.DefaultClient
-	return &GitClient{
-		Owner:      owner,
-		Client:     github.NewClient(dc).WithAuthToken(token),
-		Repository: nil,
-		Token:      token,
+
+	client := &GitClient{
+		Owner:  owner,
+		Client: github.NewClient(dc).WithAuthToken(token),
+		Token:  token,
 	}
+
+	if err := client.ConnectRepository(env.Get("HOME_IDP_GIT_REPO")); err != nil {
+		log.Fatalln("TEST CONNECT REPO ERR:", err)
+	}
+
+	return client
+}
+
+func (c *GitClient) CreateGitWebhook(url string) error {
+	h := &github.Hook{
+		Active: github.Bool(true),
+		Config: &github.HookConfig{
+			ContentType: github.String("json"),
+			URL:         github.String(url),
+		},
+	}
+	_, resp, err := c.Client.Repositories.CreateHook(context.TODO(), c.Owner, c.Repository.GetName(), h)
+	defer resp.Body.Close()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *GitClient) Pushfile(file GitFile) error {
+	c.Client.Repositories.CreateFile(context.TODO(), file.getUsername(), env.Get("HOME_IDP_GIT_REPO"), file.getType(), &github.RepositoryContentFileOptions{
+		Message: github.String(""),
+		Content: []byte(""),
+	})
+
+	return nil
+}
+
+type GitFile interface {
+	getType() string
+	getUsername() string
+}
+
+type GitDockerFile struct {
+	Username string
+	Tag      string
+}
+
+func (f *GitDockerFile) getUsername() string {
+	return f.Username
+}
+func (f *GitDockerFile) getType() string {
+	return "docker"
 }
 
 // func ValidateClient(c *GitClient) {

@@ -76,13 +76,13 @@ func (c *DockerClient) RunDefaultRegistry() error {
 		panic(err)
 	}
 
-	cfg := registry.AuthConfig{
-		ServerAddress: "http://localhost:5050",
-	}
-
 	fmt.Println("wait create")
 	c.Client.ContainerWait(context.TODO(), resp.ID, "created")
 	fmt.Println("created!")
+
+	cfg := registry.AuthConfig{
+		ServerAddress: "http://localhost:5050",
+	}
 
 	err = c.LoginWithEnv(cfg)
 

@@ -7,18 +7,22 @@ import (
 	"github.com/google/go-github/v63/github"
 )
 
-func CreateRepository(name string, private bool, gc *GitClient) error {
+func (c *GitClient) GetRepositoryCloneURL() string {
+	return c.Repository.GetCloneURL()
+}
+
+func (c *GitClient) CreateRepository(name string, private bool) error {
 	r := &github.Repository{
 		Name:                github.String(name),
 		Private:             github.Bool(private),
 		SecurityAndAnalysis: nil,
 	}
-	r, _, err := gc.Client.Repositories.Create(context.TODO(), "", r)
+	r, _, err := c.Client.Repositories.Create(context.TODO(), "", r)
 	if err != nil {
 		return err
 	}
 
-	gc.Repository = r
+	c.Repository = r
 	return nil
 }
 
@@ -34,15 +38,19 @@ func DeleteRepository(name string, gc *GitClient) error {
 	return nil
 }
 
-func ConnectRepository(gc *GitClient, repo string) error {
-	if !checkRepository(gc) {
-		r, resp, err := gc.Client.Repositories.Get(context.TODO(), gc.Owner, repo)
-		fmt.Println("REPO GET ERR:", err)
-		fmt.Println("REPO GET RESP:", resp.StatusCode)
-		gc.Repository = r
+func (c *GitClient) ConnectRepository(repo string) error {
+	r, resp, err := c.Client.Repositories.Get(context.TODO(), c.Owner, repo)
+	if resp.StatusCode != 404 && err != nil {
+		return err
+	}
+
+	if resp.StatusCode == 404 {
+		c.CreateRepository(repo, false)
 		return nil
 	}
-	return fmt.Errorf("%s", "Already Connected")
+
+	c.Repository = r
+	return nil
 }
 
 func DisonnectRepository(gc *GitClient) {

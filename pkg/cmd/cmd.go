@@ -16,6 +16,10 @@ func GetServerCmd(component util.Components) *cobra.Command {
 		c = "rbac-manager"
 	case 3:
 		c = "gateway"
+	case 4:
+		c = "install-manager"
+	case 5:
+		c = "webhook-manager"
 	}
 
 	serverCmd := &cobra.Command{

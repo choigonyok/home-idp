@@ -1,12 +1,15 @@
 package client
 
 import (
+	"net/http"
 	"os"
 	"strconv"
 
 	"github.com/choigonyok/home-idp/pkg/docker"
 	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/helm"
+	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/docker/docker/api/types/registry"
 	dockercli "github.com/docker/docker/client"
@@ -150,7 +153,7 @@ func WithDockerClient() ClientOption {
 
 func useDockerClient() ClientOption {
 	return newDockerClientOption(func(cli ClientSet) {
-		client, _ := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithVersion("1.43"))
+		client, _ := dockercli.NewClientWithOpts(dockercli.FromEnv, dockercli.WithVersion("27.1.2"))
 
 		cfg := registry.AuthConfig{
 			Username: env.Get("DEPLOY_MANAGER_DOCKER_USERNAME"),
@@ -165,12 +168,73 @@ func useDockerClient() ClientOption {
 		}
 
 		cli.Set(util.DockerClient, i)
-		// client.LoginWithEnv()
 		return
 	})
 }
 
 func newDockerClientOption(f func(cli ClientSet)) *GrpcClientOption {
+	return &GrpcClientOption{
+		F: f,
+	}
+}
+
+func WithHttpClient() ClientOption {
+	return useHttpClient()
+}
+
+func useHttpClient() ClientOption {
+	// return newHttpClientOption(func(cli ClientSet) {
+	// 	client := http.DefaultClient
+	// 	i := &pkghttp.HttpClient{
+	// 		Client: client,
+	// 	}
+	// 	cli.Set(util.HttpClient, i)
+	// 	return
+	// })
+	return newHttpClientOption(func(cli ClientSet) {
+		i := http.DefaultClient
+		cli.Set(util.HttpClient, i)
+		return
+	})
+}
+
+func newHttpClientOption(f func(cli ClientSet)) *GrpcClientOption {
+	return &GrpcClientOption{
+		F: f,
+	}
+}
+
+func WithKubeClient() ClientOption {
+	return useKubeClient()
+}
+
+func useKubeClient() ClientOption {
+	return newKubeClientOption(func(cli ClientSet) {
+		i := kube.NewKubeClient()
+		cli.Set(util.KubeClient, i)
+		return
+	})
+}
+
+func newKubeClientOption(f func(cli ClientSet)) *GrpcClientOption {
+	return &GrpcClientOption{
+		F: f,
+	}
+}
+
+func WithGitClient(owner, token string) ClientOption {
+	return useGitClient(owner, token)
+}
+
+func useGitClient(owner, token string) ClientOption {
+	return newGitClientOption(func(cli ClientSet) {
+		i := git.NewGitClient(owner, token)
+		cli.Set(util.GitClient, i)
+		return
+	})
+}
+
+func newGitClientOption(f func(cli ClientSet)) *GrpcClientOption {
 	return &GrpcClientOption{
 		F: f,
 	}

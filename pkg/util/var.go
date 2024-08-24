@@ -8,6 +8,7 @@ const (
 	RbacManager
 	Gateway
 	InstallManager
+	WebhookManager
 )
 
 type Clients int
@@ -24,4 +25,6 @@ const (
 	GrpcSecretManagerClient
 	DockerClient
 	KubeClient
+	HttpClient
+	GitClient
 )
