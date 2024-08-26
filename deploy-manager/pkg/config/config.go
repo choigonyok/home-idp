@@ -26,7 +26,6 @@ type DeployManagerServiceConfig struct {
 	Port int `yaml:"port,omitempty"`
 }
 
-// KubeConfig *rest.Config
 func New() *Config {
 	cfg := &Config{
 		Global: &config.GlobalConfig{},
