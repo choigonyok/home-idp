@@ -41,7 +41,7 @@ func useGrpcRbacManagerClient(port int) ClientOption {
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
+		conn, _ := grpc.NewClient("home-idp-rbac-manager:"+strconv.Itoa(port), grpcOptions...)
 		cli.Set(util.GrpcRbacManagerClient, conn)
 	})
 }
@@ -63,7 +63,7 @@ func useGrpcSecretManagerClient(port int) ClientOption {
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
+		conn, _ := grpc.NewClient("home-idp-secret-manager:"+strconv.Itoa(port), grpcOptions...)
 		cli.Set(util.GrpcSecretManagerClient, conn)
 	})
 }
@@ -85,7 +85,7 @@ func useGrpcDeployManagerClient(port int) ClientOption {
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
+		conn, _ := grpc.NewClient("home-idp-deploy-manager:"+strconv.Itoa(port), grpcOptions...)
 		cli.Set(util.GrpcDeployManagerClient, conn)
 	})
 }
@@ -107,7 +107,7 @@ func useGrpcInstallManagerClient(port int) ClientOption {
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
+		conn, _ := grpc.NewClient("home-idp-install-manager:"+strconv.Itoa(port), grpcOptions...)
 		cli.Set(util.GrpcInstallManagerClient, conn)
 	})
 }

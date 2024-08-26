@@ -35,7 +35,7 @@ func (s *SecretSpec) Get() string {
 }
 
 func GetHarborCredManifest(pw string) *corev1.Secret {
-	auth := base64.RawStdEncoding.EncodeToString([]byte("admin:" + pw))
+	auth := base64.StdEncoding.EncodeToString([]byte("admin:" + pw))
 
 	m := map[string]interface{}{
 		"auths": map[string]interface{}{
@@ -59,9 +59,19 @@ func GetHarborCredManifest(pw string) *corev1.Secret {
 			Name:      "harborcred",
 			Namespace: env.Get("HOME_IDP_NAMESPACE"),
 		},
-		Type: "kubernetes.io/dockerconfigjson",
+		Type: corev1.SecretTypeDockerConfigJson,
 		StringData: map[string]string{
-			".dockerconfigjson": string(b),
+			corev1.DockerConfigJsonKey: string(b),
 		},
 	}
 }
+
+// {
+// 	"auths": {
+// 		"harbor.idp-system.svc.cluster.local:80": {
+// 			"username": "admin",
+// 			"password": "test",
+// 			"auth":     "ttttt",
+// 		},
+// 	},
+// }
