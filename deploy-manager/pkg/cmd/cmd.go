@@ -3,7 +3,6 @@ package cmd
 import (
 	"log"
 	"strconv"
-	"time"
 
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/config"
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/service"
@@ -53,8 +52,6 @@ func getServerStartCmd() *cobra.Command {
 				client.WithKubeClient(),
 			)
 			defer svc.Stop()
-
-			time.Sleep(time.Second * 240)
 
 			svc.Start()
 			return nil
