@@ -21,7 +21,7 @@ func parseKubeClientFromInterface(i interface{}) *kube.KubeClient {
 }
 
 func (c *InstallManagerKubeClient) ApplyHarborCredentialSecret() error {
-	yml := manifest.GetHarborCredManifest(env.Get("DEPLOY_MANAGER_REGISTRY_PASSWORD"))
+	yml := manifest.GetHarborCredManifest(env.Get("HOME_IDP_ADMIN_PASSWORD"))
 	b, _ := yaml.Marshal(yml)
 	if err := c.Client.ApplyManifest(string(b), "secrets", yml.GetNamespace()); err != nil {
 		return err
