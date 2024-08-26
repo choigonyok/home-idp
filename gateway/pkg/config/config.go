@@ -48,16 +48,15 @@ func parseFromFile(cfg config.Config, filePath string) error {
 	return nil
 }
 
-func (cfg *Config) GetPort() int {
-	return cfg.Service.Service.Port
-}
-
-func (cfg *Config) GetNamespace() string {
-	return cfg.Global.Namespace
-}
-
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("HOME_IDP_HOST", cfg.Global.Ingress.Host)
+	env.Set("HOME_IDP_TLS_ENABLED", strconv.FormatBool(cfg.Global.Ingress.TLS))
+	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
+	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
+	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
+	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
+	env.Set("HOME_IDP_GIT_TOKEN", cfg.Global.Git.Token)
 	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("GATEWAY_SERVICE_TYPE", cfg.Service.Service.Type)
 	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Service.Enabled))

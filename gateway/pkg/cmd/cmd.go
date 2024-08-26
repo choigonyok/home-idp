@@ -45,12 +45,14 @@ func getServerStartCmd() *cobra.Command {
 			cfg := config.New()
 			cfg.SetEnvVars()
 			port, _ := strconv.Atoi(env.Get("GATEWAY_SERVICE_PORT"))
-
 			svc := service.New(
 				port,
 				client.WithGrpcInstallManagerClient(5051),
-				// client.WithGrpcDeployManagerClient(5052),
+				client.WithGrpcDeployManagerClient(5104),
+				client.WithHttpClient(),
+				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_TOKEN")),
 			)
+
 			defer svc.Stop()
 
 			svc.Start()

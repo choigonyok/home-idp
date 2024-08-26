@@ -23,9 +23,9 @@ func New(port int) *GatewayServer {
 }
 
 func (svr *GatewayServer) Run() {
-	svr.Run()
+	svr.Http.ListenAndServe()
 }
 
 func (svr *GatewayServer) Stop() {
-	svr.Stop()
+	svr.Http.Close()
 }

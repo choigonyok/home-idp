@@ -1,6 +1,7 @@
 package service
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/client"
@@ -18,18 +19,18 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	for _, opt := range opts {
 		opt.Apply(cs)
 	}
-
 	svr := gatewayhttp.New(port)
 	svc := &Gateway{
 		Server:    svr,
 		ClientSet: cs,
 	}
 
-	svr.Router.RegisterRoute(http.MethodPost, "/test0", svc.InstallArgoCDHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/test1", svc.TestHandler1())
-	svr.Router.RegisterRoute(http.MethodPost, "/test2", svc.TestHandler2())
-	svr.Router.RegisterRoute(http.MethodPost, "/test3", svc.TestHandler3())
-
+	// svr.Router.RegisterRoute(http.MethodPost, "/test0", svc.InstallArgoCDHandler())
+	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/test2", svc.TestHandler2())
+	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api", svc.ApiPostHandler())
 	return svc
 }
 
@@ -42,6 +43,13 @@ func (svc *Gateway) Stop() {
 }
 
 func (svc *Gateway) Start() {
+	go func() {
+		if err := svc.ClientSet.GitClient.CreateGithubWebhook(); err != nil {
+			fmt.Println("TEST GITHUB WEBHOOK CREATE ERR:", err)
+		}
+		fmt.Println("Clone URL:", svc.ClientSet.GitClient.GetRepositoryCloneURL())
+	}()
+
 	svc.Server.Run()
 	return
 }
