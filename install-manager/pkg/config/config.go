@@ -92,6 +92,7 @@ func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_STORAGE_CLASS_NAME", cfg.Global.StorageClass)
+	env.Set("HOME_IDP_HOST", cfg.Global.Ingress.Host)
 	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
 	env.Set("INSTALL_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEFAULT_REGISTRY_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Enabled))
