@@ -36,6 +36,7 @@ type GlobalConfigGit struct {
 	Username string `yaml:"username,omitempty"`
 	Token    string `yaml:"token,omitempty"`
 	Repo     string `yaml:"repository,omitempty"`
+	Email    string `yaml:"email,omitempty"`
 }
 
 const (

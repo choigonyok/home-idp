@@ -222,13 +222,13 @@ func newKubeClientOption(f func(cli ClientSet)) *GrpcClientOption {
 	}
 }
 
-func WithGitClient(owner, token string) ClientOption {
-	return useGitClient(owner, token)
+func WithGitClient(owner, email, token string) ClientOption {
+	return useGitClient(owner, email, token)
 }
 
-func useGitClient(owner, token string) ClientOption {
+func useGitClient(owner, email, token string) ClientOption {
 	return newGitClientOption(func(cli ClientSet) {
-		i := git.NewGitClient(owner, token)
+		i := git.NewGitClient(owner, email, token)
 		cli.Set(util.GitClient, i)
 		return
 	})

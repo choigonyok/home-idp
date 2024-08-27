@@ -14,9 +14,10 @@ type GitClient struct {
 	Repository *github.Repository
 	Client     *github.Client
 	Token      string
+	Email      string
 }
 
-func NewGitClient(owner, token string) *GitClient {
+func NewGitClient(owner, email, token string) *GitClient {
 	dc := http.DefaultClient
 
 	client := &GitClient{
@@ -66,6 +67,7 @@ type GitFile interface {
 type GitDockerFile struct {
 	Username string
 	Tag      string
+	Content  string
 }
 
 func (f *GitDockerFile) getUsername() string {

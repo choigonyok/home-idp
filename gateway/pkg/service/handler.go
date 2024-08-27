@@ -59,7 +59,6 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 
 		fmt.Println(err)
 		fmt.Println("MAPPED MAP:", name, version)
-
 		return
 	}
 }

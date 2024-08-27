@@ -28,6 +28,7 @@ func (c *DockerClient) Set(i interface{}) {
 }
 
 func parseDockerClientFromInterface(i interface{}) *DockerClient {
+
 	client := i.(*DockerClient)
 	return client
 }

@@ -36,6 +36,15 @@ func (c *GatewayGitClient) PushFile(username, tag, content string) error {
 		&git.GitDockerFile{
 			Username: username,
 			Tag:      tag,
+			Content:  content,
 		},
 	)
 }
+
+func (c *GatewayGitClient) UpdateArgoCDApplicationManifest(username, email, before, after string) {
+	c.Client.UpdateFilesByFiletype(username, email, before, after, git.CD)
+}
+
+// func (c *GatewayGitClient) CreateArgoCDApplicationManifest(username, email, image string) {
+// 	c.Client.CreateFilesByFiletype(username, email, image, git.CD)
+// }

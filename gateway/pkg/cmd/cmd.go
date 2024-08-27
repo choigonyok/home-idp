@@ -1,7 +1,9 @@
 package cmd
 
 import (
+	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/config"
 	"github.com/choigonyok/home-idp/gateway/pkg/service"
@@ -50,10 +52,16 @@ func getServerStartCmd() *cobra.Command {
 				client.WithGrpcInstallManagerClient(5051),
 				client.WithGrpcDeployManagerClient(5104),
 				client.WithHttpClient(),
-				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_TOKEN")),
+				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 			)
 
 			defer svc.Stop()
+
+			fmt.Println("TEST START UPDATE")
+			svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "test:v1.4")
+			time.Sleep(time.Second * 5)
+			svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.4", "test:v1.5")
+			fmt.Println("TEST END UPDATE")
 
 			svc.Start()
 			return nil
