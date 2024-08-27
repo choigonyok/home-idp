@@ -44,7 +44,3 @@ func (c *GatewayGitClient) PushFile(username, tag, content string) error {
 func (c *GatewayGitClient) UpdateArgoCDApplicationManifest(username, email, before, after string) {
 	c.Client.UpdateFilesByFiletype(username, email, before, after, git.CD)
 }
-
-func (c *GatewayGitClient) CreateArgoCDApplicationManifest(username, email, image, name, namespace string) {
-	c.Client.CreateFilesByFiletype(username, email, image, name, namespace, git.CD)
-}

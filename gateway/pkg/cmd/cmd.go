@@ -1,9 +1,7 @@
 package cmd
 
 import (
-	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/config"
 	"github.com/choigonyok/home-idp/gateway/pkg/service"
@@ -57,13 +55,13 @@ func getServerStartCmd() *cobra.Command {
 
 			defer svc.Stop()
 
-			fmt.Println("TEST START CREATE")
-			svc.ClientSet.GitClient.CreateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "testname", "testnamespace")
-			fmt.Println("TEST START UPDATE")
-			svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "test:v1.4")
-			time.Sleep(time.Second * 5)
-			svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.4", "test:v1.5")
-			fmt.Println("TEST END UPDATE")
+			// fmt.Println("TEST START CREATE")
+
+			// fmt.Println("TEST START UPDATE")
+			// svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "test:v1.4")
+			// time.Sleep(time.Second * 5)
+			// svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.4", "test:v1.5")
+			// fmt.Println("TEST END UPDATE")
 
 			svc.Start()
 			return nil
