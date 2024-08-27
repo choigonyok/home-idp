@@ -87,6 +87,8 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, va
 		log.Fatalf("Failed to load chart: %s", err)
 	}
 
+	install.SkipCRDs = true
+	install.IncludeCRDs = false
 	install.ReleaseName = releaseName
 	install.Namespace = c.Setting.Namespace()
 

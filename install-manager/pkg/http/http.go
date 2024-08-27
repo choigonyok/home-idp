@@ -111,3 +111,55 @@ func (cli *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
 
 	return false, nil
 }
+
+func (cli *InstallManagerHttpClient) CreateArgoCDRepository(password string) error {
+	data := map[string]interface{}{
+		"name":               "home-idp",
+		"repo":               "https://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + env.Get("HOME_IDP_GIT_REPO") + ".git",
+		"username":           env.Get("HOME_IDP_GIT_USERNAME"),
+		"password":           env.Get("HOME_IDP_GIT_TOKEN"),
+		"type":               "git",
+		"project":            "default",
+		"forceHttpBasicAuth": true,
+		"sshPrivateKey":      "",
+		"tlsClientCertData":  "",
+		"tlsClientCertKey":   "",
+		"insecure":           true,
+		"enableLfs":          false,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("TEST MARSHAL ARGOCD REPOSITORY ERR:", err)
+		return err
+	}
+
+	b := bytes.NewBuffer(jsonData)
+
+	req, err := http.NewRequest(http.MethodPost, "http://argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/repositories", b)
+	if err != nil {
+		fmt.Println("TEST CREATE ARGOCD REPOSITORY REQUEST ERR:", err)
+		return err
+	}
+	defer req.Body.Close()
+
+	req.Header.Set("Content-Type", "application/json")
+	req.SetBasicAuth("admin", password)
+
+	resp, err := cli.Client.Do(req)
+	if err != nil {
+		fmt.Println("TEST REQUEST ARGOCD REPOSITORY ERR:", err)
+		return err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	if err != nil {
+		fmt.Println("TEST READ ARGOCD REPOSITORY ERR:", err)
+		return err
+	}
+	fmt.Println("TEST ARGOCD REPOSITORY CREATE RESPONSE:", string(body))
+
+	return nil
+}

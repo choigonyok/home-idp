@@ -52,7 +52,7 @@ func (c *GitClient) getFilesByFiletype(filetype GitFileType) (f []*github.Reposi
 	}
 }
 
-func (c *GitClient) CreateFilesByFiletype(username, email, image, name, namespace string, filetype GitFileType) error {
+func (c *GitClient) CreateFilesByFiletype(username, email, namespace string, filetype GitFileType) error {
 	t := github.Timestamp{}
 	t.Time = time.Now()
 
@@ -63,7 +63,7 @@ func (c *GitClient) CreateFilesByFiletype(username, email, image, name, namespac
 		defaultFilePathByFiletype(username, filetype),
 		&github.RepositoryContentFileOptions{
 			Message: github.String(`create(` + string(filetype) + `): ` + defaultCommitMessageByFiletype(username, filetype)),
-			Content: defaultContentByFiletype(name, namespace, filetype),
+			Content: defaultContentByFiletype(username, namespace, filetype),
 			Branch:  github.String("main"),
 			Author: &github.CommitAuthor{
 				Name:  github.String(username),
@@ -93,13 +93,10 @@ func defaultCommitMessageByFiletype(username string, filetype GitFileType) strin
 	return ""
 }
 
-func defaultContentByFiletype(name, namespace string, filetype GitFileType) []byte {
+func defaultContentByFiletype(username, namespace string, filetype GitFileType) []byte {
 	switch filetype {
 	case CD:
-		return manifest.GetArgoCDManifest(&manifest.ArgoCDManifest{
-			Name:      name,
-			Namespace: namespace,
-		})
+		return manifest.GetArgoCDManifest(username, namespace)
 	}
 	return nil
 }

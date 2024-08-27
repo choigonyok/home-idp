@@ -52,6 +52,7 @@ func getServerStartCmd() *cobra.Command {
 				client.WithHelmClient(),
 				client.WithKubeClient(),
 				client.WithHttpClient(),
+				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 			)
 			defer svc.Stop()
 

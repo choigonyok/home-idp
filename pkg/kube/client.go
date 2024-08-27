@@ -3,6 +3,7 @@ package kube
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/choigonyok/home-idp/pkg/object"
 	"gopkg.in/yaml.v2"
@@ -73,6 +74,28 @@ func getDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
 		fmt.Println(err)
 	}
 	return client, nil
+}
+
+func (c *KubeClient) GetPodsByLabel(namespace, label string) []apiv1.Pod {
+	pods, _ := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
+
+	return pods.Items
+}
+
+func (c *KubeClient) GetServiceSelectors(name, namespace string) string {
+	svc, _ := c.ClientSet.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+
+	l := []string{}
+	for k, v := range svc.Spec.Selector {
+		l = append(l, k+"="+v)
+	}
+
+	return strings.Join(l, ",")
+}
+
+func (c *KubeClient) GetSecret(name, namespace, key string) []byte {
+	secret, _ := c.ClientSet.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	return secret.Data[key]
 }
 
 // var (

@@ -61,20 +61,43 @@ func (svc *InstallManager) installDefaultServices() {
 	// 	cli := helm.NewJenkinsClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-ci")
 	// 	cli.Install(*svc.ClientSet.HelmClient)
 	// }
-	// if env.Get("DEFAULT_CD_ENABLED") == "true" {
-	// 	cli := helm.NewArgoCDClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-cd")
-	// 	cli.Install(*svc.ClientSet.HelmClient)
-	// }
+	if env.Get("DEFAULT_CD_ENABLED") == "true" {
+		svc.installArgoCD()
+	}
+}
+
+func (svc *InstallManager) installArgoCD() {
+	c := helm.NewArgoCDClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-cd")
+
+	c.Install(*svc.ClientSet.HelmClient)
+
+	for {
+		ok := svc.ClientSet.KubeClient.IsArgoCDRunning()
+		if ok {
+			fmt.Println("@@@TEST ARGOCD HEALTH CHECK SUCCESS@@@")
+			break
+		}
+		fmt.Println("TEST ARGOCD NOT RUNNING YET")
+		time.Sleep(time.Second * 1)
+	}
+
+	pw := svc.ClientSet.KubeClient.GetArgoCDPassword()
+
+	if err := svc.ClientSet.HttpClient.CreateArgoCDRepository(pw); err != nil {
+		fmt.Println("TEST ARGOCD REPOSITORY CREATE ERR:", err)
+	}
+
+	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest("testuser", "tester@naver.com", env.Get("HOME_IDP_NAMESPACE"))
 }
 
 func (svc *InstallManager) installHarbor() {
-	cli := helm.NewHarborClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-harbor")
-
-	cli.Install(*svc.ClientSet.HelmClient)
+	c := helm.NewHarborClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-harbor")
 
 	if err := svc.ClientSet.KubeClient.ApplyHarborCredentialSecret(); err != nil {
 		fmt.Println("TEST APPLY HARBOR CRED MANIFEST ERR:", err)
 	}
+
+	c.Install(*svc.ClientSet.HelmClient)
 
 	for {
 		ok, err := svc.ClientSet.HttpClient.IsHarborHealthy()

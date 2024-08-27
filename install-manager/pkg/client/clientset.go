@@ -1,6 +1,7 @@
 package client
 
 import (
+	"github.com/choigonyok/home-idp/install-manager/pkg/git"
 	"github.com/choigonyok/home-idp/install-manager/pkg/http"
 	"github.com/choigonyok/home-idp/install-manager/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/helm"
@@ -12,6 +13,7 @@ type InstallManagerClientSet struct {
 	HelmClient *helm.HelmClient
 	KubeClient *kube.InstallManagerKubeClient
 	HttpClient *http.InstallManagerHttpClient
+	GitClient  *git.InstallManagerGitClient
 }
 
 func EmptyClientSet() *InstallManagerClientSet {
@@ -31,6 +33,11 @@ func (cs *InstallManagerClientSet) Set(cli util.Clients, i interface{}) {
 		tmp := &helm.HelmClient{}
 		tmp.Set(i)
 		cs.HelmClient = tmp
+		return
+	case util.GitClient:
+		tmp := &git.InstallManagerGitClient{}
+		tmp.Set(i)
+		cs.GitClient = tmp
 		return
 	case util.HttpClient:
 		tmp := &http.InstallManagerHttpClient{}

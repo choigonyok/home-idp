@@ -4,23 +4,18 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-type ArgoCDManifest struct {
-	Name      string
-	Namespace string
-}
-
-func GetArgoCDManifest(argocd *ArgoCDManifest) []byte {
+func GetArgoCDManifest(username, namespace string) []byte {
 	m := map[string]interface{}{
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "Application",
 		"metadata": map[string]interface{}{
-			"name":      argocd.Name,
-			"namespace": argocd.Namespace,
+			"name":      "app" + username,
+			"namespace": namespace,
 		},
 		"spec": map[string]interface{}{
 			"destination": map[string]interface{}{
 				"name":      "",
-				"namespace": argocd.Namespace,
+				"namespace": namespace,
 				"server":    "https://kubernetes.default.svc",
 			},
 			"project": "default",
