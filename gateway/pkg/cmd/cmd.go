@@ -57,6 +57,8 @@ func getServerStartCmd() *cobra.Command {
 
 			defer svc.Stop()
 
+			fmt.Println("TEST START CREATE")
+			svc.ClientSet.GitClient.CreateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "testname", "testnamespace")
 			fmt.Println("TEST START UPDATE")
 			svc.ClientSet.GitClient.UpdateArgoCDApplicationManifest("testuser", "tester@naver.com", "test:v1.3", "test:v1.4")
 			time.Sleep(time.Second * 5)

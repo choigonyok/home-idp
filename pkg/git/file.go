@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/choigonyok/home-idp/pkg/manifest"
 	"github.com/google/go-github/v63/github"
 )
 
@@ -51,10 +52,57 @@ func (c *GitClient) getFilesByFiletype(filetype GitFileType) (f []*github.Reposi
 	}
 }
 
-// func (c *GitClient) CreateFilesByFiletype(username, email, image string, filetype GitFileType) error {
-// 	c.Client.Repositories.CreateFile(context.TODO())
-// 	return nil
-// }
+func (c *GitClient) CreateFilesByFiletype(username, email, image, name, namespace string, filetype GitFileType) error {
+	t := github.Timestamp{}
+	t.Time = time.Now()
+
+	_, rr, _ := c.Client.Repositories.CreateFile(
+		context.TODO(),
+		c.Owner,
+		*c.Repository.Name,
+		defaultFilePathByFiletype(username, filetype),
+		&github.RepositoryContentFileOptions{
+			Message: github.String(`create(` + string(filetype) + `): ` + defaultCommitMessageByFiletype(username, filetype)),
+			Content: defaultContentByFiletype(name, namespace, filetype),
+			Branch:  github.String("main"),
+			Author: &github.CommitAuthor{
+				Name:  github.String(username),
+				Email: github.String(email),
+				Date:  &t,
+			},
+		},
+	)
+	fmt.Println("TEST CREATE FILE STATUS:", rr.StatusCode)
+
+	return nil
+}
+
+func defaultFilePathByFiletype(username string, filetype GitFileType) string {
+	switch filetype {
+	case CD:
+		return "cd/" + username + "/app.yaml"
+	}
+	return ""
+}
+
+func defaultCommitMessageByFiletype(username string, filetype GitFileType) string {
+	switch filetype {
+	case CD:
+		return `app.yaml by ` + username
+	}
+	return ""
+}
+
+func defaultContentByFiletype(name, namespace string, filetype GitFileType) []byte {
+	switch filetype {
+	case CD:
+		return manifest.GetArgoCDManifest(&manifest.ArgoCDManifest{
+			Name:      name,
+			Namespace: namespace,
+		})
+	}
+	return nil
+}
 
 func (c *GitClient) UpdateFilesByFiletype(username, email, before, after string, filetype GitFileType) error {
 	// files, found, err := c.getFilesByFiletype(filetype)

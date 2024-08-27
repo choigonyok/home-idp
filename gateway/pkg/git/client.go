@@ -45,6 +45,6 @@ func (c *GatewayGitClient) UpdateArgoCDApplicationManifest(username, email, befo
 	c.Client.UpdateFilesByFiletype(username, email, before, after, git.CD)
 }
 
-// func (c *GatewayGitClient) CreateArgoCDApplicationManifest(username, email, image string) {
-// 	c.Client.CreateFilesByFiletype(username, email, image, git.CD)
-// }
+func (c *GatewayGitClient) CreateArgoCDApplicationManifest(username, email, image, name, namespace string) {
+	c.Client.CreateFilesByFiletype(username, email, image, name, namespace, git.CD)
+}
