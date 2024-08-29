@@ -3,10 +3,12 @@ package service
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/choigonyok/home-idp/gateway/pkg/client"
 	gatewayhttp "github.com/choigonyok/home-idp/gateway/pkg/http"
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
+	"github.com/choigonyok/home-idp/pkg/env"
 )
 
 type Gateway struct {
@@ -44,6 +46,8 @@ func (svc *Gateway) Stop() {
 
 func (svc *Gateway) Start() {
 	go func() {
+		svc.waitGatewayRunning()
+
 		if err := svc.ClientSet.GitClient.CreateGithubWebhook(); err != nil {
 			fmt.Println("TEST GITHUB WEBHOOK CREATE ERR:", err)
 		}
@@ -51,5 +55,14 @@ func (svc *Gateway) Start() {
 	}()
 
 	svc.Server.Run()
+	return
+}
+
+func (svc *Gateway) waitGatewayRunning() {
+	for !svc.ClientSet.KubeClient.IsGatewayHealthy(env.Get("HOME_IDP_NAMESPACE")) {
+		time.Sleep(time.Millisecond * 10)
+		fmt.Println("TEST WAIT GATEWAY RUNNING")
+	}
+
 	return
 }

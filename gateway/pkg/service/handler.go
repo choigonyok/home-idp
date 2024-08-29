@@ -59,6 +59,8 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 
 		fmt.Println(err)
 		fmt.Println("MAPPED MAP:", name, version)
+
+		svc.ClientSet.GitClient.UpdateImageVersion("testuser", "tester@naver.com", "test:v1.4", name+":"+version)
 		return
 	}
 }
@@ -83,6 +85,11 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				fmt.Println("TEST WEBHOOK IMGNAME:", name)
 				fmt.Println("TEST WEBHOOK IMGVERSION:", version)
 				svc.requestBuildDockerfile(name, version)
+				// case "cd":
+				// 	svc.applyArgoCDApplication(event)
+			case "cd":
+				// manifest := getManifestFromCommit(event)
+				// svc.requestDeployArgoCDApplication(manifest)
 			}
 		case *github.RepositoryEvent:
 			fmt.Println("TEST PING WEBHOOK RECEIVED")
@@ -103,6 +110,8 @@ func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string) {
 	name, version, _ := strings.Cut(img, ":")
 	return name, version
 }
+
+// func getManifestFromCommit(e *github.PushEvent) (string, string) {}
 
 func (svc *Gateway) requestBuildDockerfile(name, version string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
@@ -151,6 +160,13 @@ func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Requ
 
 	svc.ClientSet.GitClient.PushFile(m["username"], m["tag"], m["content"])
 }
+
+// func (svc *Gateway) applyArgoCDApplication(e *github.PushEvent) {
+// 	pushPath := e.Commits[0].Added[0]
+// 	svc.ClientSet.GitClient.GetArgoCDApplication()
+// 	// cd/username/main.yaml
+// 	svc.ClientSet.KubeClient.ApplyManifest()
+// }
 
 // 다 Running 상태인지,
 // webhook이 harbor, github 잘 생성되었는지

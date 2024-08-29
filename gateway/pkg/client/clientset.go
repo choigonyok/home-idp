@@ -3,8 +3,8 @@ package client
 import (
 	"github.com/choigonyok/home-idp/gateway/pkg/git"
 	"github.com/choigonyok/home-idp/gateway/pkg/grpc"
+	"github.com/choigonyok/home-idp/gateway/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/client"
-	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/mail"
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -14,7 +14,7 @@ type GatewayClientSet struct {
 	GrpcClient    map[util.Components]client.GrpcClient
 	StorageClient storage.StorageClient
 	MailClient    mail.MailClient
-	KubeClient    *kube.KubeClient
+	KubeClient    *kube.GatewayKubeClient
 	GitClient     *git.GatewayGitClient
 }
 
@@ -47,7 +47,7 @@ func (cs *GatewayClientSet) Set(cli util.Clients, i interface{}) {
 		cs.GrpcClient[util.SecretManager] = tmp
 		return
 	case util.KubeClient:
-		tmp := &kube.KubeClient{}
+		tmp := &kube.GatewayKubeClient{}
 		tmp.Set(i)
 		cs.KubeClient = tmp
 		return

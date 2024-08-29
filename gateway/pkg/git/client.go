@@ -26,6 +26,10 @@ func (c *GatewayGitClient) CreateGithubWebhook() error {
 	}
 }
 
+// func (c *GatewayGitClient) CreateManifest(username, email string) error {
+// 	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), git.Manifest)
+// }
+
 // /github-webhook/"
 func (c *GatewayGitClient) GetRepositoryCloneURL() string {
 	return c.Client.GetRepositoryCloneURL()
@@ -41,6 +45,6 @@ func (c *GatewayGitClient) PushFile(username, tag, content string) error {
 	)
 }
 
-func (c *GatewayGitClient) UpdateArgoCDApplicationManifest(username, email, before, after string) {
-	c.Client.UpdateFilesByFiletype(username, email, before, after, git.CD)
+func (c *GatewayGitClient) UpdateImageVersion(username, email, before, after string) {
+	c.Client.UpdateFilesByFiletype(username, email, before, after, git.Manifest)
 }
