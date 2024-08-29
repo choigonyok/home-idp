@@ -16,5 +16,5 @@ func parseGitClientFromInterface(i interface{}) *git.GitClient {
 }
 
 func (c *InstallManagerGitClient) CreateArgoCDApplicationManifest(username, email, namespace string) {
-	c.Client.CreateFilesByFiletype(username, email, namespace, git.CD)
+	c.Client.CreateFilesByFiletype(username, email, namespace, "app.yaml", git.CD)
 }

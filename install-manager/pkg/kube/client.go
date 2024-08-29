@@ -1,13 +1,9 @@
 package kube
 
 import (
-	"encoding/base64"
-	"fmt"
-
 	"github.com/choigonyok/home-idp/install-manager/pkg/manifest"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/kube"
-	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
 
@@ -33,24 +29,21 @@ func (c *InstallManagerKubeClient) ApplyHarborCredentialSecret() error {
 	return nil
 }
 
-func (c *InstallManagerKubeClient) IsArgoCDRunning() bool {
-	label := c.Client.GetServiceSelectors("testname", "testns")
-	fmt.Println("TEST LABEL:", label)
-
-	pods := c.Client.GetPodsByLabel("testns", label)
-
-	for _, pod := range pods {
-		if pod.Status.Phase != corev1.PodRunning {
-			return false
-		}
+func (c *InstallManagerKubeClient) IsArgoCDRunning(ns string) bool {
+	if c.Client.IsServiceHealthy("home-idp-cd-argocd-applicationset-controller", ns) &&
+		c.Client.IsServiceHealthy("home-idp-cd-argocd-dex-server", ns) &&
+		c.Client.IsServiceHealthy("home-idp-cd-argocd-redis", ns) &&
+		c.Client.IsServiceHealthy("home-idp-cd-argocd-repo-server", ns) &&
+		c.Client.IsServiceHealthy("home-idp-cd-argocd-server", ns) {
+		return true
 	}
-
-	return true
+	return false
 }
 
 func (c *InstallManagerKubeClient) GetArgoCDPassword() string {
 	b := c.Client.GetSecret("argocd-initial-admin-secret", env.Get("HOME_IDP_NAMESPACE"), "password")
-	pw := []byte{}
-	base64.StdEncoding.Decode(b, pw)
-	return string(pw)
+	// pw, err := base64.StdEncoding.DecodeString(string(b))
+	// fmt.Println("TEST BASE64 DECODE ARGOCD PASSWORD ERR:", err)
+	// fmt.Println("TEST ARGOCD PASSWORD:", string(pw))
+	return string(b)
 }

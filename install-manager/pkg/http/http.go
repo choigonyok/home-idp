@@ -1,30 +1,29 @@
 package http
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/http"
 	"github.com/choigonyok/home-idp/pkg/util"
 )
 
 type InstallManagerHttpClient struct {
-	Client *http.Client
+	Client *http.HttpClient
 }
 
-func (cli *InstallManagerHttpClient) Set(i interface{}) {
-	cli.Client = parseHttpClientFromInterface(i)
+func (c *InstallManagerHttpClient) Set(i interface{}) {
+	c.Client = parseHttpClientFromInterface(i)
 }
 
-func parseHttpClientFromInterface(i interface{}) *http.Client {
-	client := i.(*http.Client)
+func parseHttpClientFromInterface(i interface{}) *http.HttpClient {
+	client := i.(*http.HttpClient)
 	return client
 }
 
-func (cli *InstallManagerHttpClient) CreateHarborWebhook() error {
+func (c *InstallManagerHttpClient) CreateHarborWebhook() error {
 	data := map[string]interface{}{
 		"name": "HARBOR_WEBHOOK",
 		"targets": []map[string]interface{}{
@@ -40,27 +39,13 @@ func (cli *InstallManagerHttpClient) CreateHarborWebhook() error {
 		"enabled": true,
 	}
 
-	jsonData, err := json.Marshal(data)
+	r := http.NewRequest(http.Post, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/projects/library/webhook/policies", data)
+	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
+	r.SetHeader("Content-Type", "application/json")
+
+	resp, err := c.Client.Request(r)
 	if err != nil {
-		fmt.Println("TEST MARSHAL HARBOR WEBHOOK ERR:", err)
-		return err
-	}
-
-	b := bytes.NewBuffer(jsonData)
-
-	req, err := http.NewRequest(http.MethodPost, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/projects/library/webhook/policies", b)
-	if err != nil {
-		fmt.Println("TEST CREATE HARBOR WEBHOOK REQUEST ERR:", err)
-		return err
-	}
-	defer req.Body.Close()
-
-	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
-
-	resp, err := cli.Client.Do(req)
-	if err != nil {
-		fmt.Println("TEST REQUEST HARBOR WEBHOOK ERR:", err)
+		fmt.Println("TEST HTTP REQUEST ERR:", err)
 		return err
 	}
 	defer resp.Body.Close()
@@ -76,23 +61,19 @@ func (cli *InstallManagerHttpClient) CreateHarborWebhook() error {
 	return nil
 }
 
-func (cli *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
-	req, err := http.NewRequest(http.MethodGet, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/health", nil)
-	if err != nil {
-		return false, err
-	}
+func (c *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
+	r := http.NewRequest(http.Get, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/health", nil)
+	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
 
-	req.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
-
-	resp, err := cli.Client.Do(req)
+	resp, err := c.Client.Request(r)
 	if err != nil {
 		return false, err
 	}
 	defer resp.Body.Close()
 
-	fmt.Println("TEST HARBOR HEALTH RESPONSE STATUS CODE:", resp.StatusCode)
-
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode != 200 {
+		fmt.Println(resp.StatusCode)
+		fmt.Println(http.StatusOK)
 		return false, nil
 	}
 
@@ -112,7 +93,42 @@ func (cli *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
 	return false, nil
 }
 
-func (cli *InstallManagerHttpClient) CreateArgoCDRepository(password string) error {
+func (c *InstallManagerHttpClient) CreateArgoCDSessionToken(password string) (string, error) {
+	data := map[string]interface{}{
+		"username": "admin",
+		"password": password,
+	}
+
+	r := http.NewRequest(http.Post, "http://home-idp-cd-argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/session", data)
+
+	r.SetHeader("Content-Type", "application/json")
+	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
+
+	resp, err := c.Client.Request(r)
+	if err != nil {
+		fmt.Println("TEST CREATE ARGOCD SESSION REQUEST ERR:", err)
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+
+	m := make(map[string]interface{})
+
+	json.Unmarshal(body, &m)
+
+	if err != nil {
+		fmt.Println("TEST READ ARGOCD SESSION ERR:", err)
+		return "", err
+	}
+	fmt.Println("TEST ARGOCD SESSION CREATE RESPONSE:", string(body))
+
+	fmt.Println("TEST TOKEN RESPONSE MAP:", m)
+
+	return m["token"].(string), nil
+}
+
+func (c *InstallManagerHttpClient) CreateArgoCDRepository(password, token string) error {
 	data := map[string]interface{}{
 		"name":               "home-idp",
 		"repo":               "https://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + env.Get("HOME_IDP_GIT_REPO") + ".git",
@@ -128,27 +144,14 @@ func (cli *InstallManagerHttpClient) CreateArgoCDRepository(password string) err
 		"enableLfs":          false,
 	}
 
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		fmt.Println("TEST MARSHAL ARGOCD REPOSITORY ERR:", err)
-		return err
-	}
+	r := http.NewRequest(http.Post, "http://home-idp-cd-argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/repositories", data)
+	r.SetHeader("Content-Type", "application/json")
+	r.SetHeader("Authorization", "Bearer "+token)
+	r.SetBasicAuth("admin", password)
 
-	b := bytes.NewBuffer(jsonData)
-
-	req, err := http.NewRequest(http.MethodPost, "http://argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/repositories", b)
+	resp, err := c.Client.Request(r)
 	if err != nil {
 		fmt.Println("TEST CREATE ARGOCD REPOSITORY REQUEST ERR:", err)
-		return err
-	}
-	defer req.Body.Close()
-
-	req.Header.Set("Content-Type", "application/json")
-	req.SetBasicAuth("admin", password)
-
-	resp, err := cli.Client.Do(req)
-	if err != nil {
-		fmt.Println("TEST REQUEST ARGOCD REPOSITORY ERR:", err)
 		return err
 	}
 	defer resp.Body.Close()

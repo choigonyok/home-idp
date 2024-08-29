@@ -72,7 +72,7 @@ func (svc *InstallManager) installArgoCD() {
 	c.Install(*svc.ClientSet.HelmClient)
 
 	for {
-		ok := svc.ClientSet.KubeClient.IsArgoCDRunning()
+		ok := svc.ClientSet.KubeClient.IsArgoCDRunning(env.Get("HOME_IDP_NAMESPACE"))
 		if ok {
 			fmt.Println("@@@TEST ARGOCD HEALTH CHECK SUCCESS@@@")
 			break
@@ -82,12 +82,20 @@ func (svc *InstallManager) installArgoCD() {
 	}
 
 	pw := svc.ClientSet.KubeClient.GetArgoCDPassword()
+	fmt.Println("TEST ARGOCD PASSWORD:", pw)
 
-	if err := svc.ClientSet.HttpClient.CreateArgoCDRepository(pw); err != nil {
+	token, err := svc.ClientSet.HttpClient.CreateArgoCDSessionToken(pw)
+	if err != nil {
+		fmt.Println("TEST ARGOCD SESSION CREATE ERR:", err)
+	}
+
+	if err := svc.ClientSet.HttpClient.CreateArgoCDRepository(pw, token); err != nil {
 		fmt.Println("TEST ARGOCD REPOSITORY CREATE ERR:", err)
 	}
 
 	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest("testuser", "tester@naver.com", env.Get("HOME_IDP_NAMESPACE"))
+	// app := svc.ClientSet.GitClient.GetArgoCDApplicationManifest("testuser")
+	// fmt.Println("TEST GET ARGOCD APP MANIFEST: ", app)
 }
 
 func (svc *InstallManager) installHarbor() {

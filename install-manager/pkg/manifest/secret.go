@@ -10,30 +10,6 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type SecretSpec struct {
-	Name      string
-	Namespace string
-	Type      string
-	Data      *map[string]string
-}
-
-func (s *SecretSpec) Get() string {
-	keys := []string{}
-	values := []string{}
-
-	for k, v := range *s.Data {
-		keys = append(keys, k)
-		values = append(values, v)
-	}
-
-	data := ""
-	for i := 0; i < len(*s.Data); i++ {
-		data += fmt.Sprintf("\n  %s: %s", keys[i], values[i])
-	}
-
-	return fmt.Sprintf("apiVersion: v1\nkind: Secret\nmetadata:\n  name: %s\n  namespace: %s\ntype: %s\ndata: %s", s.Name, s.Namespace, s.Type, data)
-}
-
 func GetHarborCredManifest(pw string) *corev1.Secret {
 	auth := base64.StdEncoding.EncodeToString([]byte("admin:" + pw))
 
@@ -65,13 +41,3 @@ func GetHarborCredManifest(pw string) *corev1.Secret {
 		},
 	}
 }
-
-// {
-// 	"auths": {
-// 		"harbor.idp-system.svc.cluster.local:80": {
-// 			"username": "admin",
-// 			"password": "test",
-// 			"auth":     "ttttt",
-// 		},
-// 	},
-// }

@@ -3,7 +3,6 @@ package helm
 import (
 	"fmt"
 
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/helm"
 )
 
@@ -33,9 +32,6 @@ func (c *ArgoCD) Uninstall(h helm.HelmClient) error {
 
 func argocdOverrideValues() map[string]interface{} {
 	return map[string]interface{}{
-		"crds": map[string]interface{}{
-			"keep": "false",
-		},
 		"redis-ha": map[string]interface{}{
 			"enabled": false,
 		},
@@ -49,8 +45,8 @@ func argocdOverrideValues() map[string]interface{} {
 			"replicas": 1,
 		},
 		"configs": map[string]interface{}{
-			"secret": map[string]interface{}{
-				"argocdServerAdminPassword": env.Get("DEFAULT_CD_ADMIN_PASSWORD"),
+			"params": map[string]interface{}{
+				"server.insecure": true,
 			},
 		},
 		"server": map[string]interface{}{
