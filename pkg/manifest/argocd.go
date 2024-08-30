@@ -27,11 +27,11 @@ func GetArgoCDManifest(username, namespace string) []byte {
 					"targetRevision": "HEAD",
 				},
 			},
-		},
-		"syncPolicy": map[string]interface{}{
-			"automated": map[string]interface{}{
-				"prune":    true,
-				"selfHeal": true,
+			"syncPolicy": map[string]interface{}{
+				"automated": map[string]interface{}{
+					"prune":    true,
+					"selfHeal": true,
+				},
 			},
 		},
 	}
