@@ -72,23 +72,26 @@ func (c *HelmClient) Install(repoChartVersion, namespace, releaseName string, va
 	}
 	install := action.NewInstall(actionConfig)
 
-	chartURL, err := repo.FindChartInAuthRepoURL(c.Repository[repoName].Config.URL, "", "", chartName, versionName, "", "", "", getter.All(c.Setting))
+	chartURL, err := repo.FindChartInRepoURL(c.Repository[repoName].Config.URL, chartName, versionName, "", "", "", getter.All(c.Setting))
 	if err != nil {
 		log.Fatalf("Failed to find chart URL: %s", err)
 	}
+
+	fmt.Println("TEST CHART URL:", chartURL)
 
 	chartPath, _, err := c.Downloader.DownloadTo(chartURL, versionName, ".")
 	if err != nil {
 		log.Fatalf("Failed to download chart: %s", err)
 	}
+	fmt.Println("TEST CHART PATH:", chartPath)
 
 	chart, err := loader.Load(chartPath)
 	if err != nil {
 		log.Fatalf("Failed to load chart: %s", err)
 	}
 
-	install.SkipCRDs = true
-	install.IncludeCRDs = false
+	// install.SkipCRDs = true
+	install.IncludeCRDs = true
 	install.ReleaseName = releaseName
 	install.Namespace = c.Setting.Namespace()
 

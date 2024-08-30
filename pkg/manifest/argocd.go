@@ -1,6 +1,7 @@
 package manifest
 
 import (
+	"github.com/choigonyok/home-idp/pkg/env"
 	"sigs.k8s.io/yaml"
 )
 
@@ -9,7 +10,7 @@ func GetArgoCDManifest(username, namespace string) []byte {
 		"apiVersion": "argoproj.io/v1alpha1",
 		"kind":       "Application",
 		"metadata": map[string]interface{}{
-			"name":      "app" + username,
+			"name":      "app-" + username,
 			"namespace": namespace,
 		},
 		"spec": map[string]interface{}{
@@ -21,8 +22,8 @@ func GetArgoCDManifest(username, namespace string) []byte {
 			"project": "default",
 			"sources": []interface{}{
 				map[string]interface{}{
-					"repoURL":        "",
-					"path":           "",
+					"repoURL":        "https://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + env.Get("HOME_IDP_GIT_REPO") + ".git",
+					"path":           "manifest/" + username,
 					"targetRevision": "HEAD",
 				},
 			},

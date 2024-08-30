@@ -1,6 +1,9 @@
 package git
 
 import (
+	"strings"
+
+	"github.com/choigonyok/home-idp/gateway/pkg/manifest"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
 )
@@ -47,4 +50,10 @@ func (c *GatewayGitClient) PushFile(username, tag, content string) error {
 
 func (c *GatewayGitClient) UpdateImageVersion(username, email, before, after string) {
 	c.Client.UpdateFilesByFiletype(username, email, before, after, git.Manifest)
+}
+
+func (c *GatewayGitClient) CreatePodManifestFile(username, email, image string, port int) error {
+	name, _, _ := strings.Cut(image, ":")
+	manifest := manifest.GetPodManifest(name+"-"+username, image, port)
+	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod.yaml", []byte(manifest), git.Manifest)
 }

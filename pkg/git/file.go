@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/choigonyok/home-idp/pkg/manifest"
 	"github.com/google/go-github/v63/github"
 )
 
 type GitFileType string
 
 const (
-	CI     GitFileType = "ci"
-	CD     GitFileType = "cd"
-	Docker GitFileType = "docker"
+	CI       GitFileType = "ci"
+	CD       GitFileType = "cd"
+	Docker   GitFileType = "docker"
+	Manifest GitFileType = "manifest"
 )
 
 func (c *GitClient) isFileExist(filePath string) (bool, error) {
@@ -52,18 +52,44 @@ func (c *GitClient) getFilesByFiletype(filetype GitFileType) (f []*github.Reposi
 	}
 }
 
-func (c *GitClient) CreateFilesByFiletype(username, email, namespace string, filetype GitFileType) error {
+func (c *GitClient) GetFilesByPath(path string) []string {
+	file, files, resp, _ := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, path, &github.RepositoryContentGetOptions{Ref: "main"})
+
+	fmt.Println("TEST GET GITHUB FILE STATUS:", resp.StatusCode)
+
+	f := []string{}
+
+	if file.GetType() != "type" {
+		content, _ := file.GetContent()
+		f = append(f, content)
+		return f
+	}
+
+	for _, v := range files {
+		content, _ := v.GetContent()
+		f = append(f, content)
+	}
+
+	return f
+}
+
+func (c *GitClient) CreateFilesByFiletype(username, email, namespace, filename string, content []byte, filetype GitFileType) error {
 	t := github.Timestamp{}
 	t.Time = time.Now()
 
-	_, rr, _ := c.Client.Repositories.CreateFile(
+	f := ""
+	if filename != "" {
+		f = "/" + filename
+	}
+
+	c.Client.Repositories.CreateFile(
 		context.TODO(),
 		c.Owner,
 		*c.Repository.Name,
-		defaultFilePathByFiletype(username, filetype),
+		defaultFilePathByFiletype(username, filetype)+f,
 		&github.RepositoryContentFileOptions{
-			Message: github.String(`create(` + string(filetype) + `): ` + defaultCommitMessageByFiletype(username, filetype)),
-			Content: defaultContentByFiletype(username, namespace, filetype),
+			Message: github.String(`create(` + string(filetype) + `): ` + filename + ` by ` + username),
+			Content: content,
 			Branch:  github.String("main"),
 			Author: &github.CommitAuthor{
 				Name:  github.String(username),
@@ -72,33 +98,17 @@ func (c *GitClient) CreateFilesByFiletype(username, email, namespace string, fil
 			},
 		},
 	)
-	fmt.Println("TEST CREATE FILE STATUS:", rr.StatusCode)
-
 	return nil
 }
 
 func defaultFilePathByFiletype(username string, filetype GitFileType) string {
 	switch filetype {
 	case CD:
-		return "cd/" + username + "/app.yaml"
+		return "cd/" + username
+	case Manifest:
+		return "manifest/" + username
 	}
 	return ""
-}
-
-func defaultCommitMessageByFiletype(username string, filetype GitFileType) string {
-	switch filetype {
-	case CD:
-		return `app.yaml by ` + username
-	}
-	return ""
-}
-
-func defaultContentByFiletype(username, namespace string, filetype GitFileType) []byte {
-	switch filetype {
-	case CD:
-		return manifest.GetArgoCDManifest(username, namespace)
-	}
-	return nil
 }
 
 func (c *GitClient) UpdateFilesByFiletype(username, email, before, after string, filetype GitFileType) error {
@@ -135,7 +145,7 @@ func (c *GitClient) UpdateFilesByFiletype(username, email, before, after string,
 	fmt.Println("TEST GETTREE STATUS:", resp.StatusCode)
 
 	for _, entry := range tree.Entries {
-		if *entry.Type == "blob" && strings.HasPrefix(*entry.Path, "cd") {
+		if *entry.Type == "blob" && strings.HasPrefix(*entry.Path, string(filetype)+"/"+username) {
 			f, _, _, _ := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, *entry.Path, &github.RepositoryContentGetOptions{
 				Ref: "main",
 			})

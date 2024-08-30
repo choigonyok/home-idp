@@ -19,5 +19,5 @@ func NewRouter() *GatewayRouter {
 }
 
 func (r *GatewayRouter) RegisterRoute(method, path string, f http.HandlerFunc) {
-	r.Router.NewRoute().Methods(method).Path(path).HandlerFunc(f)
+	r.Router.NewRoute().Methods(method).PathPrefix(path).HandlerFunc(f)
 }

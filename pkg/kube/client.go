@@ -14,6 +14,7 @@ import (
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
 	apiv1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -54,7 +55,7 @@ func (c *KubeClient) ApplyManifest(manifest, resource, namespace string) error {
 		Resource: resource,
 	}
 
-	_, err := c.Dynamic.Resource(gvr).Namespace(namespace).Create(context.TODO(), obj, metav1.CreateOptions{})
+	_, err := c.Dynamic.Resource(gvr).Namespace(namespace).Create(context.TODO(), &obj, metav1.CreateOptions{})
 	return err
 }
 
@@ -83,7 +84,10 @@ func (c *KubeClient) GetPodsByLabel(namespace, label string) []apiv1.Pod {
 }
 
 func (c *KubeClient) GetServiceSelectors(name, namespace string) string {
-	svc, _ := c.ClientSet.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	svc, err := c.ClientSet.CoreV1().Services(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	if err != nil {
+		fmt.Println("TEST GET SERVICE ERR:", err)
+	}
 
 	l := []string{}
 	for k, v := range svc.Spec.Selector {
@@ -94,8 +98,21 @@ func (c *KubeClient) GetServiceSelectors(name, namespace string) string {
 }
 
 func (c *KubeClient) GetSecret(name, namespace, key string) []byte {
-	secret, _ := c.ClientSet.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	secret, err := c.ClientSet.CoreV1().Secrets(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+	fmt.Println("TEST GET ARGOCD PASSWORD SECRET ERR:", err)
 	return secret.Data[key]
+}
+
+func (c *KubeClient) IsServiceHealthy(service, namespace string) bool {
+	label := c.GetServiceSelectors(service, namespace)
+	pods := c.GetPodsByLabel(namespace, label)
+	for _, pod := range pods {
+		if pod.Status.Phase != corev1.PodRunning || !pod.Status.ContainerStatuses[0].Ready {
+			return false
+		}
+	}
+
+	return true
 }
 
 // var (

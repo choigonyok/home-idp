@@ -1,7 +1,6 @@
 package client
 
 import (
-	"net/http"
 	"os"
 	"strconv"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/helm"
+	"github.com/choigonyok/home-idp/pkg/http"
 	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/docker/docker/api/types/registry"
@@ -192,7 +192,7 @@ func useHttpClient() ClientOption {
 	// 	return
 	// })
 	return newHttpClientOption(func(cli ClientSet) {
-		i := http.DefaultClient
+		i := http.NewClient()
 		cli.Set(util.HttpClient, i)
 		return
 	})

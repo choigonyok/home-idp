@@ -3,21 +3,19 @@ package http
 import (
 	"bytes"
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 )
 
 type HttpClient struct {
-	Client *http.Client
+	*http.Client
 }
 
-type Method string
-
 const (
-	Post   Method = http.MethodPost
-	Get    Method = http.MethodGet
-	Delete Method = http.MethodDelete
-	Put    Method = http.MethodPut
+	Post   string = http.MethodPost
+	Get    string = http.MethodGet
+	Delete string = http.MethodDelete
+	Put    string = http.MethodPut
 
 	StatusOK int = http.StatusOK
 )
@@ -30,44 +28,49 @@ type Header struct {
 type Request struct {
 	username string
 	password string
-	URL      string
-	Method   Method
-	Body     map[string]interface{}
+	url      string
+	method   string
+	body     map[string]interface{}
 	headers  map[string]string
 }
 
 func NewClient() *HttpClient {
-	return &HttpClient{}
-}
-
-func NewRequest(method Method, url string, body io.Reader) (*http.Request, error) {
-	return http.NewRequest(string(method), url, body)
-}
-
-func (c *HttpClient) Request(r *Request, headers ...Header) (*http.Response, error) {
-	var b *bytes.Buffer = nil
-
-	if r.Body != nil {
-		jsonData, err := json.Marshal(r.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		b = bytes.NewBuffer(jsonData)
+	return &HttpClient{
+		http.DefaultClient,
 	}
+}
 
-	req, err := http.NewRequest(string(r.Method), r.URL, b)
+func NewRequest(method, url string, body map[string]interface{}) *Request {
+	return &Request{
+		method:  method,
+		url:     url,
+		body:    body,
+		headers: make(map[string]string),
+	}
+}
+
+func (c *HttpClient) Request(r *Request) (*http.Response, error) {
+	jsonData, err := json.Marshal(r.body)
 	if err != nil {
 		return nil, err
 	}
-	defer req.Body.Close()
+	b := bytes.NewBuffer(jsonData)
+
+	req := &http.Request{}
+	if r.method == Get {
+		req, err = http.NewRequest(r.method, r.url, nil)
+		fmt.Println(err)
+	} else {
+		req, err = http.NewRequest(r.method, r.url, b)
+		fmt.Println(err)
+	}
 
 	if r.username != "" || r.password != "" {
 		req.SetBasicAuth(r.username, r.password)
 	}
 
-	for _, h := range headers {
-		req.Header.Set(h.Key, h.Value)
+	for k, v := range r.headers {
+		req.Header.Set(k, v)
 	}
 
 	resp, err := c.Client.Do(req)

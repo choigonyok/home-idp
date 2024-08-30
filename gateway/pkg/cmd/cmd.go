@@ -55,6 +55,27 @@ func getServerStartCmd() *cobra.Command {
 
 			defer svc.Stop()
 
+			// 			manifest := `apiVersion: v1
+			// kind: Pod
+			// metadata:
+			// 	name: nginx
+			// spec:
+			// 	containers:
+			// 	- name: nginx
+			// 		image: nginx:1.14.2
+			//     ports:
+			// 		- containerPort: 80`
+			// 			fmt.Println("TEST MANIFEST:", manifest)
+			// 			manifest = strings.ReplaceAll(manifest, "\t", "  ")
+
+			// 			objects := unstructured.Unstructured{}
+
+			// 			err := yaml.Unmarshal([]byte(manifest), &objects.Object)
+			// 			fmt.Println(err)
+
+			// 			gvk := objects.GetObjectKind().GroupVersionKind()
+			// 			fmt.Println(gvk.Group, gvk.Version, gvk.Kind)
+
 			svc.Start()
 			return nil
 		},
