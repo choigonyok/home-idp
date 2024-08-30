@@ -29,10 +29,10 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 
 	// svr.Router.RegisterRoute(http.MethodPost, "/test0", svc.InstallArgoCDHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/test2", svc.TestHandler2())
+	svr.Router.RegisterRoute(http.MethodGet, "/test2/", svc.TestHandler2())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api", svc.ApiPostHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/", svc.ApiPostHandler())
 	return svc
 }
 

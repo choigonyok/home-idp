@@ -85,11 +85,9 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				fmt.Println("TEST WEBHOOK IMGNAME:", name)
 				fmt.Println("TEST WEBHOOK IMGVERSION:", version)
 				svc.requestBuildDockerfile(name, version)
-				// case "cd":
-				// 	svc.applyArgoCDApplication(event)
 			case "cd":
-				// manifest := getManifestFromCommit(event)
-				// svc.requestDeployArgoCDApplication(manifest)
+				path := getFilepathFromCommit(event)
+				svc.requestDeploy(path)
 			}
 		case *github.RepositoryEvent:
 			fmt.Println("TEST PING WEBHOOK RECEIVED")
@@ -111,7 +109,23 @@ func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string) {
 	return name, version
 }
 
-// func getManifestFromCommit(e *github.PushEvent) (string, string) {}
+func getFilepathFromCommit(e *github.PushEvent) string {
+	return e.Commits[0].Added[0]
+}
+
+func (svc *Gateway) requestDeploy(filepath string) {
+	c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
+	reply, err := c.Deploy(context.TODO(), &deployPb.DeployRequest{Filepath: filepath})
+	if err != nil {
+		fmt.Println("TEST DEPLOY REQUEST ERR:", err)
+		return
+	}
+
+	if reply.Succeed {
+		fmt.Println("TEST DEPLOY REQUEST FAILED")
+		return
+	}
+}
 
 func (svc *Gateway) requestBuildDockerfile(name, version string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
@@ -143,6 +157,8 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 		switch leadPath {
 		case "dockerfile":
 			svc.apiPostDockerfileHandler(w, r)
+		case "manifest":
+			svc.apiPostManifestHandler(w, r)
 		}
 	}
 }
@@ -159,6 +175,11 @@ func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Requ
 	json.Unmarshal(b, &m)
 
 	svc.ClientSet.GitClient.PushFile(m["username"], m["tag"], m["content"])
+}
+
+func (svc *Gateway) apiPostManifestHandler(w http.ResponseWriter, r *http.Request) {
+	err := svc.ClientSet.GitClient.CreatePodManifestFile("tester", "tester123@naver.com", "testimg:v1.0", 8080)
+	fmt.Println(err)
 }
 
 // func (svc *Gateway) applyArgoCDApplication(e *github.PushEvent) {
