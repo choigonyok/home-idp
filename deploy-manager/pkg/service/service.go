@@ -33,7 +33,13 @@ func (svc *DeployManager) Start() {
 	pbBuildServer := &grpc.BuildServer{
 		KubeClient: svc.ClientSet.KubeClient,
 	}
+	pbDeployServer := &grpc.DeployServer{
+		GitClient:  svc.ClientSet.GitClient,
+		KubeClient: svc.ClientSet.KubeClient,
+	}
+
 	pb.RegisterBuildServer(svc.Server.Server, pbBuildServer)
+	pb.RegisterDeployServer(svc.Server.Server, pbDeployServer)
 
 	svc.Server.Run()
 	return

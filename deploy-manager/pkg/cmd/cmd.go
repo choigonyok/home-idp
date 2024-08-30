@@ -50,6 +50,7 @@ func getServerStartCmd() *cobra.Command {
 			svc := service.New(
 				port,
 				client.WithKubeClient(),
+				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 			)
 			defer svc.Stop()
 

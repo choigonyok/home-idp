@@ -29,3 +29,10 @@ func (c *DeployManagerKubeClient) ApplyKanikoBuildJob(tag string) error {
 	}
 	return nil
 }
+
+func (c *DeployManagerKubeClient) DeployManifest(manifest string) error {
+	if err := c.Client.ApplyManifest(manifest, "applications", env.Get("HOME_IDP_NAMESPACE")); err != nil {
+		return err
+	}
+	return nil
+}

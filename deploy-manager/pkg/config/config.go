@@ -54,6 +54,8 @@ func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
 	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
+	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
+	env.Set("HOME_IDP_GIT_TOKEN", cfg.Global.Git.Token)
 	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
 	env.Set("DEPLOY_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEPLOY_MANAGER_REGISTRY_PASSWORD", cfg.Global.AdminPassword)

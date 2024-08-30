@@ -1,0 +1,20 @@
+// export GOPATH=/Users/choigonyok/go
+// export PATH=$PATH:$(go env GOPATH)/bin
+// protoc --go_out=deploy-manager/pkg/proto --go-grpc_out=deploy-manager/pkg/proto deploy-manager/pkg/proto/deploy.proto
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./";
+
+service Deploy {
+  rpc Deploy (DeployRequest) returns (DeployReply) {}
+}
+
+message DeployRequest {
+  string filepath = 1;
+}
+
+message DeployReply {
+  bool Succeed = 1;
+}
