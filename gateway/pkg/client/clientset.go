@@ -3,6 +3,7 @@ package client
 import (
 	"github.com/choigonyok/home-idp/gateway/pkg/git"
 	"github.com/choigonyok/home-idp/gateway/pkg/grpc"
+	"github.com/choigonyok/home-idp/gateway/pkg/http"
 	"github.com/choigonyok/home-idp/gateway/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/mail"
@@ -16,6 +17,7 @@ type GatewayClientSet struct {
 	MailClient    mail.MailClient
 	KubeClient    *kube.GatewayKubeClient
 	GitClient     *git.GatewayGitClient
+	HttpClient    *http.GatewayHttpClient
 }
 
 func EmptyClientSet() *GatewayClientSet {
@@ -55,6 +57,11 @@ func (cs *GatewayClientSet) Set(cli util.Clients, i interface{}) {
 		tmp := &git.GatewayGitClient{}
 		tmp.Set(i)
 		cs.GitClient = tmp
+		return
+	case util.HttpClient:
+		tmp := &http.GatewayHttpClient{}
+		tmp.Set(i)
+		cs.HttpClient = tmp
 		return
 	default:
 		return

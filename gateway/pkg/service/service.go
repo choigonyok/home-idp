@@ -47,7 +47,7 @@ func (svc *Gateway) Stop() {
 func (svc *Gateway) Start() {
 	go func() {
 		svc.waitGatewayRunning()
-
+		svc.ClientSet.GitClient.CreateAdminDir()
 		if err := svc.ClientSet.GitClient.CreateGithubWebhook(); err != nil {
 			fmt.Println("TEST GITHUB WEBHOOK CREATE ERR:", err)
 		}

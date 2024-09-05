@@ -24,13 +24,17 @@ func GetPodManifest(name, image string, port int) string {
 			Containers: []corev1.Container{
 				{
 					Name:  name,
-					Image: image,
+					Image: "harbor/library/" + image,
 					Ports: []corev1.ContainerPort{
 						{
-							Name:          name,
 							ContainerPort: int32(port),
 						},
 					},
+				},
+			},
+			ImagePullSecrets: []corev1.LocalObjectReference{
+				{
+					Name: "harborcred",
 				},
 			},
 		},

@@ -9,6 +9,8 @@ import (
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/google/go-github/v63/github"
 )
@@ -44,15 +46,18 @@ func (svc *Gateway) TestHandler2() http.HandlerFunc {
 	}
 }
 
+// /api/webhook/harbor?username="choigonyok"&email="choigonyok@naver.com"
 func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		username := r.URL.Query().Get("username")
+		email := r.URL.Query().Get("email")
+
 		fmt.Println(r.Body)
 		b, err := io.ReadAll(r.Body)
 		fmt.Println("TESTHANDLER3:", err)
 		m := make(map[string]interface{})
 		err = json.Unmarshal(b, &m)
 
-		// img := m["event_data"].(map[string]interface{})["resources"].(map[string]interface{})["resource_url"].(string)
 		img := util.ParseInterfaceMap(m, []string{"event_data", "resources", "resource_url"}).(string)
 		s := strings.Split(img, "/")
 		name, version, _ := strings.Cut(s[2], ":")
@@ -60,7 +65,7 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		fmt.Println(err)
 		fmt.Println("MAPPED MAP:", name, version)
 
-		svc.ClientSet.GitClient.UpdateImageVersion("testuser", "tester@naver.com", "test:v1.4", name+":"+version)
+		svc.ClientSet.GitClient.UpdateManifest(username, email, name+":"+version)
 		return
 	}
 }
@@ -88,6 +93,11 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 			case "cd":
 				path := getFilepathFromCommit(event)
 				svc.requestDeploy(path)
+				// case "manifest":
+				// 	path := forwardToArgoCD(event)
+				// 	svc.requestDeploy(path)
+			case "manifest":
+				svc.requestArgoCDWebhook(r, payload)
 			}
 		case *github.RepositoryEvent:
 			fmt.Println("TEST PING WEBHOOK RECEIVED")
@@ -146,6 +156,23 @@ func (svc *Gateway) requestBuildDockerfile(name, version string) {
 	}
 }
 
+func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
+	m := make(map[string]string)
+	for k, v := range r.Header {
+		m[k] = strings.Join(v, ", ")
+	}
+
+	fmt.Println("TEST GIT MANIFEST PUSH HEADERS:", m)
+
+	fmt.Println("TEST GIT MANIFEST PUSH PAYLOAD:", string(payload))
+	if err := svc.ClientSet.HttpClient.SendArgoCDWebhook(payload, m); err != nil {
+		fmt.Println("TEST REQUEST MANIFEST ARGOCD WEBHHOOK ERR:", err)
+		return err
+	}
+
+	return nil
+}
+
 func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println()
@@ -153,8 +180,9 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 		fmt.Println()
 		leadPath, _ := strings.CutPrefix(r.URL.Path, "/api/")
 		fmt.Println("TEST LEAD PATH:", leadPath)
+		dir, _, _ := strings.Cut(leadPath, "/")
 
-		switch leadPath {
+		switch dir {
 		case "dockerfile":
 			svc.apiPostDockerfileHandler(w, r)
 		case "manifest":
@@ -171,14 +199,24 @@ func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Requ
 
 	b, _ := io.ReadAll(r.Body)
 
-	m := make(map[string]string)
-	json.Unmarshal(b, &m)
+	f := git.GitDockerFile{}
+	json.Unmarshal(b, &f)
 
-	svc.ClientSet.GitClient.PushFile(m["username"], m["tag"], m["content"])
+	imageName, _, _ := strings.Cut(f.Image, ":")
+	if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
+		fmt.Println("TEST DOCKERFILE ALREADY EXIST")
+		svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
+		return
+	}
+	fmt.Println("TEST DOCKERFILE NOT EXIST")
+	svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
+	return
 }
 
+// /api/manifest?username="choigonyok"
 func (svc *Gateway) apiPostManifestHandler(w http.ResponseWriter, r *http.Request) {
-	err := svc.ClientSet.GitClient.CreatePodManifestFile("tester", "tester123@naver.com", "testimg:v1.0", 8080)
+	username := r.URL.Query().Get("username")
+	err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
 	fmt.Println(err)
 }
 
@@ -211,3 +249,5 @@ func (svc *Gateway) apiPostManifestHandler(w http.ResponseWriter, r *http.Reques
 //            "tag": "latest",
 //            "content": "FROM ubuntu:18.04\nRUN apt-get update && apt-get install -y git"
 //          }'
+
+// curl -X POST http://cd.choigonyok.com:8080/api/v1/applications/app-choigonyok/refresh
