@@ -24,7 +24,7 @@ func parseGitClientFromInterface(i interface{}) *git.GitClient {
 }
 
 func (c *GatewayGitClient) CreateAdminDir() error {
-	c.Client.CreateFilesByFiletype(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_NAMESPACE"), ". gitkeep", []byte(""), git.Manifest)
+	c.Client.CreateFilesByFiletype(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_NAMESPACE"), ".gitkeep", []byte(""), git.Manifest)
 	return nil
 }
 
@@ -147,3 +147,7 @@ func (c *GatewayGitClient) IsDockerfileExist(username, imagename string) bool {
 
 // 파일의 제목도 함께 바뀌는 경우 : 파일을 삭제하고 생성해야한다.
 // 파일의 내용만 바뀌는 경우 : UpdateFile 메소드 지원
+
+// curl -u "admin:tester1234" \
+//      -X GET "http://harbor:80/api/v2.0/projects/library/repositories" \
+//      -H "accept: application/json"
