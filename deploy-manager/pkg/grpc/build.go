@@ -18,7 +18,7 @@ func (svr *BuildServer) BuildDockerfile(ctx context.Context, in *pb.BuildDockerf
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*1)
 	defer cancel()
 
-	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName() + ":" + in.Img.GetVersion()); err != nil {
+	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName()+":"+in.Img.GetVersion(), in.Img.GetPusher()); err != nil {
 		fmt.Println("TEST APPLY KANIKO BUILD MANIFEST ERR:", err)
 		return &pb.BuildDockerfileReply{
 			Succeed: false,

@@ -82,31 +82,39 @@ func (c *GatewayGitClient) UpdateDockerFile(username, image, content string) err
 	return c.Client.UpdateFile(m)
 }
 
-func (c *GatewayGitClient) UpdateManifest(username, content, image string) error {
-	files := c.Client.Listfile("manifest", username)
-	imageName, _, _ := strings.Cut(image, ":")
-	r := regexp.MustCompile(imageName + `:\s*[\S]+`)
+func (c *GatewayGitClient) UpdateManifest(image string) error {
+	users := c.Client.GetFilesByPath("manifest")
+	fmt.Println("TEST USER LIST :", users)
+	for _, u := range users {
+		fmt.Println("TEST UPDATE MANIFEST USER :", u)
+		files := c.Client.Listfile("manifest", u)
+		imageName, _, _ := strings.Cut(image, ":")
+		r := regexp.MustCompile(imageName + `:\s*[\S]+`)
 
-	m := make(map[git.GitFile]git.GitFile)
+		m := make(map[git.GitFile]git.GitFile)
 
-	for _, f := range files {
+		for _, f := range files {
 
-		contents := c.Client.GetFilesByPath("manifest/" + username + "/" + f)
-		if strings.Contains(contents[0], "image: "+imageName+":") {
-			output := r.ReplaceAllString(contents[0], "image: "+image)
-			oldName, _ := strings.CutPrefix(r.FindString(contents[0]), "image: ")
-			m[&git.GitDockerFile{
-				Username: username,
-				Content:  output,
-				Image:    image,
-			}] = &git.GitDockerFile{
-				Username: username,
-				Content:  contents[0],
-				Image:    oldName,
+			contents := c.Client.GetFilesByPath("manifest/" + u + "/" + f)
+			if strings.Contains(contents[0], "image: "+imageName+":") {
+				output := r.ReplaceAllString(contents[0], "image: "+image)
+				oldName, _ := strings.CutPrefix(r.FindString(contents[0]), "image: ")
+				m[&git.GitDockerFile{
+					Username: u,
+					Content:  output,
+					Image:    image,
+				}] = &git.GitDockerFile{
+					Username: u,
+					Content:  contents[0],
+					Image:    oldName,
+				}
 			}
 		}
+		if err := c.Client.UpdateFile(m); err != nil {
+			return err
+		}
 	}
-	return c.Client.UpdateFile(m)
+	return nil
 }
 
 func (c *GatewayGitClient) CreatePodManifestFile(username, email, image string, port int) error {

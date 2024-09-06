@@ -12,6 +12,7 @@ service Build {
 message Image {
   string name = 1;
   string version = 2;
+  string pusher = 3;
 }
 
 message BuildDockerfileRequest {

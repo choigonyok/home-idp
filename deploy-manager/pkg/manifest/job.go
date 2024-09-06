@@ -35,7 +35,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Args: []string{
 								"--insecure=true",
 								"--skip-tls-verify=true",
-								"--dockerfile=/docker/Dockerfile." + img.Name + ":" + img.Version,
+								"--dockerfile=/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version,
 								"--context=git://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + repo + "#main",
 								"--destination=harbor." + env.Get("HOME_IDP_NAMESPACE") + ".svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
 								"--cache=true",

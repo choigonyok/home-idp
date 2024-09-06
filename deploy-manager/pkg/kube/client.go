@@ -21,8 +21,8 @@ func parseKubeClientFromInterface(i interface{}) *kube.KubeClient {
 	return client
 }
 
-func (c *DeployManagerKubeClient) ApplyKanikoBuildJob(tag string) error {
-	yml := manifest.GetKanikoJobManifest(docker.NewDockerImage(tag), env.Get("HOME_IDP_GIT_REPO"))
+func (c *DeployManagerKubeClient) ApplyKanikoBuildJob(img, pusher string) error {
+	yml := manifest.GetKanikoJobManifest(docker.NewDockerImage(img, pusher), env.Get("HOME_IDP_GIT_REPO"))
 	b, _ := yaml.Marshal(yml)
 	if err := c.Client.ApplyManifest(string(b), "jobs", yml.GetNamespace()); err != nil {
 		return err

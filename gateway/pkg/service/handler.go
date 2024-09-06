@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
@@ -49,9 +50,6 @@ func (svc *Gateway) TestHandler2() http.HandlerFunc {
 // /api/webhook/harbor?username="choigonyok"&email="choigonyok@naver.com"
 func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		username := r.URL.Query().Get("username")
-		email := r.URL.Query().Get("email")
-
 		fmt.Println(r.Body)
 		b, err := io.ReadAll(r.Body)
 		fmt.Println("TESTHANDLER3:", err)
@@ -65,7 +63,10 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		fmt.Println(err)
 		fmt.Println("MAPPED MAP:", name, version)
 
-		svc.ClientSet.GitClient.UpdateManifest(username, email, name+":"+version)
+		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
+			return
+		}
 		return
 	}
 }
@@ -87,9 +88,11 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 			switch t {
 			case "docker":
 				name, version := getImageNameAndVersionFromCommit(event)
+				username := getUserFromCommit(event)
+				fmt.Println("TEST RELATED USERNAME: ", username)
 				fmt.Println("TEST WEBHOOK IMGNAME:", name)
 				fmt.Println("TEST WEBHOOK IMGVERSION:", version)
-				svc.requestBuildDockerfile(name, version)
+				svc.requestBuildDockerfile(name, version, username)
 			case "cd":
 				path := getFilepathFromCommit(event)
 				svc.requestDeploy(path)
@@ -110,13 +113,25 @@ func getFileType(e *github.PushEvent) string {
 	t, _, _ := strings.Cut(pushPath, "/")
 	return t
 }
+
 func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string) {
 	pushPath := e.Commits[0].Added[0]
 	fmt.Println("TEST PUSH PATH:", pushPath)
-	img, _ := strings.CutPrefix(pushPath, "docker/Dockerfile.")
+	re := regexp.MustCompile(`^docker/[^/]+/Dockerfile.`)
+	img := re.ReplaceAllString(pushPath, "")
 	fmt.Println("TEST IMG:", img)
 	name, version, _ := strings.Cut(img, ":")
 	return name, version
+}
+
+func getUserFromCommit(e *github.PushEvent) string {
+	pushPath := e.Commits[0].Added[0]
+	fmt.Println("TEST PUSH PATH:", pushPath)
+
+	_, pathWithoutType, _ := strings.Cut(pushPath, "/")
+
+	username, _, _ := strings.Cut(pathWithoutType, "/")
+	return username
 }
 
 func getFilepathFromCommit(e *github.PushEvent) string {
@@ -137,10 +152,11 @@ func (svc *Gateway) requestDeploy(filepath string) {
 	}
 }
 
-func (svc *Gateway) requestBuildDockerfile(name, version string) {
+func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
 	reply, err := c.BuildDockerfile(context.TODO(), &deployPb.BuildDockerfileRequest{
 		Img: &deployPb.Image{
+			Pusher:  username,
 			Name:    name,
 			Version: version,
 		},
