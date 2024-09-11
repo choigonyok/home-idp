@@ -101,6 +101,8 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				// 	svc.requestDeploy(path)
 			case "manifest":
 				svc.requestArgoCDWebhook(r, payload)
+			default:
+				return
 			}
 		case *github.RepositoryEvent:
 			fmt.Println("TEST PING WEBHOOK RECEIVED")
@@ -109,9 +111,21 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 }
 
 func getFileType(e *github.PushEvent) string {
-	pushPath := e.Commits[0].Added[0]
-	t, _, _ := strings.Cut(pushPath, "/")
-	return t
+	if len(e.Commits[0].Added) != 0 {
+		pushPath := e.Commits[0].Added[0]
+		t, _, _ := strings.Cut(pushPath, "/")
+		return t
+	} else if len(e.Commits[0].Removed) != 0 {
+		pushPath := e.Commits[0].Removed[0]
+		t, _, _ := strings.Cut(pushPath, "/")
+		return t
+	} else if len(e.Commits[0].Modified) != 0 {
+		pushPath := e.Commits[0].Modified[0]
+		t, _, _ := strings.Cut(pushPath, "/")
+		return t
+	} else {
+		return ""
+	}
 }
 
 func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string) {
@@ -166,10 +180,12 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 		return
 	}
 
-	if reply.Succeed {
+	if !reply.Succeed {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST FAILED")
 		return
 	}
+
+	return
 }
 
 func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
