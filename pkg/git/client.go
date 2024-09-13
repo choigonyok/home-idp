@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/google/go-github/v63/github"
@@ -85,7 +87,7 @@ func (c *GitClient) DeleteFile(file GitFile) error {
 }
 
 func (c *GitClient) Listfile(dir, username string) []string {
-	_, files, resp, err := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, dir+username, &github.RepositoryContentGetOptions{Ref: "main"})
+	_, files, resp, err := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, dir+"/"+username, &github.RepositoryContentGetOptions{Ref: "main"})
 	fmt.Println("TEST LIST FILE STATUS CODE:", resp.StatusCode)
 	fmt.Println("TEST LIST FILE ERR:", err)
 
@@ -112,25 +114,48 @@ func (c *GitClient) UpdateFile(m map[GitFile]GitFile) error {
 	username := ""
 
 	for new, old := range m {
+		fmt.Println("TEST GET NEW FILENAME:", new.getFilename())
+		fmt.Println("TEST GET OLD FILENAME:", old.getFilename())
 		filetype = new.getType()
 		username = new.getUsername()
 
+		fmt.Println("TEST OLD PATH:", old.getType()+"/"+old.getUsername()+"/"+old.getFilename())
+		fmt.Println("TEST NEW PATH:", new.getType()+"/"+new.getUsername()+"/"+new.getFilename())
 		fmt.Println("TEST2")
-		entries = append(entries,
-			&github.TreeEntry{
-				Path: github.String(old.getType() + "/" + old.getUsername() + "/" + old.getFilename()),
-				Type: github.String("blob"),
-				Mode: github.String("100644"),
-				SHA:  nil,
-			},
-			&github.TreeEntry{
-				Path:    github.String(new.getType() + "/" + new.getUsername() + "/" + new.getFilename()),
-				Type:    github.String("blob"),
-				Mode:    github.String("100644"),
-				Content: github.String(new.getContent()),
-			},
-		)
-		fmt.Println("TEST3")
+
+		// 	{
+		// 		Path:    github.String(filePath),
+		// 		Type:    github.String("blob"),
+		// 		Mode:    github.String("100644"),
+		// 		Content: github.String(newContent),  // 수정된 내용
+		// },
+
+		if old.getFilename() == new.getFilename() {
+			entries = append(entries,
+				&github.TreeEntry{
+					Path:    github.String(old.getType() + "/" + old.getUsername() + "/" + old.getFilename()),
+					Type:    github.String("blob"),
+					Mode:    github.String("100644"),
+					Content: github.String(new.getContent()),
+				},
+			)
+		} else {
+			entries = append(entries,
+				&github.TreeEntry{
+					Path: github.String(old.getType() + "/" + old.getUsername() + "/" + old.getFilename()),
+					Type: github.String("blob"),
+					Mode: github.String("100644"),
+					SHA:  nil,
+				},
+				&github.TreeEntry{
+					Path:    github.String(new.getType() + "/" + new.getUsername() + "/" + new.getFilename()),
+					Type:    github.String("blob"),
+					Mode:    github.String("100644"),
+					Content: github.String(new.getContent()),
+				},
+			)
+			fmt.Println("TEST3")
+		}
 	}
 
 	baseTree, _, err := c.Client.Git.GetTree(context.TODO(), c.Owner, *c.Repository.Name, *ref.Object.SHA, true)
@@ -138,6 +163,8 @@ func (c *GitClient) UpdateFile(m map[GitFile]GitFile) error {
 		return err
 	}
 	fmt.Println("TEST4")
+	fmt.Println("TEST TREE ENTRIES LENGTH: ", len(entries))
+
 	newTree, _, err := c.Client.Git.CreateTree(context.TODO(), c.Owner, *c.Repository.Name, baseTree.GetSHA(), entries)
 	if err != nil {
 		return err
@@ -148,20 +175,48 @@ func (c *GitClient) UpdateFile(m map[GitFile]GitFile) error {
 	if err != nil {
 		return err
 	}
+
+	parent.Commit.SHA = parent.SHA
+
 	fmt.Println("TEST6")
+	t := &github.Timestamp{}
+	t.Time = time.Now()
+
 	newCommit := &github.Commit{
 		Message: github.String(`update(` + filetype + `): by ` + username),
 		Tree:    newTree,
 		Parents: []*github.Commit{parent.Commit},
+		Author: &github.CommitAuthor{
+			Name:  github.String("choigonyok"),
+			Email: github.String("achoistic98@naver.com"),
+			Date:  t,
+		},
+		Committer: &github.CommitAuthor{
+			Name:  github.String("choigonyok"),
+			Email: github.String("achoistic98@naver.com"),
+			Date:  t,
+		},
 	}
 	fmt.Println("TEST7")
 
-	commit, _, err := c.Client.Git.CreateCommit(context.TODO(), c.Owner, *c.Repository.Name, newCommit, &github.CreateCommitOptions{})
+	// newCommit.Parents[0].SHA
+	fmt.Println("TEST RECENT COMMIT SHA :", parent.Commit.GetSHA())
+	fmt.Println("TEST RECENT SHA  :", parent.GetSHA())
+
+	for i, parent := range newCommit.Parents {
+		fmt.Println("TEST PARENT COMMIT FIELD "+strconv.Itoa(i)+": ", parent.String())
+	}
+	fmt.Println("TEST7 TREE.SHA:", newCommit.Tree.SHA)
+	// newCommit.Parents[0].SHA
+	commit, _, err := c.Client.Git.CreateCommit(context.TODO(), c.Owner, *c.Repository.Name, newCommit, nil)
 	if err != nil {
 		return err
 	}
 	fmt.Println("TEST8")
 	ref.Object.SHA = commit.SHA
+
+	fmt.Println("TEST NEW COMMIT SHA: ", *commit.SHA)
+
 	_, _, err = c.Client.Git.UpdateRef(context.TODO(), c.Owner, *c.Repository.Name, ref, false)
 	if err != nil {
 		return err
