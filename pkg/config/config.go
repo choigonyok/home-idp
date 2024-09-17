@@ -25,6 +25,11 @@ type GlobalConfig struct {
 	Git           *GlobalConfigGit     `yaml:"git,omitempty"`
 	Ingress       *GlobalConfigIngress `yaml:"ingress,omitempty"`
 	AdminPassword string               `yaml:"adminPassword,omitempty"`
+	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
+}
+
+type GlobalConfigHarbor struct {
+	Host string `yaml:"host,omitempty"`
 }
 
 type GlobalConfigIngress struct {

@@ -100,7 +100,9 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				// 	path := forwardToArgoCD(event)
 				// 	svc.requestDeploy(path)
 			case "manifest":
-				svc.requestArgoCDWebhook(r, payload)
+				if fn := getFilename(event); fn != ".gitkeep" {
+					svc.requestArgoCDWebhook(r, payload)
+				}
 			default:
 				return
 			}
@@ -123,6 +125,24 @@ func getFileType(e *github.PushEvent) string {
 		pushPath := e.Commits[0].Modified[0]
 		t, _, _ := strings.Cut(pushPath, "/")
 		return t
+	} else {
+		return ""
+	}
+}
+
+func getFilename(e *github.PushEvent) string {
+	if len(e.Commits[0].Added) != 0 {
+		pushPath := e.Commits[0].Added[0]
+		i := strings.LastIndex(pushPath, "/")
+		return pushPath[i+1:]
+	} else if len(e.Commits[0].Removed) != 0 {
+		pushPath := e.Commits[0].Removed[0]
+		i := strings.LastIndex(pushPath, "/")
+		return pushPath[i+1:]
+	} else if len(e.Commits[0].Modified) != 0 {
+		pushPath := e.Commits[0].Modified[0]
+		i := strings.LastIndex(pushPath, "/")
+		return pushPath[i+1:]
 	} else {
 		return ""
 	}
@@ -219,8 +239,16 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 			svc.apiPostDockerfileHandler(w, r)
 		case "manifest":
 			svc.apiPostManifestHandler(w, r)
+		case "users":
+			svc.apiGetUsersHandler(w, r)
 		}
 	}
+}
+
+func (svc *Gateway) apiGetUsersHandler(w http.ResponseWriter, r *http.Request) {
+	path, _ := strings.CutPrefix(r.URL.Path, "/api/users/")
+	username, _, _ := strings.Cut(path, "/")
+	svc.ClientSet.GitClient.GetFilesByUser(username)
 }
 
 func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Request) {
@@ -283,3 +311,7 @@ func (svc *Gateway) apiPostManifestHandler(w http.ResponseWriter, r *http.Reques
 //          }'
 
 // curl -X POST http://cd.choigonyok.com:8080/api/v1/applications/app-choigonyok/refresh
+
+// curl --cert /path/to/client.crt --key /path/to/client.key --cacert /path/to/ca.crt \
+//      -X GET "https://<harbor-domain>/api/v2.0/projects/<project-name>/repositories" \
+//      -H "Authorization: Basic $(echo -n 'username:password' | base64)"

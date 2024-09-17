@@ -35,11 +35,16 @@ func (c *Harbor) Uninstall(h helm.HelmClient) error {
 func harborOverrideValues() map[string]interface{} {
 	return map[string]interface{}{
 		"harborAdminPassword": env.Get("HOME_IDP_ADMIN_PASSWORD"),
-		"externalURL":         "http://harbor:80",
+		"externalURL":         "http://ci.choigonyok.com:8080",
 		"expose": map[string]interface{}{
-			"type": "clusterIP",
 			"tls": map[string]interface{}{
 				"enabled": false,
+			},
+			"ingress": map[string]interface{}{
+				"hosts": map[string]interface{}{
+					"core": env.Get("HOME_IDP_HARBOR_HOST"),
+				},
+				"className": "nginx",
 			},
 		},
 		"persistence": map[string]interface{}{

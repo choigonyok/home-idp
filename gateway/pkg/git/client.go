@@ -94,22 +94,32 @@ func (c *GatewayGitClient) UpdateManifest(image string) error {
 		m := make(map[git.GitFile]git.GitFile)
 
 		for _, f := range files {
-
+			fmt.Println("TEST FILENAME :", f)
 			contents := c.Client.GetFilesByPath("manifest/" + u + "/" + f)
-			if strings.Contains(contents[0], "image: "+imageName+":") {
-				output := r.ReplaceAllString(contents[0], "image: "+image)
-				oldName, _ := strings.CutPrefix(r.FindString(contents[0]), "image: ")
-				m[&git.GitDockerFile{
+			if strings.Contains(contents[0], imageName+":") {
+				output := r.ReplaceAllString(contents[0], image)
+				fmt.Println("TEST OUTPUT:", output)
+				oldName := r.FindString(contents[0])
+				fmt.Println("TEST OLDNAME:", oldName)
+				m[&git.GitManifest{
 					Username: u,
 					Content:  output,
-					Image:    image,
-				}] = &git.GitDockerFile{
+					Filename: f,
+				}] = &git.GitManifest{
 					Username: u,
 					Content:  contents[0],
-					Image:    oldName,
+					Filename: f,
 				}
 			}
 		}
+
+		fmt.Println("TEST FINAL GIT TREE MAP TO MODIFY :", m)
+		fmt.Println("TEST FINAL GIT TREE LENGTH TO MODIFY :", len(m))
+		if len(m) == 0 {
+			fmt.Println("TEST NO MANIFEST TO UPDATE NEW CONTAINER IMAGE")
+			return nil
+		}
+
 		if err := c.Client.UpdateFile(m); err != nil {
 			return err
 		}
@@ -137,17 +147,3 @@ func (c *GatewayGitClient) IsDockerfileExist(username, imagename string) bool {
 	}
 	return false
 }
-
-// curl -X POST localhost:5106/api/dockerfile -H "Content-Type: application/json" \
-// -d'{
-// 	"username": "tester123",
-// 	"tag": "testnginx:v1.12.5",
-// 	"content": "FROM ubuntu:222.04",
-// }'
-
-// 파일의 제목도 함께 바뀌는 경우 : 파일을 삭제하고 생성해야한다.
-// 파일의 내용만 바뀌는 경우 : UpdateFile 메소드 지원
-
-// curl -u "admin:tester1234" \
-//      -X GET "http://harbor:80/api/v2.0/projects/library/repositories" \
-//      -H "accept: application/json"

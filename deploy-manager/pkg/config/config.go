@@ -53,6 +53,7 @@ func parseFromFile(cfg config.Config, filePath string) error {
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
+	env.Set("HOME_IDP_HARBOR_HOST", cfg.Global.Harbor.Host)
 	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
 	env.Set("HOME_IDP_GIT_TOKEN", cfg.Global.Git.Token)

@@ -93,9 +93,7 @@ func (svc *InstallManager) installArgoCD() {
 		fmt.Println("TEST ARGOCD REPOSITORY CREATE ERR:", err)
 	}
 
-	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest("testuser", "tester@naver.com", env.Get("HOME_IDP_NAMESPACE"))
-	// app := svc.ClientSet.GitClient.GetArgoCDApplicationManifest("testuser")
-	// fmt.Println("TEST GET ARGOCD APP MANIFEST: ", app)
+	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_NAMESPACE"))
 }
 
 func (svc *InstallManager) installHarbor() {

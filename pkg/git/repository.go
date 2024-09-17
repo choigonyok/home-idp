@@ -40,6 +40,7 @@ func DeleteRepository(name string, gc *GitClient) error {
 
 func (c *GitClient) ConnectRepository(repo string) error {
 	r, resp, err := c.Client.Repositories.Get(context.TODO(), c.Owner, repo)
+	fmt.Println("TEST CONNECT GIT REPO STATUS CODE:", resp.StatusCode)
 	if resp.StatusCode != 404 && err != nil {
 		return err
 	}

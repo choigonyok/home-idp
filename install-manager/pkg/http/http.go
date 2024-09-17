@@ -39,7 +39,7 @@ func (c *InstallManagerHttpClient) CreateHarborWebhook() error {
 		"enabled": true,
 	}
 
-	r := http.NewRequest(http.Post, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/projects/library/webhook/policies", data)
+	r := http.NewRequest(http.Post, "http://"+env.Get("HOME_IDP_HARBOR_HOST")+":8080/api/v2.0/projects/library/webhook/policies", data)
 	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
 	r.SetHeader("Content-Type", "application/json")
 
@@ -62,7 +62,7 @@ func (c *InstallManagerHttpClient) CreateHarborWebhook() error {
 }
 
 func (c *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
-	r := http.NewRequest(http.Get, "http://harbor."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v2.0/health", nil)
+	r := http.NewRequest(http.Get, "http://"+env.Get("HOME_IDP_HARBOR_HOST")+":8080/api/v2.0/health", nil)
 	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
 
 	resp, err := c.Client.Request(r)

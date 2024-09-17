@@ -17,10 +17,32 @@ const (
 	Manifest GitFileType = "manifest"
 )
 
+type GitManifest struct {
+	Username string `json:"username"`
+	Content  string `json:"content"`
+	Filename string `json:"filename"`
+}
+
 type GitDockerFile struct {
 	Username string `json:"username"`
 	Content  string `json:"content"`
 	Image    string `json:"image"`
+}
+
+func (f *GitManifest) getContent() string {
+	return f.Content
+}
+
+func (f *GitManifest) getUsername() string {
+	return f.Username
+}
+
+func (f *GitManifest) getType() string {
+	return "manifest"
+}
+
+func (f *GitManifest) getFilename() string {
+	return f.Filename
 }
 
 func (f *GitDockerFile) getContent() string {

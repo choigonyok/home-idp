@@ -33,13 +33,14 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Name:  "kaniko",
 							Image: "gcr.io/kaniko-project/executor:v1.23.2",
 							Args: []string{
-								"--insecure=true",
-								"--skip-tls-verify=true",
+								"--insecure",
+								"--skip-tls-verify",
 								"--dockerfile=/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version,
 								"--context=git://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + repo + "#main",
-								"--destination=harbor." + env.Get("HOME_IDP_NAMESPACE") + ".svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
+								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":8080/library/" + img.Name + ":" + img.Version,
 								"--cache=true",
 							},
+							// "--destination=harbor." + env.Get("HOME_IDP_NAMESPACE") + ".svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "kaniko-secret",

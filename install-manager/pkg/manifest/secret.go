@@ -15,7 +15,7 @@ func GetHarborCredManifest(pw string) *corev1.Secret {
 
 	m := map[string]interface{}{
 		"auths": map[string]interface{}{
-			"harbor.idp-system.svc.cluster.local:80": map[string]interface{}{
+			env.Get("HOME_IDP_HARBOR_HOST") + ":8080": map[string]interface{}{
 				"username": "admin",
 				"password": pw,
 				"auth":     auth,
