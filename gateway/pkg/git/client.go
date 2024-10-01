@@ -29,11 +29,14 @@ func (c *GatewayGitClient) CreateAdminDir() error {
 }
 
 func (c *GatewayGitClient) CreateGithubWebhook() error {
-	if env.Get("HOME_IDP_TLS_ENABLED") == "true" {
-		return c.Client.CreateGitWebhook("https://" + env.Get("HOME_IDP_HOST") + "/webhooks/github")
-	} else {
-		return c.Client.CreateGitWebhook("http://" + env.Get("HOME_IDP_HOST") + "/webhooks/github")
+	apiSchema := "http"
+	if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
+		apiSchema = "https"
 	}
+	apiHost := env.Get("HOME_IDP_API_HOST")
+	apiPort := env.Get("HOME_IDP_API_PORT")
+
+	return c.Client.CreateGitWebhook(apiSchema + "://" + apiHost + ":" + apiPort + "/webhooks/github")
 }
 
 // func (c *GatewayGitClient) CreateManifest(username, email string) error {

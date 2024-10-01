@@ -24,12 +24,13 @@ func parseHttpClientFromInterface(i interface{}) *http.HttpClient {
 }
 
 func (c *InstallManagerHttpClient) CreateHarborWebhook() error {
+	host := env.Get("HOME_IDP_API_HOST") + ":" + env.Get("HOME_IDP_API_PORT")
 	data := map[string]interface{}{
 		"name": "HARBOR_WEBHOOK",
 		"targets": []map[string]interface{}{
 			{
 				"type":             "http",
-				"address":          "http://" + env.Get("HOME_IDP_HOST") + "/webhooks/harbor",
+				"address":          "http://" + host + "/webhooks/harbor",
 				"skip_cert_verify": true,
 			},
 		},

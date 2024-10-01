@@ -26,6 +26,13 @@ type GlobalConfig struct {
 	Ingress       *GlobalConfigIngress `yaml:"ingress,omitempty"`
 	AdminPassword string               `yaml:"adminPassword,omitempty"`
 	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
+	UI            *GlobalConfigUI      `yaml:"ui,omitempty"`
+}
+
+type GlobalConfigUI struct {
+	Host string `yaml:"host,omitempty"`
+	Port int    `yaml:"post,omitempty"`
+	TLS  bool   `yaml:"tls,omitempty"`
 }
 
 type GlobalConfigHarbor struct {
@@ -35,6 +42,7 @@ type GlobalConfigHarbor struct {
 type GlobalConfigIngress struct {
 	Host string `yaml:"host,omitempty"`
 	TLS  bool   `yaml:"tls,omitempty"`
+	Port int    `yaml:"port,omitempty"`
 }
 
 type GlobalConfigGit struct {
