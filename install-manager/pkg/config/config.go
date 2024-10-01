@@ -100,6 +100,8 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
 	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
 	env.Set("HOME_IDP_HARBOR_HOST", cfg.Global.Harbor.Host)
+	env.Set("HOME_IDP_HARBOR_PORT", strconv.Itoa(cfg.Global.Harbor.Port))
+	env.Set("HOME_IDP_HARBOR_TLS_ENABLED", strconv.FormatBool(cfg.Global.Harbor.TLS))
 	env.Set("INSTALL_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 	env.Set("DEFAULT_REGISTRY_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Enabled))
 	env.Set("DEFAULT_REGISTRY_STORAGE_CLASS_ENABLED", strconv.FormatBool(cfg.Service.DefaultRegistry.Persistent.Enabled))

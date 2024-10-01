@@ -37,6 +37,8 @@ type GlobalConfigUI struct {
 
 type GlobalConfigHarbor struct {
 	Host string `yaml:"host,omitempty"`
+	TLS  bool   `yaml:"tls,omitempty"`
+	Port int    `yaml:"port,omitempty"`
 }
 
 type GlobalConfigIngress struct {

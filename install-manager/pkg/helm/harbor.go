@@ -33,12 +33,22 @@ func (c *Harbor) Uninstall(h helm.HelmClient) error {
 }
 
 func harborOverrideValues() map[string]interface{} {
+	host := env.Get("HOME_IDP_HARBOR_HOST")
+	port := env.Get("HOME_IDP_HARBOR_PORT")
+	schema := "http"
+	tls := false
+	if env.Get("HOME_IDP_HARBOR_TLS_ENABLED") == "true" {
+		schema = "https"
+		tls = true
+	}
+	url := schema + "://" + host + ":" + port
+
 	return map[string]interface{}{
 		"harborAdminPassword": env.Get("HOME_IDP_ADMIN_PASSWORD"),
-		"externalURL":         "http://ci.choigonyok.com:8080",
+		"externalURL":         url,
 		"expose": map[string]interface{}{
 			"tls": map[string]interface{}{
-				"enabled": false,
+				"enabled": tls,
 			},
 			"ingress": map[string]interface{}{
 				"hosts": map[string]interface{}{
