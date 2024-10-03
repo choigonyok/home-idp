@@ -227,12 +227,15 @@ func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error 
 
 func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
 		fmt.Println()
 		fmt.Println("TEST REQUEST PATH:")
 		fmt.Println()
 		leadPath, _ := strings.CutPrefix(r.URL.Path, "/api/")
 		fmt.Println("TEST LEAD PATH:", leadPath)
 		dir, _, _ := strings.Cut(leadPath, "/")
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		switch dir {
 		case "dockerfile":
@@ -242,6 +245,29 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 		case "users":
 			svc.apiGetUsersHandler(w, r)
 		}
+	}
+}
+
+func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uiSchema := "http"
+		if env.Get("HOME_IDP_UI_TLS_ENABLED") == "true" {
+			uiSchema = "https"
+		}
+		uiPort := env.Get("HOME_IDP_UI_PORT")
+		uiHost := env.Get("HOME_IDP_UI_HOST")
+
+		fmt.Println("TEST ORIGIN: " + uiSchema + "://" + uiHost + ":" + uiPort)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		// 클라이언트가 사용할 수 있는 HTTP 메서드 목록
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		w.WriteHeader(http.StatusOK)
+		return
 	}
 }
 
