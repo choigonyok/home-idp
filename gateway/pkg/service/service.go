@@ -32,6 +32,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/", svc.ApiPostHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/", svc.ApiGetHandler())
 	svr.Router.RegisterRoute(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 	return svc
 }

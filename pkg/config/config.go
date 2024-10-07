@@ -31,7 +31,7 @@ type GlobalConfig struct {
 
 type GlobalConfigUI struct {
 	Host string `yaml:"host,omitempty"`
-	Port int    `yaml:"post,omitempty"`
+	Port int    `yaml:"port,omitempty"`
 	TLS  bool   `yaml:"tls,omitempty"`
 }
 

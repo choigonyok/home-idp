@@ -1,6 +1,7 @@
 package git
 
 import (
+	"encoding/json"
 	"fmt"
 	"regexp"
 	"strings"
@@ -35,8 +36,10 @@ func (c *GatewayGitClient) CreateGithubWebhook() error {
 	}
 	apiHost := env.Get("HOME_IDP_API_HOST")
 	apiPort := env.Get("HOME_IDP_API_PORT")
+	url := apiSchema + "://" + apiHost + ":" + apiPort
+	fmt.Println("TEST WEBHOOK URL : ", url)
 
-	return c.Client.CreateGitWebhook(apiSchema + "://" + apiHost + ":" + apiPort + "/webhooks/github")
+	return c.Client.CreateGitWebhook(url + "/webhooks/github")
 }
 
 // func (c *GatewayGitClient) CreateManifest(username, email string) error {
@@ -56,6 +59,31 @@ func (c *GatewayGitClient) CreateDockerFile(username, image, content string) err
 			Image:    image,
 		},
 	)
+}
+
+func (c *GatewayGitClient) GetDockerFiles() []byte {
+	data := make(map[string]map[string]string)
+
+	users := c.Client.GetFilesByPath("docker")
+	for _, user := range users {
+		files := c.Client.GetFilesByPath("docker/" + user)
+		data[user] = make(map[string]string)
+
+		for _, file := range files {
+			content := c.Client.GetFilesByPath("docker/" + user + "/" + file)
+			fmt.Println("TEST DOCKERFILE CONTENTS:", content)
+			fmt.Println("TEST DOCKERFILE CONTENT:", content[0])
+			data[user][file] = content[0]
+		}
+	}
+
+	b, err := json.Marshal(data)
+	if err != nil {
+		fmt.Println("TEST MARSHALED DOCKERFILES ERR:", err)
+	}
+
+	fmt.Println("TEST RECIEVED DOCKERFILES DATA:", string(b))
+	return b
 }
 
 func (c *GatewayGitClient) UpdateDockerFile(username, image, content string) error {

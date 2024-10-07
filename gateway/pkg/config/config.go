@@ -52,7 +52,12 @@ func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("HOME_IDP_API_HOST", cfg.Global.Ingress.Host)
 	env.Set("HOME_IDP_API_PORT", strconv.Itoa(cfg.Global.Ingress.Port))
-	env.Set("HOME_IDP_TLS_ENABLED", strconv.FormatBool(cfg.Global.Ingress.TLS))
+	env.Set("HOME_IDP_API_TLS_ENABLED", strconv.FormatBool(cfg.Global.Ingress.TLS))
+
+	env.Set("HOME_IDP_HARBOR_HOST", cfg.Global.Harbor.Host)
+	env.Set("HOME_IDP_HARBOR_PORT", strconv.Itoa(cfg.Global.Harbor.Port))
+	env.Set("HOME_IDP_HARBOR_TLS_ENABLED", strconv.FormatBool(cfg.Global.Harbor.TLS))
+
 	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
 	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)

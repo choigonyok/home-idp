@@ -248,6 +248,24 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) ApiGetHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println()
+		fmt.Println("TEST REQUEST PATH:")
+		fmt.Println()
+		leadPath, _ := strings.CutPrefix(r.URL.Path, "/api/")
+		fmt.Println("TEST LEAD PATH:", leadPath)
+		dir, _, _ := strings.Cut(leadPath, "/")
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		switch dir {
+		case "dockerfiles":
+			svc.apiGetDockerfileHandler(w, r)
+		}
+	}
+}
+
 func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uiSchema := "http"
@@ -272,9 +290,6 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 }
 
 func (svc *Gateway) apiGetUsersHandler(w http.ResponseWriter, r *http.Request) {
-	path, _ := strings.CutPrefix(r.URL.Path, "/api/users/")
-	username, _, _ := strings.Cut(path, "/")
-	svc.ClientSet.GitClient.GetFilesByUser(username)
 }
 
 func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Request) {
@@ -296,6 +311,21 @@ func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Requ
 	}
 	fmt.Println("TEST DOCKERFILE NOT EXIST")
 	svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
+	return
+}
+
+func (svc *Gateway) apiGetDockerfileHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("GET GET DOCKER REQUEST")
+	fmt.Println()
+
+	dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
+	if len(dockerfiles) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(dockerfiles)
 	return
 }
 
