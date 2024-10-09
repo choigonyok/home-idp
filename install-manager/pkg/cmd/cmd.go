@@ -19,7 +19,7 @@ const (
 
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
-		Use:   "rbac-manager",
+		Use:   "install-manager",
 		Short: "HOME-IDP INSTALL-MANAGER",
 		Args:  cobra.ExactArgs(0),
 	}
@@ -28,7 +28,7 @@ func NewRootCmd() *cobra.Command {
 }
 
 func addSubCmds(c *cobra.Command) {
-	serverCmd := cmd.GetServerCmd(util.RbacManager)
+	serverCmd := cmd.GetServerCmd(util.InstallManager)
 	c.AddCommand(serverCmd)
 	serverCmd.AddCommand(getServerStartCmd())
 }

@@ -6,8 +6,6 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
-	"github.com/choigonyok/home-idp/pkg/file"
-	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
@@ -71,21 +69,8 @@ func New() *Config {
 		},
 	}
 
-	parseFromFile(cfg, config.DefaultConfigFilePath)
+	config.ParseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg
-}
-
-func parseFromFile(cfg config.Config, filePath string) error {
-	bytes, err := file.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
-
-	if err := yaml.Unmarshal(bytes, cfg); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (cfg *Config) SetEnvVars() {
