@@ -54,6 +54,8 @@ func (svc *InstallManager) Start() {
 }
 
 func (svc *InstallManager) installDefaultServices() {
+	svc.installPostgresql()
+
 	if env.Get("DEFAULT_REGISTRY_ENABLED") == "true" {
 		svc.installHarbor()
 	}
@@ -64,6 +66,13 @@ func (svc *InstallManager) installDefaultServices() {
 	if env.Get("DEFAULT_CD_ENABLED") == "true" {
 		svc.installArgoCD()
 	}
+}
+
+func (svc *InstallManager) installPostgresql() {
+	// TODO: transfer sql file to comfigmap
+
+	c := helm.NewPostgresClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-postgres")
+	c.Install(*svc.ClientSet.HelmClient)
 }
 
 func (svc *InstallManager) installArgoCD() {
