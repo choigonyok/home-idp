@@ -1,4 +1,4 @@
-package policy
+package model
 
 // type PolicyTarget interface {
 // 	StoreTarget()

@@ -4,46 +4,45 @@ import (
 	"log"
 
 	"github.com/choigonyok/home-idp/pkg/config"
-	"github.com/choigonyok/home-idp/pkg/file"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/mail"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
-	"gopkg.in/yaml.v2"
 )
 
 type RbacManagerConfig struct {
 	Name     string
-	Enabled  bool                          `yaml:"enabled,omitempty"`
-	Service  *service.RbacManagerSvcConfig `yaml:"service,omitempty"`
-	Replicas int                           `yaml:"replicas,omitempty"`
-	Storage  *config.StorageConfig         `yaml:"storage,omitempty"`
-	Smtp     *mail.SmtpClient              `yaml:"smtp,omitempty"`
+	Enabled  bool                      `yaml:"enabled,omitempty"`
+	Service  *RbacManagerServiceConfig `yaml:"service,omitempty"`
+	Replicas int                       `yaml:"replicas,omitempty"`
+	Storage  *config.StorageConfig     `yaml:"storage,omitempty"`
+	Smtp     *mail.SmtpClient          `yaml:"smtp,omitempty"`
 }
 
-func New() *RbacManagerConfig {
-	cfg := &RbacManagerConfig{Name: "rbac-manager"}
+type RbacManagerServiceConfig struct {
+	Port int `yaml:"port,omitempty"`
+}
 
-	log.Printf("Start reading home-idp configuration file...")
-	parseConfigFile(cfg, config.DefaultConfigFilePath)
+type Config struct {
+	Service *RbacManagerConfig   `yaml:"rbac-manager,omitempty"`
+	Global  *config.GlobalConfig `yaml:"global,omitempty"`
+}
 
+func New() *Config {
+	cfg := &Config{
+		Global: &config.GlobalConfig{},
+		Service: &RbacManagerConfig{
+			Service: &RbacManagerServiceConfig{},
+		},
+	}
+
+	config.ParseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg
 }
 
-func parseConfigFile(cfg *RbacManagerConfig, filePath string) error {
-	bytes, err := file.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
-
-	tmp := &struct {
-		Config *RbacManagerConfig `yaml:"install-manager,omitempty"`
-	}{
-		Config: cfg,
-	}
-
-	if err := yaml.Unmarshal(bytes, tmp); err != nil {
-		log.Fatalf("Invalid config file format")
-		return err
-	}
-
-	return nil
+func (cfg *Config) SetEnvVars() {
+	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
+	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
+	env.Set("HOME_IDP_STORAGE_USERNAME", cfg.Global.Storage.Username)
+	env.Set("	HOME_IDP_STORAGE_PASSWORD", cfg.Global.Storage.Password)
+	env.Set("	HOME_IDP_STORAGE_DATABASE", cfg.Global.Storage.Database)
 }

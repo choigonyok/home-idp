@@ -1,40 +1,36 @@
-package project
+package model
 
 import (
 	"fmt"
-
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/policy"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/role"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/user"
 )
 
 type Project struct {
 	Name     string
-	Users    []*user.User
-	Roles    []*role.Role
-	Policies []*policy.Policy
+	Users    []*User
+	Roles    []*Role
+	Policies []*Policy
 	Options  *ProjectOption
 }
 
 func New(name string) *Project {
-	fmt.Println("TEST1:", user.GetDefaultUser())
-	fmt.Println("TEST2:", user.GetDefaultUser())
+	fmt.Println("TEST1:", GetDefaultUser())
+	fmt.Println("TEST2:", GetDefaultUser())
 
-	u := user.GetDefaultUser()
+	u := GetDefaultUser()
 	opt := getProjectOption()
 
 	p := &Project{
 		Name:     name,
-		Users:    []*user.User{u},
+		Users:    []*User{u},
 		Roles:    u.Roles,
 		Policies: u.Roles[0].Policies,
 		Options:  opt,
 	}
-	Store()
+	StoreProject()
 	return p
 }
 
-func Store() {
+func StoreProject() {
 	// TODO: STORE TO STORAGE
 }
 

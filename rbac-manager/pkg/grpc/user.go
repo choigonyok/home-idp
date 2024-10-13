@@ -2,7 +2,7 @@ package grpc
 
 import (
 	"context"
-	"log"
+	"fmt"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -10,57 +10,60 @@ import (
 )
 
 type UserServiceServer struct {
-	pb.UnimplementedUserServiceServer
+	pb.UnimplementedLoginServiceServer
 	StorageClient storage.StorageClient
 }
 
-func (s *UserServiceServer) GetUserInfo(ctx context.Context, in *pb.GetUserInfoRequest) (*pb.GetUserInfoReply, error) {
-	log.Printf("Received: %v", in.GetId())
-	return &pb.GetUserInfoReply{
-		Name:        "test",
-		Email:       "test@test.com",
-		Password:    "Passwordtest",
-		ProjectName: []string{"P1", "P2"},
-		RoleName:    []string{"R1", "R2"},
-	}, nil
-}
+func (svr *UserServiceServer) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginReply, error) {
+	inputUsername := in.User.GetUsername()
+	inputPassword := util.Hash(in.User.GetPassword())
 
-func (s *UserServiceServer) ListProjectUsers(ctx context.Context, in *pb.ListProjectUsersRequest) (*pb.ListProjectUsersReply, error) {
-	return &pb.ListProjectUsersReply{
-		UserId: &pb.ProjectUser{
-			UserId:   1,
-			UserName: "test",
-		},
-	}, nil
-}
+	r := svr.StorageClient.DB().QueryRow(`SELECT * FROM users WHERE id = '` + inputUsername + `' and password_hash = '` + inputPassword + `'`)
 
-func (s *UserServiceServer) DeleteUser(ctx context.Context, in *pb.DeleteUserRequest) (*pb.Success, error) {
-	return &pb.Success{
-		Succeed: true,
-	}, nil
-}
-
-func (s *UserServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.Success, error) {
-	_, err := s.StorageClient.DB().Exec(
-		`INSERT INTO users (email, name, password_hash, project_id) VALUES ($1, $2, $3, $4)`,
-		in.Email,
-		in.Name,
-		util.Hash(in.Password),
-		in.ProjectId,
-	)
-	if err != nil {
-		return &pb.Success{
-			Succeed: false,
-		}, err
+	if r.Err() != nil {
+		return &pb.LoginReply{Success: false}, r.Err()
 	}
 
-	return &pb.Success{
-		Succeed: true,
-	}, nil
+	fmt.Println("TEST USER " + inputUsername + " WITH PASSWORD " + in.User.Password + " LOGIN SUCCESS!")
+	return &pb.LoginReply{Success: true}, nil
 }
 
-func (s *UserServiceServer) PutUserInfo(ctx context.Context, in *pb.PutUserRequest) (*pb.Success, error) {
-	return &pb.Success{
-		Succeed: true,
-	}, nil
-}
+// func (s *UserServiceServer) ListProjectUsers(ctx context.Context, in *pb.ListProjectUsersRequest) (*pb.ListProjectUsersReply, error) {
+// 	return &pb.ListProjectUsersReply{
+// 		UserId: &pb.ProjectUser{
+// 			UserId:   1,
+// 			UserName: "test",
+// 		},
+// 	}, nil
+// }
+
+// func (s *UserServiceServer) DeleteUser(ctx context.Context, in *pb.DeleteUserRequest) (*pb.Success, error) {
+// 	return &pb.Success{
+// 		Succeed: true,
+// 	}, nil
+// }
+
+// func (s *UserServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.Success, error) {
+// 	_, err := s.StorageClient.DB().Exec(
+// 		`INSERT INTO users (email, name, password_hash, project_id) VALUES ($1, $2, $3, $4)`,
+// 		in.Email,
+// 		in.Name,
+// 		util.Hash(in.Password),
+// 		in.ProjectId,
+// 	)
+// 	if err != nil {
+// 		return &pb.Success{
+// 			Succeed: false,
+// 		}, err
+// 	}
+
+// 	return &pb.Success{
+// 		Succeed: true,
+// 	}, nil
+// }
+
+// func (s *UserServiceServer) PutUserInfo(ctx context.Context, in *pb.PutUserRequest) (*pb.Success, error) {
+// 	return &pb.Success{
+// 		Succeed: true,
+// 	}, nil
+// }

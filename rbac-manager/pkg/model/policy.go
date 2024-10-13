@@ -1,4 +1,4 @@
-package policy
+package model
 
 import (
 	"encoding/json"
@@ -55,11 +55,11 @@ func GetDefaultPolicy() *Policy {
 		Action: []string{"*"},
 	}
 
-	Store(p)
+	StorePolicy(p)
 	return p
 }
 
-func Store(p *Policy) error {
+func StorePolicy(p *Policy) error {
 	// STORE TO STORAGE
 	return nil
 }

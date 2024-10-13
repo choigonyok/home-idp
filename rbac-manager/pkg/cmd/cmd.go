@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"context"
-	"fmt"
-	"log"
-	"time"
+	"strconv"
 
-	pb "github.com/choigonyok/home-idp/install-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/cmd"
-	"github.com/choigonyok/home-idp/pkg/grpc"
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/util"
-	rbacconfig "github.com/choigonyok/home-idp/rbac-manager/pkg/config"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/server"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
+
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/config"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +32,7 @@ func addSubCmds(c *cobra.Command) {
 	c.AddCommand(serverCmd)
 	serverCmd.AddCommand(getServerStartCmd())
 
-	c.AddCommand(getTestClientCmd())
-
+	// c.AddCommand(getTestClientCmd())
 }
 
 func getServerStartCmd() *cobra.Command {
@@ -47,15 +44,17 @@ func getServerStartCmd() *cobra.Command {
 		Short: "start rbac-manager server",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cfg := rbacconfig.New()
-			log.Printf("Start installing rbac-manager server...")
-			svr := server.New(util.RbacManager, cfg)
-			defer svr.Close()
+			cfg := config.New()
+			cfg.SetEnvVars()
+			port, _ := strconv.Atoi(env.Get("RBAC_MANAGER_SERVICE_PORT"))
 
-			log.Printf("Installing rbac-manager server is completed successfully!")
-			log.Printf("Every installation has been finished successfully!\n")
+			svc := service.New(
+				port,
+				client.WithStorageClient("postgres"),
+			)
+			defer svc.Stop()
 
-			svr.Run()
+			svc.Start()
 			return nil
 		},
 	}
@@ -64,42 +63,4 @@ func getServerStartCmd() *cobra.Command {
 	serverStartCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Configuration file path for deploy-manager")
 
 	return serverStartCmd
-}
-
-func getTestClientCmd() *cobra.Command {
-	var filepath string
-
-	testCmd := &cobra.Command{
-		Use:   "test-client",
-		Short: "test-client",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			log.Printf("Start installing install-manager server...")
-			conn1 := grpc.NewClient("localhost", "5107")
-			defer conn1.Close()
-			c1 := pb.NewArgoCDClient(conn1)
-			ctx1, cancel := context.WithTimeout(context.Background(), time.Second*1)
-			defer cancel()
-
-			r2, err := c1.InstallArgoCDChart(ctx1, &pb.InstallArgoCDChartRequest{
-				Opt: &pb.Option{
-					RedisHa:            true,
-					ControllerRepl:     2,
-					ServerRepl:         2,
-					RepoServerRepl:     2,
-					ApplicationSetRepl: 2,
-					Domain:             "test.slexn.com",
-					Ingress:            &pb.Option_OptionIngress{},
-					Argocd:             &pb.Option_ArgoCD{},
-				},
-			})
-
-			fmt.Println("ERROR:", err)
-			fmt.Println("SUCCESS: ", r2.GetSucceed())
-			return nil
-		},
-	}
-
-	testCmd.PersistentFlags().StringVarP(&filepath, "config", "f", "", "Secret Manager Configuration File")
-
-	return testCmd
 }

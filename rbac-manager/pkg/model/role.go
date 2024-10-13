@@ -1,16 +1,14 @@
-package role
-
-import "github.com/choigonyok/home-idp/rbac-manager/pkg/policy"
+package model
 
 type Role struct {
 	Name     string
-	Policies []*policy.Policy
+	Policies []*Policy
 }
 
 func GetDefaultRole() *Role {
 	r := &Role{
 		Name:     "admin",
-		Policies: []*policy.Policy{policy.GetDefaultPolicy()},
+		Policies: []*Policy{GetDefaultPolicy()},
 	}
 
 	Store(r)

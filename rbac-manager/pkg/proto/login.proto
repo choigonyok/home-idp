@@ -1,0 +1,23 @@
+// protoc --go_out=rbac-manager/pkg/proto --go-grpc_out=rbac-manager/pkg/proto rbac-manager/pkg/proto/rbac.proto
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./";
+
+service LoginService {
+  rpc Login (LoginRequest) returns (LoginReply) {}
+}
+
+message User {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginRequest {
+  User user = 1;
+}
+
+message LoginReply {
+  bool success = 1;
+}
