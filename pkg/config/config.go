@@ -57,10 +57,16 @@ type GlobalConfigIngress struct {
 }
 
 type GlobalConfigGit struct {
-	Username string `yaml:"username,omitempty"`
-	Token    string `yaml:"token,omitempty"`
-	Repo     string `yaml:"repository,omitempty"`
-	Email    string `yaml:"email,omitempty"`
+	Username string                `yaml:"username,omitempty"`
+	Token    string                `yaml:"token,omitempty"`
+	Repo     string                `yaml:"repository,omitempty"`
+	Email    string                `yaml:"email,omitempty"`
+	Oauth    *GlobalConfigGitOauth `yaml:"oauth,omitempty"`
+}
+
+type GlobalConfigGitOauth struct {
+	ClientID     string `yaml:"clientId,omitempty"`
+	ClientSecret string `yaml:"clientSecret,omitempty"`
 }
 
 const (

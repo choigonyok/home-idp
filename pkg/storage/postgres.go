@@ -66,3 +66,62 @@ func NewPostgresClient(username, password, database string) StorageClient {
 		Client: db,
 	}
 }
+
+func (c *PostgresClient) CreateAdminUser(username string) error {
+	if _, err := c.DB().Exec(`INSERT INTO roles (name) VALUES ('admin')`); err != nil {
+		return err
+	}
+
+	if _, err := c.DB().Exec(`INSERT INTO policies (name, policy) VALUES ('admin', '` + getAdminPolicy() + `')`); err != nil {
+		return err
+	}
+
+	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES (1, 1)`); err != nil {
+		return err
+	}
+
+	if _, err := c.DB().Exec(`INSERT INTO users (name, role_id) VALUES ('` + username + `', 1)`); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func getAdminPolicy() string {
+	return `{
+	"policy": {
+		"name": "example-policy",
+		"effect": "Ask/Allow/Deny",
+		"target": {
+			"deploy": {
+				"namespace": [
+					"default",
+					"test"
+				],
+				"resource": {
+					"cpu": "500m",
+					"memory": "1024Mi",
+					"disk": "200Gi"
+        },
+				"gvk": [
+					"apps/v1/Deployments",
+					"networking.k8s.io/v1/Ingress",
+					"/vi/Pod"
+				]
+			},
+			"secret": {
+				"path": [
+					"/path1/to/secret/*",
+					"/path2/to/secret/*"
+				]
+			}			
+		},
+		"action": [
+			"Get",
+      "Put",
+      "Delete",
+      "List"
+		]
+	}
+}`
+}

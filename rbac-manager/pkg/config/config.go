@@ -41,6 +41,7 @@ func New() *Config {
 
 func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
+	env.Set("HOME_IDP_ADMIN_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
 	env.Set("HOME_IDP_STORAGE_USERNAME", cfg.Global.Storage.Username)

@@ -9,4 +9,5 @@ type StorageClient interface {
 	DB() *sql.DB
 	IsHealthy() bool
 	Set(interface{})
+	CreateAdminUser(username string) error
 }
