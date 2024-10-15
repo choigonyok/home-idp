@@ -49,6 +49,7 @@ func getServerStartCmd() *cobra.Command {
 				port,
 				client.WithGrpcInstallManagerClient(5051),
 				client.WithGrpcDeployManagerClient(5104),
+				client.WithGrpcRbacManagerClient(5105),
 				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 				client.WithKubeClient(),
 				client.WithHttpClient(),

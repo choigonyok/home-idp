@@ -3,15 +3,9 @@ package storage
 import (
 	"database/sql"
 	"fmt"
-	"log"
+	"time"
 
-	"github.com/choigonyok/home-idp/pkg/env"
-	"github.com/choigonyok/home-idp/pkg/util"
-	_ "github.com/jackc/pgx/v4/stdlib"
-)
-
-const (
-	defaultTableName = "rbac"
+	_ "github.com/lib/pq"
 )
 
 type PostgresClient struct {
@@ -23,6 +17,15 @@ type PostgresClient struct {
 	ListQuery   string
 }
 
+func (c *PostgresClient) Set(i interface{}) {
+	c.Client = parseStorageClientFromInterface(i).DB()
+}
+
+func parseStorageClientFromInterface(i interface{}) *PostgresClient {
+	client := i.(*PostgresClient)
+	return client
+}
+
 func (c *PostgresClient) DB() *sql.DB {
 	return c.Client
 }
@@ -31,45 +34,35 @@ func (c *PostgresClient) Close() error {
 	return c.Client.Close()
 }
 
-func newPostgresDB(component util.Components) *sql.DB {
-	url := getPostgresqlUrl(component)
-	log.Printf("Start connecting with postgresql database...")
-	db, _ := sql.Open("pgx", url)
-	return db
+func (c *PostgresClient) IsHealthy() bool {
+	err := c.Client.Ping()
+	if err != nil {
+		fmt.Println("TEST POSTGRESQL HEALTHY ERR: ", err)
+		return false
+	}
+
+	return true
 }
 
-func getPostgresqlUrl(component util.Components) string {
-	prefix := env.GetEnvPrefix(component)
+func NewPostgresClient(username, password, database string) StorageClient {
+	host := "home-idp-postgres-postgresql.idp-system.svc.cluster.local"
+	port := 5432
+	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+"password=%s dbname=%s sslmode=disable", host, port, username, password, database)
+	fmt.Println("TEST POSTGRESQL INFORMATION : ", psqlInfo)
+	db, err := sql.Open("postgres", psqlInfo)
+	if err != nil {
+		fmt.Println("TEST CREATE POSTGRESQL CLIENT ERROR: ", err)
+	}
 
-	username := env.Get(prefix + "_MANAGER_STORAGE_USERNAME")
-	password := env.Get(prefix + "_MANAGER_STORAGE_PASSWORD")
-	host := env.Get(prefix + "_MANAGER_STORAGE_HOST")
-	port := env.Get(prefix + "_MANAGER_STORAGE_PORT")
-	database := env.Get(prefix + "_MANAGER_STORAGE_DATABASE")
+	for {
+		if db.Ping() == nil {
+			break
+		}
+		fmt.Println("WAITING FOR POSTGRESQL DB RUNNING")
+		time.Sleep(time.Second)
+	}
 
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", username, password, host, port, database)
+	return &PostgresClient{
+		Client: db,
+	}
 }
-
-//	func initializeSecretManagerPostgrSQLTables(db *sql.DB) error {
-//		_, err := db.Exec(`CREATE TABLE secrets (
-//		secret_id SERIAL PRIMARY KEY,
-//		user_id INT NOT NULL,
-//		project VARCHAR(100) NOT NULL,
-//		value_hash TEXT NOT NULL,
-//		key_hash VARCHAR(100) NOT NULL
-//
-// );`)
-//
-//		return err
-//	}
-// func (s *RbacServer) PutQuery(table string, data storage.Data) error {
-// 	_, err := s.StorageClient.DB().Exec(
-// 		s.StorageClient.GetPutQuery(),
-// 		table,
-// 		"'"+data.UsersName+"'",
-// 		data.UsersEmail,
-// 		util.Hash(data.UsersPassword),
-// 		data.ProjectId,
-// 	)
-// 	return err
-// }

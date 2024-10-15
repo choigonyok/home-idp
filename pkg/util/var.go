@@ -16,7 +16,7 @@ type Clients int
 const (
 	GrpcClient Clients = iota
 	HelmClient
-	StorageClient
+	StoragePostgresClient
 	MailClient
 	GrpcInstallManagerClient
 	GrpcGatewayClient

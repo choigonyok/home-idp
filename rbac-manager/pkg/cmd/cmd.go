@@ -13,10 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
-)
-
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "rbac-manager",
@@ -50,7 +46,12 @@ func getServerStartCmd() *cobra.Command {
 
 			svc := service.New(
 				port,
-				client.WithStorageClient("postgres"),
+				client.WithStorageClient(
+					"postgres",
+					env.Get("HOME_IDP_STORAGE_USERNAME"),
+					env.Get("HOME_IDP_STORAGE_PASSWORD"),
+					env.Get("HOME_IDP_STORAGE_DATABASE"),
+				),
 			)
 			defer svc.Stop()
 

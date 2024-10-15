@@ -34,6 +34,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/", svc.ApiPostHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/", svc.ApiGetHandler())
 	svr.Router.RegisterRoute(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/login", svc.LoginHandler())
+
 	return svc
 }
 
@@ -42,7 +44,6 @@ func (svc *Gateway) Stop() {
 		cli.Close()
 	}
 	svc.Server.Stop()
-	return
 }
 
 func (svc *Gateway) Start() {
@@ -56,7 +57,6 @@ func (svc *Gateway) Start() {
 	}()
 
 	svc.Server.Run()
-	return
 }
 
 func (svc *Gateway) waitGatewayRunning() {
@@ -64,6 +64,4 @@ func (svc *Gateway) waitGatewayRunning() {
 		time.Sleep(time.Millisecond * 10)
 		fmt.Println("TEST WAIT GATEWAY RUNNING")
 	}
-
-	return
 }

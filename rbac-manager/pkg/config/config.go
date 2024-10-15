@@ -2,6 +2,7 @@ package config
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/choigonyok/home-idp/pkg/config"
 	"github.com/choigonyok/home-idp/pkg/env"
@@ -43,6 +44,7 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
 	env.Set("HOME_IDP_STORAGE_USERNAME", cfg.Global.Storage.Username)
-	env.Set("	HOME_IDP_STORAGE_PASSWORD", cfg.Global.Storage.Password)
-	env.Set("	HOME_IDP_STORAGE_DATABASE", cfg.Global.Storage.Database)
+	env.Set("HOME_IDP_STORAGE_PASSWORD", cfg.Global.Storage.Password)
+	env.Set("HOME_IDP_STORAGE_DATABASE", cfg.Global.Storage.Database)
+	env.Set("RBAC_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
 }

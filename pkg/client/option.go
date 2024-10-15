@@ -10,6 +10,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/helm"
 	"github.com/choigonyok/home-idp/pkg/http"
 	"github.com/choigonyok/home-idp/pkg/kube"
+	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/docker/docker/api/types/registry"
 	dockercli "github.com/docker/docker/client"
@@ -168,7 +169,6 @@ func useDockerClient() ClientOption {
 		}
 
 		cli.Set(util.DockerClient, i)
-		return
 	})
 }
 
@@ -194,7 +194,6 @@ func useHttpClient() ClientOption {
 	return newHttpClientOption(func(cli ClientSet) {
 		i := http.NewClient()
 		cli.Set(util.HttpClient, i)
-		return
 	})
 }
 
@@ -212,7 +211,6 @@ func useKubeClient() ClientOption {
 	return newKubeClientOption(func(cli ClientSet) {
 		i := kube.NewKubeClient()
 		cli.Set(util.KubeClient, i)
-		return
 	})
 }
 
@@ -230,11 +228,32 @@ func useGitClient(owner, email, token string) ClientOption {
 	return newGitClientOption(func(cli ClientSet) {
 		i := git.NewGitClient(owner, email, token)
 		cli.Set(util.GitClient, i)
-		return
 	})
 }
 
 func newGitClientOption(f func(cli ClientSet)) *GrpcClientOption {
+	return &GrpcClientOption{
+		F: f,
+	}
+}
+
+func WithStorageClient(storageType, username, password, database string) ClientOption {
+	return useStorageClient(storageType, username, password, database)
+}
+
+func useStorageClient(storageType, username, password, database string) ClientOption {
+	return newStorageClientOption(func(cli ClientSet) {
+		switch storageType {
+		case "postgres":
+			i := storage.NewPostgresClient(username, password, database)
+			cli.Set(util.StoragePostgresClient, i)
+		default:
+			return
+		}
+	})
+}
+
+func newStorageClientOption(f func(cli ClientSet)) *GrpcClientOption {
 	return &GrpcClientOption{
 		F: f,
 	}

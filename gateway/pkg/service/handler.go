@@ -13,6 +13,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/util"
+	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
 )
 
@@ -67,7 +68,24 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
-		return
+	}
+}
+
+func (svc *Gateway) LoginHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
+
+		tmp := struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}{}
+
+		json.Unmarshal(b, &tmp)
+
+		svc.requestLogin(tmp.Username, tmp.Password)
+
+		fmt.Println(tmp)
 	}
 }
 
@@ -186,6 +204,21 @@ func (svc *Gateway) requestDeploy(filepath string) {
 	}
 }
 
+func (svc *Gateway) requestLogin(username, password string) {
+	c := rbacPb.NewLoginServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+	user := rbacPb.User{Username: username, Password: password}
+	resp, err := c.Login(context.TODO(), &rbacPb.LoginRequest{User: &user})
+	if err != nil {
+		fmt.Println("TEST LOGIN GRPC REQUEST ERR:", err)
+		return
+	}
+
+	if resp.Success {
+		fmt.Println("TEST LOGIN GRPC REQUEST FAILED")
+		return
+	}
+}
+
 func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
 	reply, err := c.BuildDockerfile(context.TODO(), &deployPb.BuildDockerfileRequest{
@@ -204,8 +237,6 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST FAILED")
 		return
 	}
-
-	return
 }
 
 func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
@@ -239,11 +270,11 @@ func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
 
 		switch dir {
 		case "dockerfile":
-			svc.apiPostDockerfileHandler(w, r)
+			svc.apiPostDockerfileHandler(r)
 		case "manifest":
-			svc.apiPostManifestHandler(w, r)
+			svc.apiPostManifestHandler(r)
 		case "users":
-			svc.apiGetUsersHandler(w, r)
+			svc.apiGetUsersHandler(w)
 		}
 	}
 }
@@ -261,7 +292,9 @@ func (svc *Gateway) ApiGetHandler() http.HandlerFunc {
 
 		switch dir {
 		case "dockerfiles":
-			svc.apiGetDockerfileHandler(w, r)
+			svc.apiGetDockerfileHandler(w)
+		case "users":
+			svc.apiGetUsersHandler(w)
 		}
 	}
 }
@@ -285,14 +318,10 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		w.WriteHeader(http.StatusOK)
-		return
 	}
 }
 
-func (svc *Gateway) apiGetUsersHandler(w http.ResponseWriter, r *http.Request) {
-}
-
-func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Request) {
+func (svc *Gateway) apiPostDockerfileHandler(r *http.Request) {
 	fmt.Println("GET POST DOCKER REQUEST")
 	fmt.Println()
 	fmt.Println("TEST REQEUST BODY:", r.Body)
@@ -311,10 +340,9 @@ func (svc *Gateway) apiPostDockerfileHandler(w http.ResponseWriter, r *http.Requ
 	}
 	fmt.Println("TEST DOCKERFILE NOT EXIST")
 	svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
-	return
 }
 
-func (svc *Gateway) apiGetDockerfileHandler(w http.ResponseWriter, r *http.Request) {
+func (svc *Gateway) apiGetDockerfileHandler(w http.ResponseWriter) {
 	fmt.Println("GET GET DOCKER REQUEST")
 	fmt.Println()
 
@@ -326,11 +354,24 @@ func (svc *Gateway) apiGetDockerfileHandler(w http.ResponseWriter, r *http.Reque
 
 	w.WriteHeader(http.StatusOK)
 	w.Write(dockerfiles)
-	return
+}
+
+func (svc *Gateway) apiGetUsersHandler(w http.ResponseWriter) {
+	fmt.Println("GET GET USERS REQUEST")
+	fmt.Println()
+
+	dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
+	if len(dockerfiles) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(dockerfiles)
 }
 
 // /api/manifest?username="choigonyok"
-func (svc *Gateway) apiPostManifestHandler(w http.ResponseWriter, r *http.Request) {
+func (svc *Gateway) apiPostManifestHandler(r *http.Request) {
 	username := r.URL.Query().Get("username")
 	err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
 	fmt.Println(err)

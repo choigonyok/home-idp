@@ -2,7 +2,9 @@ package config
 
 import (
 	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/file"
 	"github.com/choigonyok/home-idp/pkg/util"
+	"gopkg.in/yaml.v2"
 )
 
 type StorageConfig struct {
@@ -27,6 +29,13 @@ type GlobalConfig struct {
 	AdminPassword string               `yaml:"adminPassword,omitempty"`
 	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
 	UI            *GlobalConfigUI      `yaml:"ui,omitempty"`
+	Storage       *GlobalConfigStorage `yaml:"storage,omitempty"`
+}
+
+type GlobalConfigStorage struct {
+	Username string `yaml:"username,omitempty"`
+	Password string `yaml:"password,omitempty"`
+	Database string `yaml:"database,omitempty"`
 }
 
 type GlobalConfigUI struct {
@@ -71,4 +80,17 @@ func Enabled(component util.Components, client string) bool {
 		}
 	}
 	return false
+}
+
+func ParseFromFile(cfg Config, filePath string) error {
+	bytes, err := file.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+
+	if err := yaml.Unmarshal(bytes, cfg); err != nil {
+		return err
+	}
+
+	return nil
 }

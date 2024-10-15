@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
@@ -9,23 +10,35 @@ import (
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 )
 
-type UserServiceServer struct {
+type LoginServiceServer struct {
 	pb.UnimplementedLoginServiceServer
 	StorageClient storage.StorageClient
 }
 
-func (svr *UserServiceServer) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginReply, error) {
+func (svr *LoginServiceServer) Login(ctx context.Context, in *pb.LoginRequest) (*pb.LoginReply, error) {
 	inputUsername := in.User.GetUsername()
-	inputPassword := util.Hash(in.User.GetPassword())
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT * FROM users WHERE id = '` + inputUsername + `' and password_hash = '` + inputPassword + `'`)
+	r := svr.StorageClient.DB().QueryRow(`SELECT password_hash FROM users WHERE name = '` + inputUsername + `'`)
 
+	// if there is error in query
 	if r.Err() != nil {
 		return &pb.LoginReply{Success: false}, r.Err()
 	}
 
-	fmt.Println("TEST USER " + inputUsername + " WITH PASSWORD " + in.User.Password + " LOGIN SUCCESS!")
-	return &pb.LoginReply{Success: true}, nil
+	pw := ""
+	// if there is no match username and password
+	if r.Scan(&pw) == sql.ErrNoRows {
+		fmt.Println("TEST USER " + inputUsername + " NOT EXISTS!")
+		return &pb.LoginReply{Success: false}, nil
+	}
+
+	if pw == util.Hash(in.User.GetPassword()) {
+		fmt.Println("TEST USER " + inputUsername + " WITH PASSWORD " + in.User.Password + " LOGIN SUCCESS!")
+		return &pb.LoginReply{Success: true}, nil
+	} else {
+		fmt.Println("TEST USER " + inputUsername + " WITH PASSWORD " + in.User.Password + " LOGIN FAILED!")
+		return &pb.LoginReply{Success: true}, nil
+	}
 }
 
 // func (s *UserServiceServer) ListProjectUsers(ctx context.Context, in *pb.ListProjectUsersRequest) (*pb.ListProjectUsersReply, error) {

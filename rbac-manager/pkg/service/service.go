@@ -1,12 +1,10 @@
 package service
 
 import (
-	"fmt"
-	"time"
-
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/client"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/grpc"
+	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 )
 
 type RbacManager struct {
@@ -30,16 +28,15 @@ func (svc *RbacManager) Stop() {
 	if err := svc.Server.Stop(); err != nil {
 		return
 	}
-	return
+	svc.ClientSet.StorageClient.Close()
 }
 
 func (svc *RbacManager) Start() {
-	for {
-		if svc.ClientSet.StorageClient.IsHealthy() {
-			break
-		}
-		fmt.Println("RBAC MANAGER POSTGRESQL DATABASE IS NOT READY YET!")
-		time.Sleep(time.Second * 1)
+	pbServer := &grpc.LoginServiceServer{
+		StorageClient: svc.ClientSet.StorageClient,
 	}
+
+	pb.RegisterLoginServiceServer(svc.Server.Grpc, pbServer)
+
 	svc.Server.Run()
 }

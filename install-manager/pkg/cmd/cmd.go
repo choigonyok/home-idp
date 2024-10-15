@@ -13,10 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
-)
-
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "install-manager",
