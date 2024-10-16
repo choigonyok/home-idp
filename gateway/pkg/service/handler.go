@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 
@@ -72,6 +74,109 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 }
 
 func (svc *Gateway) LoginHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
+
+		tmp := struct {
+			Username string `json:"username"`
+			Password string `json:"password"`
+		}{}
+
+		json.Unmarshal(b, &tmp)
+
+		svc.requestLogin(tmp.Username, tmp.Password)
+
+		fmt.Println(tmp)
+	}
+}
+
+func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		code := r.URL.Query().Get("code")
+		schema := "http"
+		if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
+			schema = "https"
+		}
+		host := env.Get("HOME_IDP_API_HOST")
+		port := env.Get("HOME_IDP_API_PORT")
+
+		tokenURL := "https://github.com/login/oauth/access_token"
+		data := url.Values{
+			"client_id":     {env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID")},
+			"client_secret": {env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET")},
+			"code":          {code},
+			"redirect_uri":  {fmt.Sprintf("%s://%s:%s/login/callback", schema, host, port)},
+		}
+
+		req, err := http.NewRequest("POST", tokenURL, nil)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		req.Header.Set("Accept", "application/json")
+		req.URL.RawQuery = data.Encode()
+		client := &http.Client{}
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer resp.Body.Close()
+
+		body, _ := io.ReadAll(resp.Body)
+
+		var tokenResponse map[string]interface{}
+		if err := json.Unmarshal(body, &tokenResponse); err != nil {
+			log.Fatal(err)
+		}
+
+		accessToken := tokenResponse["access_token"].(string)
+
+		userReq, _ := http.NewRequest("GET", "https://api.github.com/user", nil)
+		userReq.Header.Set("Authorization", fmt.Sprintf("token %s", accessToken))
+
+		userResp, err := client.Do(userReq)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer userResp.Body.Close()
+
+		userBody, _ := io.ReadAll(userResp.Body)
+
+		var userInfo map[string]interface{}
+		json.Unmarshal(userBody, &userInfo)
+
+		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
+		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
+		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
+		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.Check(context.TODO(), &rbacPb.RbacRequest{
+			Username: userInfo["login"].(string),
+			Target:   "everything",
+			Action:   rbacPb.Action_CREATE,
+		})
+		if err != nil {
+			fmt.Println("TEST RBAC CHECK ERR: ", err)
+		}
+
+		switch reply.Result.String() {
+		case "ASK":
+			fmt.Println("ASK RETURN")
+		case "ALLOW":
+			fmt.Println("ALLOW RETURN")
+		case "DENY":
+			fmt.Println("DENY RETURN")
+		case "ERROR":
+			fmt.Println("ERROR RETURN")
+		default:
+			fmt.Println("DEFAULT RETURN")
+		}
+	}
+}
+
+func (svc *Gateway) SignUpHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		b, _ := io.ReadAll(r.Body)

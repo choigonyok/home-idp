@@ -37,7 +37,12 @@ func (svc *RbacManager) Start() {
 		StorageClient: svc.ClientSet.StorageClient,
 	}
 
+	rbacPbServer := &grpc.RbacServiceServer{
+		StorageClient: svc.ClientSet.StorageClient,
+	}
+
 	pb.RegisterLoginServiceServer(svc.Server.Grpc, pbServer)
+	pb.RegisterRbacServiceServer(svc.Server.Grpc, rbacPbServer)
 
 	svc.ClientSet.StorageClient.CreateAdminUser(env.Get("HOME_IDP_ADMIN_GIT_USERNAME"))
 

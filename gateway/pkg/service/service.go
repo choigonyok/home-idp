@@ -35,7 +35,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/", svc.ApiGetHandler())
 	svr.Router.RegisterRoute(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/login", svc.LoginHandler())
-
+	svr.Router.RegisterRoute(http.MethodGet, "/login/callback", svc.LoginCallbackHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/signup", svc.SignUpHandler())
 	return svc
 }
 

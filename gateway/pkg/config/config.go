@@ -53,14 +53,15 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("HOME_IDP_API_HOST", cfg.Global.Ingress.Host)
 	env.Set("HOME_IDP_API_PORT", strconv.Itoa(cfg.Global.Ingress.Port))
 	env.Set("HOME_IDP_API_TLS_ENABLED", strconv.FormatBool(cfg.Global.Ingress.TLS))
-
 	env.Set("HOME_IDP_HARBOR_HOST", cfg.Global.Harbor.Host)
 	env.Set("HOME_IDP_HARBOR_PORT", strconv.Itoa(cfg.Global.Harbor.Port))
 	env.Set("HOME_IDP_HARBOR_TLS_ENABLED", strconv.FormatBool(cfg.Global.Harbor.TLS))
-
 	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
 	env.Set("HOME_IDP_GIT_REPO", cfg.Global.Git.Repo)
+
+	env.Set("HOME_IDP_GIT_OAUTH_CLIENT_ID", cfg.Global.Git.Oauth.ClientID)
+	env.Set("HOME_IDP_GIT_OAUTH_CLIENT_SECRET", cfg.Global.Git.Oauth.ClientSecret)
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_NAMESPACE", cfg.Global.Namespace)
 	env.Set("HOME_IDP_UI_HOST", cfg.Global.UI.Host)
