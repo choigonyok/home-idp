@@ -69,9 +69,9 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesReque
 	}
 	defer r.Close()
 
-	role := pb.Role{}
 	roles := []*pb.Role{}
 	for r.Next() {
+		role := pb.Role{}
 		r.Scan(&role.Id, &role.Name)
 		roles = append(roles, &role)
 	}
