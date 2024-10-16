@@ -236,6 +236,397 @@ func (x *RbacReply) GetResult() Result {
 	return Result_ASK
 }
 
+type Role struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id   string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *Role) Reset() {
+	*x = Role{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[2]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Role) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Role) ProtoMessage() {}
+
+func (x *Role) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[2]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Role.ProtoReflect.Descriptor instead.
+func (*Role) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Role) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Role) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetRolesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+}
+
+func (x *GetRolesRequest) Reset() {
+	*x = GetRolesRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[3]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetRolesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRolesRequest) ProtoMessage() {}
+
+func (x *GetRolesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[3]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRolesRequest.ProtoReflect.Descriptor instead.
+func (*GetRolesRequest) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{3}
+}
+
+type GetRolesReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Roles []*Role `protobuf:"bytes,1,rep,name=roles,proto3" json:"roles,omitempty"`
+}
+
+func (x *GetRolesReply) Reset() {
+	*x = GetRolesReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[4]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetRolesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRolesReply) ProtoMessage() {}
+
+func (x *GetRolesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[4]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRolesReply.ProtoReflect.Descriptor instead.
+func (*GetRolesReply) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *GetRolesReply) GetRoles() []*Role {
+	if x != nil {
+		return x.Roles
+	}
+	return nil
+}
+
+type GetRoleRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	UserId string `protobuf:"bytes,1,opt,name=userId,proto3" json:"userId,omitempty"`
+}
+
+func (x *GetRoleRequest) Reset() {
+	*x = GetRoleRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[5]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetRoleRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoleRequest) ProtoMessage() {}
+
+func (x *GetRoleRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[5]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoleRequest.ProtoReflect.Descriptor instead.
+func (*GetRoleRequest) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *GetRoleRequest) GetUserId() string {
+	if x != nil {
+		return x.UserId
+	}
+	return ""
+}
+
+type GetRoleReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Role *Role `protobuf:"bytes,1,opt,name=role,proto3" json:"role,omitempty"`
+}
+
+func (x *GetRoleReply) Reset() {
+	*x = GetRoleReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[6]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetRoleReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetRoleReply) ProtoMessage() {}
+
+func (x *GetRoleReply) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[6]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetRoleReply.ProtoReflect.Descriptor instead.
+func (*GetRoleReply) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *GetRoleReply) GetRole() *Role {
+	if x != nil {
+		return x.Role
+	}
+	return nil
+}
+
+type Policy struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id   string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Json string `protobuf:"bytes,3,opt,name=json,proto3" json:"json,omitempty"`
+}
+
+func (x *Policy) Reset() {
+	*x = Policy{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[7]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *Policy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Policy) ProtoMessage() {}
+
+func (x *Policy) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[7]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Policy.ProtoReflect.Descriptor instead.
+func (*Policy) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Policy) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *Policy) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *Policy) GetJson() string {
+	if x != nil {
+		return x.Json
+	}
+	return ""
+}
+
+type GetPoliciesRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	RoleId string `protobuf:"bytes,1,opt,name=roleId,proto3" json:"roleId,omitempty"`
+}
+
+func (x *GetPoliciesRequest) Reset() {
+	*x = GetPoliciesRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[8]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetPoliciesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPoliciesRequest) ProtoMessage() {}
+
+func (x *GetPoliciesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[8]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPoliciesRequest.ProtoReflect.Descriptor instead.
+func (*GetPoliciesRequest) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetPoliciesRequest) GetRoleId() string {
+	if x != nil {
+		return x.RoleId
+	}
+	return ""
+}
+
+type GetPoliciesReply struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Policies []*Policy `protobuf:"bytes,1,rep,name=policies,proto3" json:"policies,omitempty"`
+}
+
+func (x *GetPoliciesReply) Reset() {
+	*x = GetPoliciesReply{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[9]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetPoliciesReply) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPoliciesReply) ProtoMessage() {}
+
+func (x *GetPoliciesReply) ProtoReflect() protoreflect.Message {
+	mi := &file_rbac_manager_pkg_proto_rbac_proto_msgTypes[9]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPoliciesReply.ProtoReflect.Descriptor instead.
+func (*GetPoliciesReply) Descriptor() ([]byte, []int) {
+	return file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *GetPoliciesReply) GetPolicies() []*Policy {
+	if x != nil {
+		return x.Policies
+	}
+	return nil
+}
+
 var File_rbac_manager_pkg_proto_rbac_proto protoreflect.FileDescriptor
 
 var file_rbac_manager_pkg_proto_rbac_proto_rawDesc = []byte{
@@ -251,19 +642,54 @@ var file_rbac_manager_pkg_proto_rbac_proto_rawDesc = []byte{
 	0x74, 0x69, 0x6f, 0x6e, 0x22, 0x32, 0x0a, 0x09, 0x52, 0x62, 0x61, 0x63, 0x52, 0x65, 0x70, 0x6c,
 	0x79, 0x12, 0x25, 0x0a, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x18, 0x01, 0x20, 0x01, 0x28,
 	0x0e, 0x32, 0x0d, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74,
-	0x52, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x2a, 0x3a, 0x0a, 0x06, 0x41, 0x63, 0x74, 0x69,
-	0x6f, 0x6e, 0x12, 0x0a, 0x0a, 0x06, 0x43, 0x52, 0x45, 0x41, 0x54, 0x45, 0x10, 0x00, 0x12, 0x0c,
-	0x0a, 0x08, 0x52, 0x45, 0x54, 0x52, 0x49, 0x45, 0x56, 0x45, 0x10, 0x01, 0x12, 0x0a, 0x0a, 0x06,
-	0x55, 0x50, 0x44, 0x41, 0x54, 0x45, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x44, 0x45, 0x4c, 0x45,
-	0x54, 0x45, 0x10, 0x03, 0x2a, 0x31, 0x0a, 0x06, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x07,
-	0x0a, 0x03, 0x41, 0x53, 0x4b, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x41, 0x4c, 0x4c, 0x4f, 0x57,
-	0x10, 0x01, 0x12, 0x08, 0x0a, 0x04, 0x44, 0x45, 0x4e, 0x59, 0x10, 0x02, 0x12, 0x09, 0x0a, 0x05,
-	0x45, 0x52, 0x52, 0x4f, 0x52, 0x10, 0x03, 0x32, 0x3e, 0x0a, 0x0b, 0x52, 0x62, 0x61, 0x63, 0x53,
-	0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x2f, 0x0a, 0x05, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x12,
-	0x12, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x62, 0x61, 0x63, 0x52, 0x65, 0x71, 0x75,
-	0x65, 0x73, 0x74, 0x1a, 0x10, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x62, 0x61, 0x63,
-	0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x42, 0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70,
-	0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x52, 0x06, 0x72, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x22, 0x2a, 0x0a, 0x04, 0x52, 0x6f, 0x6c, 0x65,
+	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
+	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x22, 0x11, 0x0a, 0x0f, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x73,
+	0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x22, 0x32, 0x0a, 0x0d, 0x47, 0x65, 0x74, 0x52, 0x6f,
+	0x6c, 0x65, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x21, 0x0a, 0x05, 0x72, 0x6f, 0x6c, 0x65,
+	0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e,
+	0x52, 0x6f, 0x6c, 0x65, 0x52, 0x05, 0x72, 0x6f, 0x6c, 0x65, 0x73, 0x22, 0x28, 0x0a, 0x0e, 0x47,
+	0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16, 0x0a,
+	0x06, 0x75, 0x73, 0x65, 0x72, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x75,
+	0x73, 0x65, 0x72, 0x49, 0x64, 0x22, 0x2f, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65,
+	0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x1f, 0x0a, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x0b, 0x32, 0x0b, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x6f, 0x6c, 0x65,
+	0x52, 0x04, 0x72, 0x6f, 0x6c, 0x65, 0x22, 0x40, 0x0a, 0x06, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79,
+	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
+	0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04,
+	0x6e, 0x61, 0x6d, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x6a, 0x73, 0x6f, 0x6e, 0x18, 0x03, 0x20, 0x01,
+	0x28, 0x09, 0x52, 0x04, 0x6a, 0x73, 0x6f, 0x6e, 0x22, 0x2c, 0x0a, 0x12, 0x47, 0x65, 0x74, 0x50,
+	0x6f, 0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x16,
+	0x0a, 0x06, 0x72, 0x6f, 0x6c, 0x65, 0x49, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06,
+	0x72, 0x6f, 0x6c, 0x65, 0x49, 0x64, 0x22, 0x3d, 0x0a, 0x10, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x6c,
+	0x69, 0x63, 0x69, 0x65, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x12, 0x29, 0x0a, 0x08, 0x70, 0x6f,
+	0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x18, 0x01, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x0d, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x79, 0x52, 0x08, 0x70, 0x6f, 0x6c,
+	0x69, 0x63, 0x69, 0x65, 0x73, 0x2a, 0x3a, 0x0a, 0x06, 0x41, 0x63, 0x74, 0x69, 0x6f, 0x6e, 0x12,
+	0x0a, 0x0a, 0x06, 0x43, 0x52, 0x45, 0x41, 0x54, 0x45, 0x10, 0x00, 0x12, 0x0c, 0x0a, 0x08, 0x52,
+	0x45, 0x54, 0x52, 0x49, 0x45, 0x56, 0x45, 0x10, 0x01, 0x12, 0x0a, 0x0a, 0x06, 0x55, 0x50, 0x44,
+	0x41, 0x54, 0x45, 0x10, 0x02, 0x12, 0x0a, 0x0a, 0x06, 0x44, 0x45, 0x4c, 0x45, 0x54, 0x45, 0x10,
+	0x03, 0x2a, 0x31, 0x0a, 0x06, 0x52, 0x65, 0x73, 0x75, 0x6c, 0x74, 0x12, 0x07, 0x0a, 0x03, 0x41,
+	0x53, 0x4b, 0x10, 0x00, 0x12, 0x09, 0x0a, 0x05, 0x41, 0x4c, 0x4c, 0x4f, 0x57, 0x10, 0x01, 0x12,
+	0x08, 0x0a, 0x04, 0x44, 0x45, 0x4e, 0x59, 0x10, 0x02, 0x12, 0x09, 0x0a, 0x05, 0x45, 0x52, 0x52,
+	0x4f, 0x52, 0x10, 0x03, 0x32, 0xf8, 0x01, 0x0a, 0x0b, 0x52, 0x62, 0x61, 0x63, 0x53, 0x65, 0x72,
+	0x76, 0x69, 0x63, 0x65, 0x12, 0x2f, 0x0a, 0x05, 0x43, 0x68, 0x65, 0x63, 0x6b, 0x12, 0x12, 0x2e,
+	0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x62, 0x61, 0x63, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
+	0x74, 0x1a, 0x10, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x52, 0x62, 0x61, 0x63, 0x52, 0x65,
+	0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x3a, 0x0a, 0x08, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65,
+	0x73, 0x12, 0x16, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c,
+	0x65, 0x73, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x14, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22,
+	0x00, 0x12, 0x37, 0x0a, 0x07, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x12, 0x15, 0x2e, 0x70,
+	0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x6f, 0x6c, 0x65, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x13, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74, 0x52,
+	0x6f, 0x6c, 0x65, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x12, 0x43, 0x0a, 0x0b, 0x47, 0x65,
+	0x74, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x12, 0x19, 0x2e, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x2e, 0x47, 0x65, 0x74, 0x50, 0x6f, 0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x17, 0x2e, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x2e, 0x47, 0x65, 0x74,
+	0x50, 0x6f, 0x6c, 0x69, 0x63, 0x69, 0x65, 0x73, 0x52, 0x65, 0x70, 0x6c, 0x79, 0x22, 0x00, 0x42,
+	0x04, 0x5a, 0x02, 0x2e, 0x2f, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -279,23 +705,40 @@ func file_rbac_manager_pkg_proto_rbac_proto_rawDescGZIP() []byte {
 }
 
 var file_rbac_manager_pkg_proto_rbac_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_rbac_manager_pkg_proto_rbac_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_rbac_manager_pkg_proto_rbac_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_rbac_manager_pkg_proto_rbac_proto_goTypes = []any{
-	(Action)(0),         // 0: proto.Action
-	(Result)(0),         // 1: proto.Result
-	(*RbacRequest)(nil), // 2: proto.RbacRequest
-	(*RbacReply)(nil),   // 3: proto.RbacReply
+	(Action)(0),                // 0: proto.Action
+	(Result)(0),                // 1: proto.Result
+	(*RbacRequest)(nil),        // 2: proto.RbacRequest
+	(*RbacReply)(nil),          // 3: proto.RbacReply
+	(*Role)(nil),               // 4: proto.Role
+	(*GetRolesRequest)(nil),    // 5: proto.GetRolesRequest
+	(*GetRolesReply)(nil),      // 6: proto.GetRolesReply
+	(*GetRoleRequest)(nil),     // 7: proto.GetRoleRequest
+	(*GetRoleReply)(nil),       // 8: proto.GetRoleReply
+	(*Policy)(nil),             // 9: proto.Policy
+	(*GetPoliciesRequest)(nil), // 10: proto.GetPoliciesRequest
+	(*GetPoliciesReply)(nil),   // 11: proto.GetPoliciesReply
 }
 var file_rbac_manager_pkg_proto_rbac_proto_depIdxs = []int32{
-	0, // 0: proto.RbacRequest.action:type_name -> proto.Action
-	1, // 1: proto.RbacReply.result:type_name -> proto.Result
-	2, // 2: proto.RbacService.Check:input_type -> proto.RbacRequest
-	3, // 3: proto.RbacService.Check:output_type -> proto.RbacReply
-	3, // [3:4] is the sub-list for method output_type
-	2, // [2:3] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	0,  // 0: proto.RbacRequest.action:type_name -> proto.Action
+	1,  // 1: proto.RbacReply.result:type_name -> proto.Result
+	4,  // 2: proto.GetRolesReply.roles:type_name -> proto.Role
+	4,  // 3: proto.GetRoleReply.role:type_name -> proto.Role
+	9,  // 4: proto.GetPoliciesReply.policies:type_name -> proto.Policy
+	2,  // 5: proto.RbacService.Check:input_type -> proto.RbacRequest
+	5,  // 6: proto.RbacService.GetRoles:input_type -> proto.GetRolesRequest
+	7,  // 7: proto.RbacService.GetRole:input_type -> proto.GetRoleRequest
+	10, // 8: proto.RbacService.GetPolicies:input_type -> proto.GetPoliciesRequest
+	3,  // 9: proto.RbacService.Check:output_type -> proto.RbacReply
+	6,  // 10: proto.RbacService.GetRoles:output_type -> proto.GetRolesReply
+	8,  // 11: proto.RbacService.GetRole:output_type -> proto.GetRoleReply
+	11, // 12: proto.RbacService.GetPolicies:output_type -> proto.GetPoliciesReply
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_rbac_manager_pkg_proto_rbac_proto_init() }
@@ -328,6 +771,102 @@ func file_rbac_manager_pkg_proto_rbac_proto_init() {
 				return nil
 			}
 		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[2].Exporter = func(v any, i int) any {
+			switch v := v.(*Role); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[3].Exporter = func(v any, i int) any {
+			switch v := v.(*GetRolesRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[4].Exporter = func(v any, i int) any {
+			switch v := v.(*GetRolesReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[5].Exporter = func(v any, i int) any {
+			switch v := v.(*GetRoleRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[6].Exporter = func(v any, i int) any {
+			switch v := v.(*GetRoleReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[7].Exporter = func(v any, i int) any {
+			switch v := v.(*Policy); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[8].Exporter = func(v any, i int) any {
+			switch v := v.(*GetPoliciesRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_rbac_manager_pkg_proto_rbac_proto_msgTypes[9].Exporter = func(v any, i int) any {
+			switch v := v.(*GetPoliciesReply); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -335,7 +874,7 @@ func file_rbac_manager_pkg_proto_rbac_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_rbac_manager_pkg_proto_rbac_proto_rawDesc,
 			NumEnums:      2,
-			NumMessages:   2,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

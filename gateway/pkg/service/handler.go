@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
@@ -17,6 +18,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
+	"github.com/gorilla/mux"
 )
 
 // func (svc *Gateway) InstallArgoCDHandler() http.HandlerFunc {
@@ -361,49 +363,6 @@ func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error 
 	return nil
 }
 
-func (svc *Gateway) ApiPostHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Println()
-		fmt.Println("TEST REQUEST PATH:")
-		fmt.Println()
-		leadPath, _ := strings.CutPrefix(r.URL.Path, "/api/")
-		fmt.Println("TEST LEAD PATH:", leadPath)
-		dir, _, _ := strings.Cut(leadPath, "/")
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		switch dir {
-		case "dockerfile":
-			svc.apiPostDockerfileHandler(r)
-		case "manifest":
-			svc.apiPostManifestHandler(r)
-		case "users":
-			svc.apiGetUsersHandler(w)
-		}
-	}
-}
-
-func (svc *Gateway) ApiGetHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println()
-		fmt.Println("TEST REQUEST PATH:")
-		fmt.Println()
-		leadPath, _ := strings.CutPrefix(r.URL.Path, "/api/")
-		fmt.Println("TEST LEAD PATH:", leadPath)
-		dir, _, _ := strings.Cut(leadPath, "/")
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		switch dir {
-		case "dockerfiles":
-			svc.apiGetDockerfileHandler(w)
-		case "users":
-			svc.apiGetUsersHandler(w)
-		}
-	}
-}
-
 func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uiSchema := "http"
@@ -426,60 +385,185 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostDockerfileHandler(r *http.Request) {
-	fmt.Println("GET POST DOCKER REQUEST")
-	fmt.Println()
-	fmt.Println("TEST REQEUST BODY:", r.Body)
-	fmt.Println()
+func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("GET POST DOCKER REQUEST")
+		fmt.Println()
+		fmt.Println("TEST REQEUST BODY:", r.Body)
+		fmt.Println()
 
-	b, _ := io.ReadAll(r.Body)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	f := git.GitDockerFile{}
-	json.Unmarshal(b, &f)
+		b, _ := io.ReadAll(r.Body)
 
-	imageName, _, _ := strings.Cut(f.Image, ":")
-	if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
-		fmt.Println("TEST DOCKERFILE ALREADY EXIST")
-		svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
-		return
+		f := git.GitDockerFile{}
+		json.Unmarshal(b, &f)
+
+		imageName, _, _ := strings.Cut(f.Image, ":")
+		if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
+			fmt.Println("TEST DOCKERFILE ALREADY EXIST")
+			svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
+			return
+		}
+		fmt.Println("TEST DOCKERFILE NOT EXIST")
+		svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
 	}
-	fmt.Println("TEST DOCKERFILE NOT EXIST")
-	svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
 }
 
-func (svc *Gateway) apiGetDockerfileHandler(w http.ResponseWriter) {
-	fmt.Println("GET GET DOCKER REQUEST")
-	fmt.Println()
+func (svc *Gateway) apiGetDockerfileHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
-	if len(dockerfiles) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
+		fmt.Println("GET GET DOCKER REQUEST")
+		fmt.Println()
+
+		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
+		if len(dockerfiles) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		w.Write(dockerfiles)
 	}
-
-	w.WriteHeader(http.StatusOK)
-	w.Write(dockerfiles)
 }
 
-func (svc *Gateway) apiGetUsersHandler(w http.ResponseWriter) {
-	fmt.Println("GET GET USERS REQUEST")
-	fmt.Println()
+func (svc *Gateway) apiGetRolesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 
-	dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
-	if len(dockerfiles) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
+		fmt.Println()
+		fmt.Println("GET GET ROLES REQUEST")
+
+		userId := r.URL.Query().Get("user_id")
+		fmt.Println("USER ID ", userId, " tried to get every roles")
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.GetRoles(context.TODO(), &rbacPb.GetRolesRequest{})
+		if err != nil {
+			fmt.Println("GET ROLES GRPC ERR:", err)
+		}
+
+		datas := []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		}{}
+		data := struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		}{}
+
+		roles := reply.GetRoles()
+		for _, role := range roles {
+			fmt.Println(role.Id)
+			fmt.Println(role.Name)
+			roleId, _ := strconv.Atoi(role.GetId())
+			data.ID = roleId
+			data.Name = role.GetName()
+			datas = append(datas, data)
+		}
+
+		b, _ := json.Marshal(datas)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
 	}
+}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write(dockerfiles)
+func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println()
+		fmt.Println("GET GET ROLE REQUEST")
+
+		vars := mux.Vars(r)
+		userId := vars["userId"]
+
+		fmt.Println("USER ID ", userId, " tried to get his role")
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.GetRole(context.TODO(), &rbacPb.GetRoleRequest{UserId: userId})
+		if err != nil {
+			fmt.Println("GET USER ROLE GRPC ERR:", err)
+		}
+
+		role := reply.GetRole()
+		fmt.Println("---USER " + userId + " ROLE---")
+		fmt.Println(role.Id)
+		fmt.Println(role.Name)
+		fmt.Println("---ROLE END---")
+		roleId, _ := strconv.Atoi(role.GetId())
+
+		data := struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+		}{
+			ID:   roleId,
+			Name: role.GetName(),
+		}
+
+		b, _ := json.Marshal(data)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+
+	}
+}
+
+func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println()
+		fmt.Println("GET GET POLICIES REQUEST")
+
+		vars := mux.Vars(r)
+		roleId := vars["roleId"]
+		userId := r.URL.Query().Get("user_id")
+
+		fmt.Println("USER ", userId, " tried to get policies")
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
+			RoleId: roleId,
+		})
+		if err != nil {
+			fmt.Println("GET POLICIES GRPC ERR:", err)
+		}
+
+		policies := reply.GetPolicies()
+
+		datas := []struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+			Json string `json:"json"`
+		}{}
+		data := struct {
+			ID   int    `json:"id"`
+			Name string `json:"name"`
+			Json string `json:"json"`
+		}{}
+
+		for _, p := range policies {
+			pId, _ := strconv.Atoi(p.GetId())
+			data.ID = pId
+			data.Name = p.GetName()
+			data.Json = p.GetJson()
+			datas = append(datas, data)
+		}
+
+		b, _ := json.Marshal(datas)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
 }
 
 // /api/manifest?username="choigonyok"
-func (svc *Gateway) apiPostManifestHandler(r *http.Request) {
-	username := r.URL.Query().Get("username")
-	err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
-	fmt.Println(err)
+func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := r.URL.Query().Get("username")
+		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
+		fmt.Println(err)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+	}
 }
 
 // func (svc *Gateway) applyArgoCDApplication(e *github.PushEvent) {

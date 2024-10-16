@@ -7,6 +7,9 @@ option go_package = "./";
 
 service RbacService {
   rpc Check (RbacRequest) returns (RbacReply) {}
+  rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
+  rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
+  rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
 }
 
 enum Action {
@@ -31,4 +34,37 @@ message RbacRequest {
 
 message RbacReply {
   Result result  = 1;
+}
+
+message Role {
+  string id = 1;
+  string name = 2;
+}
+
+message GetRolesRequest {}
+
+message GetRolesReply {
+  repeated Role roles = 1;
+}
+
+message GetRoleRequest {
+  string userId = 1;
+}
+
+message GetRoleReply {
+  Role role = 1;
+}
+
+message Policy {
+  string id = 1;
+  string name = 2;
+  string json = 3;
+}
+
+message GetPoliciesRequest {
+  string roleId = 1;
+}
+
+message GetPoliciesReply {
+  repeated Policy policies = 1;
 }

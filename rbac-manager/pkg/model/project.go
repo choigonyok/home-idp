@@ -1,9 +1,5 @@
 package model
 
-import (
-	"fmt"
-)
-
 type Project struct {
 	Name     string
 	Users    []*User
@@ -12,23 +8,23 @@ type Project struct {
 	Options  *ProjectOption
 }
 
-func New(name string) *Project {
-	fmt.Println("TEST1:", GetDefaultUser())
-	fmt.Println("TEST2:", GetDefaultUser())
+// func New(name string) *Project {
+// 	fmt.Println("TEST1:", GetDefaultUser())
+// 	fmt.Println("TEST2:", GetDefaultUser())
 
-	u := GetDefaultUser()
-	opt := getProjectOption()
+// 	u := GetDefaultUser()
+// 	opt := getProjectOption()
 
-	p := &Project{
-		Name:     name,
-		Users:    []*User{u},
-		Roles:    u.Roles,
-		Policies: u.Roles[0].Policies,
-		Options:  opt,
-	}
-	StoreProject()
-	return p
-}
+// 	p := &Project{
+// 		Name:     name,
+// 		Users:    []*User{u},
+// 		Roles:    u.Roles,
+// 		Policies: u.Roles[0].Policies,
+// 		Options:  opt,
+// 	}
+// 	StoreProject()
+// 	return p
+// }
 
 func StoreProject() {
 	// TODO: STORE TO STORAGE

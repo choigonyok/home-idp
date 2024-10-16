@@ -31,9 +31,15 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/test2/", svc.TestHandler2())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api/", svc.ApiPostHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/", svc.ApiGetHandler())
-	svr.Router.RegisterRoute(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
+
+	svr.Router.RegisterRoute(http.MethodPost, "/api/dockerfile", svc.apiPostDockerfileHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/dockerfiles", svc.apiGetDockerfileHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userId}/role", svc.apiGetRoleHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRolesHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetPoliciesHandler())
+	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
+
 	svr.Router.RegisterRoute(http.MethodPost, "/login", svc.LoginHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/login/callback", svc.LoginCallbackHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/signup", svc.SignUpHandler())

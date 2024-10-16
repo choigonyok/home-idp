@@ -23,6 +23,9 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RbacServiceClient interface {
 	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
+	GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error)
+	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
+	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
 }
 
 type rbacServiceClient struct {
@@ -42,11 +45,41 @@ func (c *rbacServiceClient) Check(ctx context.Context, in *RbacRequest, opts ...
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error) {
+	out := new(GetRolesReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetRoles", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error) {
+	out := new(GetRoleReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
+	out := new(GetPoliciesReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicies", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
 type RbacServiceServer interface {
 	Check(context.Context, *RbacRequest) (*RbacReply, error)
+	GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error)
+	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
+	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -56,6 +89,15 @@ type UnimplementedRbacServiceServer struct {
 
 func (UnimplementedRbacServiceServer) Check(context.Context, *RbacRequest) (*RbacReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
+func (UnimplementedRbacServiceServer) GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRoles not implemented")
+}
+func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRole not implemented")
+}
+func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPolicies not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -88,6 +130,60 @@ func _RbacService_Check_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_GetRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetRoles",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetRoles(ctx, req.(*GetRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_GetRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetRole(ctx, req.(*GetRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPoliciesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetPolicies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetPolicies",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*GetPoliciesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -98,6 +194,18 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Check",
 			Handler:    _RbacService_Check_Handler,
+		},
+		{
+			MethodName: "GetRoles",
+			Handler:    _RbacService_GetRoles_Handler,
+		},
+		{
+			MethodName: "GetRole",
+			Handler:    _RbacService_GetRole_Handler,
+		},
+		{
+			MethodName: "GetPolicies",
+			Handler:    _RbacService_GetPolicies_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
