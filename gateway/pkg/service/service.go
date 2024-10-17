@@ -7,6 +7,7 @@ import (
 
 	"github.com/choigonyok/home-idp/gateway/pkg/client"
 	gatewayhttp "github.com/choigonyok/home-idp/gateway/pkg/http"
+	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
 	"github.com/choigonyok/home-idp/pkg/env"
 )
@@ -40,6 +41,9 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetPoliciesHandler())
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 
+	svr.Router.RegisterRoute(http.MethodGet, "/progress/{image}", svc.GetProgressHandler())
+	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/progress/", svc.ApiOptionsHandler())
+
 	svr.Router.RegisterRoute(http.MethodPost, "/login", svc.LoginHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/login/callback", svc.LoginCallbackHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/signup", svc.SignUpHandler())
@@ -63,6 +67,7 @@ func (svc *Gateway) Start() {
 		fmt.Println("Clone URL:", svc.ClientSet.GitClient.GetRepositoryCloneURL())
 	}()
 
+	progress.Map = make(map[string][]*progress.Step)
 	svc.Server.Run()
 }
 

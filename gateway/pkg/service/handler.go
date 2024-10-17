@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -55,6 +56,7 @@ func (svc *Gateway) TestHandler2() http.HandlerFunc {
 // /api/webhook/harbor?username="choigonyok"&email="choigonyok@naver.com"
 func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		step := progress.NewStep(progress.PushManifest, progress.Continue, nil)
 		fmt.Println(r.Body)
 		b, err := io.ReadAll(r.Body)
 		fmt.Println("TESTHANDLER3:", err)
@@ -64,14 +66,18 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		img := util.ParseInterfaceMap(m, []string{"event_data", "resources", "resource_url"}).(string)
 		s := strings.Split(img, "/")
 		name, version, _ := strings.Cut(s[2], ":")
+		step.Add(name + ":" + version)
 
 		fmt.Println(err)
 		fmt.Println("MAPPED MAP:", name, version)
 
+		step.UpdateLog("START TO UPDATE MANIFEST")
 		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+			step.UpdateState(progress.Fail, err.Error())
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
+		step.UpdateState(progress.Success, "SUCCESS TO MANIFEST!")
 	}
 }
 
@@ -327,7 +333,12 @@ func (svc *Gateway) requestLogin(username, password string) {
 }
 
 func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
+	step := progress.NewStep(progress.DeployKaniko, progress.Continue, nil)
+	step.Add(name + ":" + version)
+	step.UpdateLog("Deploy-manager grpc client creating...")
 	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
+
+	step.UpdateLog("Deploy Kaniko to build image...")
 	reply, err := c.BuildDockerfile(context.TODO(), &deployPb.BuildDockerfileRequest{
 		Img: &deployPb.Image{
 			Pusher:  username,
@@ -337,16 +348,26 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	})
 	if err != nil {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST ERR:", err)
+		step.UpdateState(progress.Fail, err.Error())
 		return
 	}
 
 	if !reply.Succeed {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST FAILED")
+		step.UpdateState(progress.Fail, "FAILED")
 		return
 	}
+	step.UpdateState(progress.Success, "SUCCESS!")
 }
 
 func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
+	// step := progress.NewStep(progress.DeployResource, progress.Continue, nil)
+	// step.Add(name + ":" + version)
+
+	fmt.Println(string(payload))
+	fmt.Println(string(payload))
+	fmt.Println(string(payload))
+
 	m := make(map[string]string)
 	for k, v := range r.Header {
 		m[k] = strings.Join(v, ", ")
@@ -363,6 +384,22 @@ func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error 
 	return nil
 }
 
+func (svc *Gateway) GetProgressHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		image := vars["image"]
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		b, err := json.Marshal(progress.Map[image])
+		if err != nil {
+			fmt.Println("TEST MARSHALING ERR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Write(b)
+	}
+}
 func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uiSchema := "http"
@@ -388,9 +425,7 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("GET POST DOCKER REQUEST")
-		fmt.Println()
 		fmt.Println("TEST REQEUST BODY:", r.Body)
-		fmt.Println()
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -399,14 +434,21 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 		f := git.GitDockerFile{}
 		json.Unmarshal(b, &f)
 
+		step := progress.NewStep(progress.PushDockerfile, progress.Continue, []string{"GET POST DOCKER REQUEST", fmt.Sprintln("TEST REQEUST BODY:", r.Body)})
+		step.Add(f.Image)
+
 		imageName, _, _ := strings.Cut(f.Image, ":")
 		if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
 			fmt.Println("TEST DOCKERFILE ALREADY EXIST")
 			svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
+			step.UpdateState(progress.Fail, "TEST DOCKERFILE ALREADY EXIST")
 			return
 		}
-		fmt.Println("TEST DOCKERFILE NOT EXIST")
-		svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content)
+		step.UpdateLog("DOCKERFILE NOT EXIST! START TO CREATE...")
+		if err := svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content); err != nil {
+			step.UpdateState(progress.Fail, err.Error())
+		}
+		step.UpdateState(progress.Success, "CREATE DOCKERFILE FINISH!")
 	}
 }
 
