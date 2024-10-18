@@ -435,6 +435,7 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 		json.Unmarshal(b, &f)
 
 		step := progress.NewStep(progress.PushDockerfile, progress.Continue, []string{"GET POST DOCKER REQUEST", fmt.Sprintln("TEST REQEUST BODY:", r.Body)})
+
 		step.Add(f.Image)
 
 		imageName, _, _ := strings.Cut(f.Image, ":")
@@ -547,6 +548,44 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 
+	}
+}
+
+// func (svc *Gateway) apiGetNamespacesHandler() http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		ns := svc.ClientSet.KubeClient.GetNamespaces()
+// 		b, _ := json.Marshal(*ns)
+
+// 		w.Header().Set("Access-Control-Allow-Origin", "*")
+// 		w.WriteHeader(http.StatusOK)
+// 		w.Write(b)
+// 	}
+// }
+
+func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		proj := vars["project_name"]
+
+		data := struct {
+			Pods       []string `json:"pod"`
+			Services   []string `json:"service"`
+			Ingresses  []string `json:"ingress"`
+			Configmaps []string `json:"configmap"`
+			Secrets    []string `json:"secret"`
+		}{
+			Pods:       *svc.ClientSet.KubeClient.GetPods(proj),
+			Services:   *svc.ClientSet.KubeClient.GetServices(proj),
+			Ingresses:  *svc.ClientSet.KubeClient.GetIngresses(proj),
+			Configmaps: *svc.ClientSet.KubeClient.GetConfigmaps(proj),
+			Secrets:    *svc.ClientSet.KubeClient.GetSecrets(proj),
+		}
+
+		b, _ := json.Marshal(data)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
 	}
 }
 
