@@ -61,22 +61,22 @@ func (f *GitDockerFile) getFilename() string {
 	return "Dockerfile." + f.Image
 }
 
-func (c *GitClient) isFileExist(filePath string) (bool, error) {
-	opts := &github.RepositoryContentGetOptions{
-		Ref: "main",
-	}
+// func (c *GitClient) isFileExist(filePath string) (bool, error) {
+// 	opts := &github.RepositoryContentGetOptions{
+// 		Ref: "main",
+// 	}
 
-	_, _, resp, _ := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, filePath, opts)
-	switch resp.StatusCode {
-	case 200:
-		return true, nil
-	case 404:
-		return false, nil
-	default:
-		fmt.Println("TEST GET GIT CONTENT FAIL WITH STATUSCODE: ", resp.StatusCode)
-		return false, fmt.Errorf("ERROR")
-	}
-}
+// 	_, _, resp, _ := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, filePath, opts)
+// 	switch resp.StatusCode {
+// 	case 200:
+// 		return true, nil
+// 	case 404:
+// 		return false, nil
+// 	default:
+// 		fmt.Println("TEST GET GIT CONTENT FAIL WITH STATUSCODE: ", resp.StatusCode)
+// 		return false, fmt.Errorf("ERROR")
+// 	}
+// }
 
 func (c *GitClient) getFilesByFiletype(filetype GitFileType) (f []*github.RepositoryContent, found bool, err error) {
 	opts := &github.RepositoryContentGetOptions{

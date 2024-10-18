@@ -15,6 +15,7 @@ import (
 
 	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
@@ -81,6 +82,40 @@ func (c *KubeClient) GetPodsByLabel(namespace, label string) []apiv1.Pod {
 	pods, _ := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
 
 	return pods.Items
+}
+
+func (c *KubeClient) GetPods(namespace string) (*[]apiv1.Pod, error) {
+	pods, err := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &pods.Items, err
+}
+
+func (c *KubeClient) GetServices(namespace string) (*[]apiv1.Service, error) {
+	svcs, err := c.ClientSet.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &svcs.Items, err
+}
+
+func (c *KubeClient) GetIngresses(namespace string) (*[]v1.Ingress, error) {
+	ingresses, err := c.ClientSet.NetworkingV1().Ingresses(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &ingresses.Items, err
+}
+
+func (c *KubeClient) GetConfigmaps(namespace string) (*[]corev1.ConfigMap, error) {
+	cms, err := c.ClientSet.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &cms.Items, err
+}
+
+func (c *KubeClient) GetSecrets(namespace string) (*[]corev1.Secret, error) {
+	secrets, err := c.ClientSet.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &secrets.Items, err
+}
+
+func (c *KubeClient) GetNamespaces() (*[]apiv1.Namespace, error) {
+	namespaces, err := c.ClientSet.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	return &namespaces.Items, nil
 }
 
 func (c *KubeClient) GetServiceSelectors(name, namespace string) string {
