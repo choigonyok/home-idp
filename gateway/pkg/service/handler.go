@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
+	"github.com/choigonyok/home-idp/gateway/pkg/kube"
 	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
@@ -551,16 +552,78 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	}
 }
 
-// func (svc *Gateway) apiGetNamespacesHandler() http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		ns := svc.ClientSet.KubeClient.GetNamespaces()
-// 		b, _ := json.Marshal(*ns)
+func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uid := ""
+		uid = r.URL.Query().Get("user_id")
 
-// 		w.Header().Set("Access-Control-Allow-Origin", "*")
-// 		w.WriteHeader(http.StatusOK)
-// 		w.Write(b)
-// 	}
-// }
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.GetProjects(context.TODO(), &rbacPb.GetProjectsRequest{
+			UserId: uid,
+		})
+
+		if err != nil {
+			fmt.Println("GET PROJECTS GRPC ERR:", err)
+		}
+
+		projects := []struct {
+			ID      string `json:"id"`
+			Name    string `json:"name"`
+			Creator string `json:"creator"`
+		}{}
+
+		for _, p := range reply.Projects {
+			projects = append(projects, struct {
+				ID      string `json:"id"`
+				Name    string `json:"name"`
+				Creator string `json:"creator"`
+			}{
+				ID:      p.Id,
+				Name:    p.Name,
+				Creator: p.Creator,
+			})
+		}
+
+		b, _ := json.Marshal(projects)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		proj := vars["project_name"]
+		cm := vars["cm_name"]
+
+		cms := svc.ClientSet.KubeClient.GetConfigmap(cm, proj)
+
+		datas := []struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}{}
+
+		for k, v := range *cms {
+			data := struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			}{
+				Key:   k,
+				Value: v,
+			}
+
+			datas = append(datas, data)
+		}
+
+		b, _ := json.Marshal(datas)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
 
 func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -568,11 +631,11 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 		proj := vars["project_name"]
 
 		data := struct {
-			Pods       []string `json:"pod"`
-			Services   []string `json:"service"`
-			Ingresses  []string `json:"ingress"`
-			Configmaps []string `json:"configmap"`
-			Secrets    []string `json:"secret"`
+			Pods       []kube.Pod       `json:"pod"`
+			Services   []kube.Service   `json:"service"`
+			Ingresses  []kube.Ingress   `json:"ingress"`
+			Configmaps []kube.Configmap `json:"configmap"`
+			Secrets    []kube.Secret    `json:"secret"`
 		}{
 			Pods:       *svc.ClientSet.KubeClient.GetPods(proj),
 			Services:   *svc.ClientSet.KubeClient.GetServices(proj),

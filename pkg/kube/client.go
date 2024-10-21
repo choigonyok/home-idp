@@ -103,6 +103,9 @@ func (c *KubeClient) GetConfigmaps(namespace string) (*[]corev1.ConfigMap, error
 	cms, err := c.ClientSet.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{})
 	return &cms.Items, err
 }
+func (c *KubeClient) GetConfigmap(name, namespace string) (*corev1.ConfigMap, error) {
+	return c.ClientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
 
 func (c *KubeClient) GetSecrets(namespace string) (*[]corev1.Secret, error) {
 	secrets, err := c.ClientSet.CoreV1().Secrets(namespace).List(context.TODO(), metav1.ListOptions{})

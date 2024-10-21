@@ -43,3 +43,13 @@ func (c *GatewayKubeClient) GetConfigmaps(namespace string) *[]Configmap {
 
 	return &configmaps
 }
+
+func (c *GatewayKubeClient) GetConfigmap(name, namespace string) *map[string]string {
+	cms, err := c.Client.GetConfigmap(name, namespace)
+	if err != nil {
+		fmt.Println("TEST GET CONFIGMAP "+name+" FOR NAMESPACE "+namespace+" ERR:", err)
+		return nil
+	}
+
+	return &cms.Data
+}
