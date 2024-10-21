@@ -2,6 +2,7 @@ package kube
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/choigonyok/home-idp/pkg/kube"
 )
@@ -36,4 +37,32 @@ func (c *GatewayKubeClient) GetNamespaces() *[]string {
 	}
 
 	return &namespaces
+}
+
+func (c *GatewayKubeClient) DeleteResources(resources, names, namespace string) error {
+	list := strings.Split(names, ", ")
+	switch resources {
+	case "pods":
+		if err := c.Client.DeletePods(&list, namespace); err != nil {
+			return err
+		}
+	case "services":
+		if err := c.Client.DeleteServices(&list, namespace); err != nil {
+			return err
+		}
+	case "ingresses":
+		if err := c.Client.DeleteIngresses(&list, namespace); err != nil {
+			return err
+		}
+	case "secrets":
+		if err := c.Client.DeleteSecrets(&list, namespace); err != nil {
+			return err
+		}
+	case "configmaps":
+		if err := c.Client.DeleteConfigmaps(&list, namespace); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

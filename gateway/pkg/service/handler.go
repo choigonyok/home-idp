@@ -572,7 +572,7 @@ func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
 			Creator string `json:"creator"`
 		}{}
 
-		for _, p := range reply.Projects {
+		for _, p := range reply.GetProjects() {
 			projects = append(projects, struct {
 				ID      string `json:"id"`
 				Name    string `json:"name"`
@@ -589,6 +589,24 @@ func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Query().Get("names")
+		vars := mux.Vars(r)
+		project := vars["project_name"]
+		rsc := vars["resource_name"]
+
+		if err := svc.ClientSet.KubeClient.DeleteResources(rsc, p, project); err != nil {
+			fmt.Println("TEST DELETE SOME "+rsc+" FOR NAMESPACE "+project+" ERR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

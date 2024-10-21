@@ -103,8 +103,54 @@ func (c *KubeClient) GetConfigmaps(namespace string) (*[]corev1.ConfigMap, error
 	cms, err := c.ClientSet.CoreV1().ConfigMaps(namespace).List(context.TODO(), metav1.ListOptions{})
 	return &cms.Items, err
 }
+
 func (c *KubeClient) GetConfigmap(name, namespace string) (*corev1.ConfigMap, error) {
 	return c.ClientSet.CoreV1().ConfigMaps(namespace).Get(context.TODO(), name, metav1.GetOptions{})
+}
+
+func (c *KubeClient) DeletePods(pods *[]string, namespace string) error {
+	for _, pod := range *pods {
+		if err := c.ClientSet.CoreV1().Pods(namespace).Delete(context.TODO(), pod, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *KubeClient) DeleteServices(services *[]string, namespace string) error {
+	for _, svc := range *services {
+		if err := c.ClientSet.CoreV1().Services(namespace).Delete(context.TODO(), svc, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *KubeClient) DeleteConfigmaps(configmaps *[]string, namespace string) error {
+	for _, cm := range *configmaps {
+		if err := c.ClientSet.CoreV1().ConfigMaps(namespace).Delete(context.TODO(), cm, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *KubeClient) DeleteSecrets(secrets *[]string, namespace string) error {
+	for _, secret := range *secrets {
+		if err := c.ClientSet.CoreV1().Secrets(namespace).Delete(context.TODO(), secret, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *KubeClient) DeleteIngresses(ingresses *[]string, namespace string) error {
+	for _, ingress := range *ingresses {
+		if err := c.ClientSet.NetworkingV1().Ingresses(namespace).Delete(context.TODO(), ingress, metav1.DeleteOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *KubeClient) GetSecrets(namespace string) (*[]corev1.Secret, error) {
