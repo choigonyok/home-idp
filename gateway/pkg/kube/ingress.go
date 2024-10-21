@@ -4,34 +4,23 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/choigonyok/home-idp/pkg/model"
 )
 
-type Ingress struct {
-	Name  string        `json:"name"`
-	Rules []IngressRule `json:"rules"`
-	Age   string        `json:"age"`
-}
-
-type IngressRule struct {
-	Host    string `json:"host"`
-	Path    string `json:"path"`
-	Service string `json:"service"`
-	Port    string `json:"port"`
-}
-
-func (c *GatewayKubeClient) GetIngresses(namespace string) *[]Ingress {
+func (c *GatewayKubeClient) GetIngresses(namespace string) *[]model.Ingress {
 	ingress, err := c.Client.GetIngresses(namespace)
 	if err != nil {
 		fmt.Println("TEST GET INGRESSES FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
-	ingresses := []Ingress{}
+	ingresses := []model.Ingress{}
 
 	for _, i := range *ingress {
-		rules := []IngressRule{}
+		rules := []model.IngressRule{}
 		for _, r := range i.Spec.Rules {
-			rules = append(rules, IngressRule{
+			rules = append(rules, model.IngressRule{
 				Host:    r.Host,
 				Path:    r.HTTP.Paths[0].Path,
 				Service: r.HTTP.Paths[0].Backend.Service.Name,
@@ -51,7 +40,7 @@ func (c *GatewayKubeClient) GetIngresses(namespace string) *[]Ingress {
 			age = strconv.Itoa(int(60*t.Hours()+t.Minutes())) + "m"
 		}
 
-		ingresses = append(ingresses, Ingress{
+		ingresses = append(ingresses, model.Ingress{
 			Name:  i.Name,
 			Rules: rules,
 			Age:   age,

@@ -4,23 +4,18 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/choigonyok/home-idp/pkg/model"
 )
 
-type Secret struct {
-	Name string `json:"name"`
-	Type string `json:"type"`
-	Data int    `json:"data"`
-	Age  string `json:"age"`
-}
-
-func (c *GatewayKubeClient) GetSecrets(namespace string) *[]Secret {
+func (c *GatewayKubeClient) GetSecrets(namespace string) *[]model.Secret {
 	secret, err := c.Client.GetSecrets(namespace)
 	if err != nil {
 		fmt.Println("TEST GET SECRETS FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
-	secrets := []Secret{}
+	secrets := []model.Secret{}
 
 	for _, s := range *secret {
 		age := ""
@@ -35,7 +30,7 @@ func (c *GatewayKubeClient) GetSecrets(namespace string) *[]Secret {
 			age = strconv.Itoa(int(60*t.Hours()+t.Minutes())) + "m"
 		}
 
-		secrets = append(secrets, Secret{
+		secrets = append(secrets, model.Secret{
 			Name: s.Name,
 			Type: string(s.Type),
 			Data: len(s.Data),

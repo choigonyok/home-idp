@@ -4,25 +4,18 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/choigonyok/home-idp/pkg/model"
 )
 
-type Service struct {
-	Name     string            `json:"name"`
-	Type     string            `json:"type"`
-	Selector map[string]string `json:"selector"`
-	Age      string            `json:"age"`
-	Port     []string          `json:"port"`
-	IP       string            `json:"ip"`
-}
-
-func (c *GatewayKubeClient) GetServices(namespace string) *[]Service {
+func (c *GatewayKubeClient) GetServices(namespace string) *[]model.Service {
 	svcs, err := c.Client.GetServices(namespace)
 	if err != nil {
 		fmt.Println("TEST GET SERVICES FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
-	services := []Service{}
+	services := []model.Service{}
 
 	for _, svc := range *svcs {
 
@@ -43,7 +36,7 @@ func (c *GatewayKubeClient) GetServices(namespace string) *[]Service {
 			age = strconv.Itoa(int(60*t.Hours()+t.Minutes())) + "m"
 		}
 
-		services = append(services, Service{
+		services = append(services, model.Service{
 			Name:     svc.Name,
 			Type:     string(svc.Spec.Type),
 			Selector: svc.Spec.Selector,

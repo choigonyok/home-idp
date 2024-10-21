@@ -4,23 +4,18 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/choigonyok/home-idp/pkg/model"
 )
 
-type Pod struct {
-	Name   string `json:"name"`
-	Status string `json:"status"`
-	Age    string `json:"age"`
-	IP     string `json:"ip"`
-}
-
-func (c *GatewayKubeClient) GetPods(namespace string) *[]Pod {
+func (c *GatewayKubeClient) GetPods(namespace string) *[]model.Pod {
 	ps, err := c.Client.GetPods(namespace)
 	if err != nil {
 		fmt.Println("TEST GET PODS FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
-	pods := []Pod{}
+	pods := []model.Pod{}
 
 	for _, p := range *ps {
 		age := ""
@@ -35,7 +30,7 @@ func (c *GatewayKubeClient) GetPods(namespace string) *[]Pod {
 			age = strconv.Itoa(int(60*t.Hours()+t.Minutes())) + "m"
 		}
 
-		pods = append(pods, Pod{
+		pods = append(pods, model.Pod{
 			Name:   p.Name,
 			IP:     p.Status.PodIP,
 			Age:    age,

@@ -13,32 +13,15 @@ import (
 	"strings"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
-	"github.com/choigonyok/home-idp/gateway/pkg/kube"
 	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
+	"github.com/choigonyok/home-idp/pkg/model"
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
 	"github.com/gorilla/mux"
 )
-
-// func (svc *Gateway) InstallArgoCDHandler() http.HandlerFunc {
-// 	return func(resp http.ResponseWriter, req *http.Request) {
-// 		data := &helm.ArgoCDData{}
-
-// 		if err := json.NewDecoder(req.Body).Decode(&data); err != nil {
-// 			http.Error(resp, err.Error(), http.StatusBadRequest)
-// 			return
-// 		}
-
-// 		fmt.Println(data)
-
-// 		ok, err := grpc.InstallArgoCDChart(data, svc.ClientSet.GrpcClient[util.InstallManager].GetConnection())
-// 		fmt.Println(ok)
-// 		fmt.Println(err)
-// 	}
-// }
 
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -94,7 +77,7 @@ func (svc *Gateway) LoginHandler() http.HandlerFunc {
 
 		json.Unmarshal(b, &tmp)
 
-		svc.requestLogin(tmp.Username, tmp.Password)
+		// svc.requestLogin(tmp.Username, tmp.Password)
 
 		fmt.Println(tmp)
 	}
@@ -155,11 +138,6 @@ func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
 		var userInfo map[string]interface{}
 		json.Unmarshal(userBody, &userInfo)
 
-		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
-		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
-		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
-		fmt.Fprintf(w, "Username: %v", userInfo["login"].(string))
-
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
 		reply, err := c.Check(context.TODO(), &rbacPb.RbacRequest{
 			Username: userInfo["login"].(string),
@@ -197,7 +175,7 @@ func (svc *Gateway) SignUpHandler() http.HandlerFunc {
 
 		json.Unmarshal(b, &tmp)
 
-		svc.requestLogin(tmp.Username, tmp.Password)
+		// svc.requestLogin(tmp.Username, tmp.Password)
 
 		fmt.Println(tmp)
 	}
@@ -318,20 +296,20 @@ func (svc *Gateway) requestDeploy(filepath string) {
 	}
 }
 
-func (svc *Gateway) requestLogin(username, password string) {
-	c := rbacPb.NewLoginServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
-	user := rbacPb.User{Username: username, Password: password}
-	resp, err := c.Login(context.TODO(), &rbacPb.LoginRequest{User: &user})
-	if err != nil {
-		fmt.Println("TEST LOGIN GRPC REQUEST ERR:", err)
-		return
-	}
+// func (svc *Gateway) requestLogin(username, password string) {
+// 	c := rbacPb.NewLoginServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+// 	user := rbacPb.User{Username: username, Password: password}
+// 	resp, err := c.Login(context.TODO(), &rbacPb.LoginRequest{User: &user})
+// 	if err != nil {
+// 		fmt.Println("TEST LOGIN GRPC REQUEST ERR:", err)
+// 		return
+// 	}
 
-	if resp.Success {
-		fmt.Println("TEST LOGIN GRPC REQUEST FAILED")
-		return
-	}
-}
+// 	if resp.Success {
+// 		fmt.Println("TEST LOGIN GRPC REQUEST FAILED")
+// 		return
+// 	}
+// }
 
 func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	step := progress.NewStep(progress.DeployKaniko, progress.Continue, nil)
@@ -364,10 +342,6 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
 	// step := progress.NewStep(progress.DeployResource, progress.Continue, nil)
 	// step.Add(name + ":" + version)
-
-	fmt.Println(string(payload))
-	fmt.Println(string(payload))
-	fmt.Println(string(payload))
 
 	m := make(map[string]string)
 	for k, v := range r.Header {
@@ -456,17 +430,17 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		vars := mux.Vars(r)
+		userName := vars["userName"]
+		projectName := vars["projectName"]
 
 		fmt.Println("GET GET DOCKER REQUEST")
-		fmt.Println()
-
-		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles()
+		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName, userName)
 		if len(dockerfiles) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
-
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(dockerfiles)
 	}
@@ -552,13 +526,38 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	}
 }
 
-// func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		vars := mux.Vars(r)
-// 		proj := vars["projectName"]
+func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		proj := vars["projectName"]
 
-// 	}
-// }
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
+			ProjectName: proj,
+		})
+
+		if err != nil {
+			fmt.Println("GET USERS GRPC ERR:", err)
+		}
+
+		usrs := []model.User{}
+
+		for _, usr := range reply.GetUsers() {
+			usrs = append(usrs, model.User{
+				ID:         usr.Id,
+				Name:       usr.Name,
+				RoleID:     usr.RoleId,
+				CreateTime: usr.CreateTime,
+			})
+		}
+
+		b, _ := json.Marshal(usrs)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
 
 func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -574,18 +573,10 @@ func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
 			fmt.Println("GET PROJECTS GRPC ERR:", err)
 		}
 
-		projects := []struct {
-			ID      string `json:"id"`
-			Name    string `json:"name"`
-			Creator string `json:"creator"`
-		}{}
+		projects := []model.Project{}
 
 		for _, p := range reply.GetProjects() {
-			projects = append(projects, struct {
-				ID      string `json:"id"`
-				Name    string `json:"name"`
-				Creator string `json:"creator"`
-			}{
+			projects = append(projects, model.Project{
 				ID:      p.Id,
 				Name:    p.Name,
 				Creator: p.Creator,
@@ -604,8 +595,8 @@ func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		p := r.URL.Query().Get("names")
 		vars := mux.Vars(r)
-		project := vars["project_name"]
-		rsc := vars["resource_name"]
+		project := vars["projectName"]
+		rsc := vars["resourceName"]
 
 		if err := svc.ClientSet.KubeClient.DeleteResources(rsc, p, project); err != nil {
 			fmt.Println("TEST DELETE SOME "+rsc+" FOR NAMESPACE "+project+" ERR:", err)
@@ -621,8 +612,8 @@ func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		proj := vars["project_name"]
-		cm := vars["cm_name"]
+		proj := vars["projectName"]
+		cm := vars["configmapName"]
 
 		cms := svc.ClientSet.KubeClient.GetConfigmap(cm, proj)
 
@@ -654,14 +645,14 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		proj := vars["project_name"]
+		proj := vars["projectName"]
 
 		data := struct {
-			Pods       []kube.Pod       `json:"pod"`
-			Services   []kube.Service   `json:"service"`
-			Ingresses  []kube.Ingress   `json:"ingress"`
-			Configmaps []kube.Configmap `json:"configmap"`
-			Secrets    []kube.Secret    `json:"secret"`
+			Pods       []model.Pod       `json:"pod"`
+			Services   []model.Service   `json:"service"`
+			Ingresses  []model.Ingress   `json:"ingress"`
+			Configmaps []model.Configmap `json:"configmap"`
+			Secrets    []model.Secret    `json:"secret"`
 		}{
 			Pods:       *svc.ClientSet.KubeClient.GetPods(proj),
 			Services:   *svc.ClientSet.KubeClient.GetServices(proj),
@@ -698,16 +689,8 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 
 		policies := reply.GetPolicies()
 
-		datas := []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-			Json string `json:"json"`
-		}{}
-		data := struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-			Json string `json:"json"`
-		}{}
+		datas := []model.Policy{}
+		data := model.Policy{}
 
 		for _, p := range policies {
 			pId, _ := strconv.Atoi(p.GetId())
@@ -735,39 +718,3 @@ func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 	}
 }
-
-// func (svc *Gateway) applyArgoCDApplication(e *github.PushEvent) {
-// 	pushPath := e.Commits[0].Added[0]
-// 	svc.ClientSet.GitClient.GetArgoCDApplication()
-// 	// cd/username/main.yaml
-// 	svc.ClientSet.KubeClient.ApplyManifest()
-// }
-
-// 다 Running 상태인지,
-// webhook이 harbor, github 잘 생성되었는지
-
-// curl -u "admin:tester1234" -X GET http://home-idp-harbor-core.idp-system.svc.cluster.local:80/api/v2.0/projects/library/webhook/policies
-
-// git clone 후에
-// 도커파일 /docker/Dockerfile.testimg:v1.123 을 푸시했을 때,
-// 정상적으로 kaniko job이 생성되고 harbor에 푸시되는지
-
-// curl -X GET "http://home-idp-harbor-core.idp-system.svc.cluster.local:80/api/v2.0/projects/library/repositories" -H "accept: application/json"
-
-// curl -X GET "http://home-idp-harbor-core.idp-system.svc.cluster.local:80/api/v2.0/projects/library/repositories/testimg77/artifacts" -H "accept: application/json"
-
-// harbor에서 푸시된 이미지에 대한 웹훅이 gateway 로그에 잘 출력되는지
-
-// curl -X POST https://cblicense.front.slexn.com/api/dockerfile \
-//      -H "Content-Type: application/json" \
-//      -d '{
-//            "username": "user123",
-//            "tag": "latest",
-//            "content": "FROM ubuntu:18.04\nRUN apt-get update && apt-get install -y git"
-//          }'
-
-// curl -X POST http://cd.choigonyok.com:8080/api/v1/applications/app-choigonyok/refresh
-
-// curl --cert /path/to/client.crt --key /path/to/client.key --cacert /path/to/ca.crt \
-//      -X GET "https://<harbor-domain>/api/v2.0/projects/<project-name>/repositories" \
-//      -H "Authorization: Basic $(echo -n 'username:password' | base64)"

@@ -4,22 +4,18 @@ import (
 	"fmt"
 	"strconv"
 	"time"
+
+	"github.com/choigonyok/home-idp/pkg/model"
 )
 
-type Configmap struct {
-	Name string `json:"name"`
-	Data int    `json:"data"`
-	Age  string `json:"age"`
-}
-
-func (c *GatewayKubeClient) GetConfigmaps(namespace string) *[]Configmap {
+func (c *GatewayKubeClient) GetConfigmaps(namespace string) *[]model.Configmap {
 	cms, err := c.Client.GetConfigmaps(namespace)
 	if err != nil {
 		fmt.Println("TEST GET CONFIGMAPS FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
-	configmaps := []Configmap{}
+	configmaps := []model.Configmap{}
 
 	for _, c := range *cms {
 		age := ""
@@ -34,7 +30,7 @@ func (c *GatewayKubeClient) GetConfigmaps(namespace string) *[]Configmap {
 			age = strconv.Itoa(int(60*t.Hours()+t.Minutes())) + "m"
 		}
 
-		configmaps = append(configmaps, Configmap{
+		configmaps = append(configmaps, model.Configmap{
 			Name: c.Name,
 			Data: len(c.Data),
 			Age:  age,
