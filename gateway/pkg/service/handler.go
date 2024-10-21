@@ -552,6 +552,14 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	}
 }
 
+// func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		vars := mux.Vars(r)
+// 		proj := vars["projectName"]
+
+// 	}
+// }
+
 func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uid := ""

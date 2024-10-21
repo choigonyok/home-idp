@@ -114,3 +114,24 @@ func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPolicie
 		Policies: ps,
 	}, nil
 }
+
+func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProjectsRequest) (*pb.GetProjectsReply, error) {
+	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator FROM projects`)
+	if err != nil {
+		fmt.Println("TEST GETPROJECTS QUERY ERR:", err)
+		return nil, err
+	}
+	defer r.Close()
+
+	projs := []*pb.Project{}
+
+	for r.Next() {
+		proj := pb.Project{}
+		r.Scan(&proj.Id, &proj.Name, &proj.Creator)
+		projs = append(projs, &proj)
+	}
+
+	return &pb.GetProjectsReply{
+		Projects: projs,
+	}, nil
+}
