@@ -116,6 +116,18 @@ func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPolicie
 }
 
 func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProjectsRequest) (*pb.GetProjectsReply, error) {
+	// repo := repository.New(svr.StorageClient)
+	// i, err := repo.Table("projects").Get("id, name, creator")
+	// if err != nil {
+	// 	fmt.Println("TEST GETPROJECTS QUERY ERR:", err)
+	// 	return nil, err
+	// }
+	// projs := []*pb.Project{}
+	// p := i.([]*model.Project)
+	// for _, v := range p {
+	// 	v.Name
+	// }
+
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator FROM projects`)
 	if err != nil {
 		fmt.Println("TEST GETPROJECTS QUERY ERR:", err)
@@ -133,5 +145,30 @@ func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProject
 
 	return &pb.GetProjectsReply{
 		Projects: projs,
+	}, nil
+}
+
+func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
+	pid := ""
+	row := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + in.ProjectName + `'`)
+	row.Scan(&pid)
+
+	r, err := svr.StorageClient.DB().Query(`SELECT users.id, users.name, users.create_time, users.role_id FROM users JOIN userprojectmapping ON users.id = userprojectmapping.user_id WHERE userprojectmapping.project_id = ` + pid)
+	if err != nil {
+		fmt.Println("TEST GETUSERS QUERY ERR:", err)
+		return nil, err
+	}
+	defer r.Close()
+
+	usrs := []*pb.User{}
+
+	for r.Next() {
+		usr := pb.User{}
+		r.Scan(&usr.Id, &usr.Name, &usr.CreateTime, &usr.RoleId)
+		usrs = append(usrs, &usr)
+	}
+
+	return &pb.GetUsersReply{
+		Users: usrs,
 	}, nil
 }

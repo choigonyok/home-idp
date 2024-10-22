@@ -10,4 +10,6 @@ type StorageClient interface {
 	IsHealthy() bool
 	Set(interface{})
 	CreateAdminUser(username string) error
+	// GetQueryFromProjects(cols ...string) (*sql.Rows, error)
+	// GetQueryFromUsers(cols ...string) (*sql.Rows, error)
 }

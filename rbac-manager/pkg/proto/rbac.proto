@@ -11,6 +11,7 @@ service RbacService {
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
   rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
+  rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
 }
 
 enum Action {
@@ -84,3 +85,21 @@ message GetProjectsRequest {
 message GetProjectsReply {
   repeated Project projects = 1;
 }
+
+message User {
+  string id = 1;
+  string name = 2;
+  string roleId = 3;
+  string createTime = 4;
+}
+
+
+message GetUsersRequest {
+  string userId = 1;
+  string projectName = 2;
+}
+
+message GetUsersReply {
+  repeated User users = 1;
+}
+

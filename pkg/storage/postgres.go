@@ -125,3 +125,8 @@ func getAdminPolicy() string {
 	}
 }`
 }
+
+func (c *PostgresClient) GetQueryFromProjects(cols ...string) (*sql.Row, error) {
+
+	return nil, nil
+}

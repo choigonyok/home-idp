@@ -27,6 +27,7 @@ type RbacServiceClient interface {
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
 	GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error)
+	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 }
 
 type rbacServiceClient struct {
@@ -82,6 +83,15 @@ func (c *rbacServiceClient) GetProjects(ctx context.Context, in *GetProjectsRequ
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error) {
+	out := new(GetUsersReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetUsers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
@@ -91,6 +101,7 @@ type RbacServiceServer interface {
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
 	GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error)
+	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -112,6 +123,9 @@ func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *GetPoliciesR
 }
 func (UnimplementedRbacServiceServer) GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjects not implemented")
+}
+func (UnimplementedRbacServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -216,6 +230,24 @@ func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_GetUsers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetUsers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetUsers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetUsers(ctx, req.(*GetUsersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -242,6 +274,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProjects",
 			Handler:    _RbacService_GetProjects_Handler,
+		},
+		{
+			MethodName: "GetUsers",
+			Handler:    _RbacService_GetUsers_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
