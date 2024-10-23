@@ -197,3 +197,15 @@ func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserReque
 
 	return &pb.PostUserReply{}, err
 }
+
+func (svr *RbacServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.PutUserReply, error) {
+	usr := in.GetUser()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM roles WHERE name = '` + usr.GetRoleId() + `'`)
+	roleId := ""
+	r.Scan(&roleId)
+
+	_, err := svr.StorageClient.DB().Exec(`UPDATE users SET role_id = ` + roleId + ` WHERE name = '` + usr.GetName() + `'`)
+
+	return &pb.PutUserReply{}, err
+}

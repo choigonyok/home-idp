@@ -46,7 +46,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/users", svc.apiGetUsersInProjectHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/user", svc.apiPostUserHandler())
-	// svr.Router.RegisterRoute(http.MethodPut, "/api/projects/{projectName}/users/{userName}", svc.apiPutUserHandler())
+	svr.Router.RegisterRoute(http.MethodPut, "/api/projects/{projectName}/users/{userName}", svc.apiPutUserHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/progress/{image}", svc.GetProgressHandler())
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/progress/", svc.ApiOptionsHandler())

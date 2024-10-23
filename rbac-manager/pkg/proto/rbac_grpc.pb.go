@@ -29,6 +29,7 @@ type RbacServiceClient interface {
 	GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*PostUserReply, error)
+	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
 }
 
 type rbacServiceClient struct {
@@ -102,6 +103,15 @@ func (c *rbacServiceClient) PostUser(ctx context.Context, in *PostUserRequest, o
 	return out, nil
 }
 
+func (c *rbacServiceClient) PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error) {
+	out := new(PutUserReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/PutUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
@@ -113,6 +123,7 @@ type RbacServiceServer interface {
 	GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	PostUser(context.Context, *PostUserRequest) (*PostUserReply, error)
+	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -140,6 +151,9 @@ func (UnimplementedRbacServiceServer) GetUsers(context.Context, *GetUsersRequest
 }
 func (UnimplementedRbacServiceServer) PostUser(context.Context, *PostUserRequest) (*PostUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostUser not implemented")
+}
+func (UnimplementedRbacServiceServer) PutUser(context.Context, *PutUserRequest) (*PutUserReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PutUser not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -280,6 +294,24 @@ func _RbacService_PostUser_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_PutUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutUserRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).PutUser(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/PutUser",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).PutUser(ctx, req.(*PutUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -314,6 +346,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostUser",
 			Handler:    _RbacService_PostUser_Handler,
+		},
+		{
+			MethodName: "PutUser",
+			Handler:    _RbacService_PutUser_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

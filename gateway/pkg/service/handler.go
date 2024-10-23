@@ -397,19 +397,34 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 	}
 }
 
-// func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		vars := mux.Vars(r)
-// 		projectName := vars["projectName"]
-// 		userName := vars["userName"]
+func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		userName := vars["userName"]
 
-// 		w.Header().Set("Access-Control-Allow-Origin", "*")
-// 		b, _ := io.ReadAll(r.Body)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
 
-// 		usr := model.User{}
-// 		json.Unmarshal(b, &usr)
-// 	}
-// }
+		usr := model.User{}
+		json.Unmarshal(b, &usr)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		_, err := c.PutUser(context.TODO(), &rbacPb.PutUserRequest{
+			UserId: userName,
+			User: &rbacPb.User{
+				Name:   userName,
+				RoleId: usr.RoleID,
+			},
+		})
+		if err != nil {
+			fmt.Println("PUT USER GRPC ERR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
 
 func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

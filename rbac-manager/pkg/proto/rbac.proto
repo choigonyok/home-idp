@@ -13,7 +13,9 @@ service RbacService {
   rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
   rpc PostUser (PostUserRequest) returns (PostUserReply) {}
+  rpc PutUser (PutUserRequest) returns (PutUserReply) {}
 }
+
 
 enum Action {
   CREATE = 0;
@@ -117,4 +119,11 @@ message Error {
   string error = 1;
 }
 
+message PutUserRequest {
+  string userId = 1;
+  User user = 2;
+}
 
+message PutUserReply {
+  Error error = 1;
+}
