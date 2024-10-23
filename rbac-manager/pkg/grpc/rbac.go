@@ -172,3 +172,28 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 		Users: usrs,
 	}, nil
 }
+
+func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserRequest) (*pb.PostUserReply, error) {
+	usr := in.GetUser()
+	userName := usr.GetName()
+	roleName := usr.GetRoleId()
+	projectName := in.GetProjectName()
+
+	fmt.Println("TEST USERNAME AND ROLENAME:"+userName, roleName)
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM roles WHERE name = '` + roleName + `'`)
+	roleId := ""
+	r.Scan(&roleId)
+
+	rr := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + projectName + `'`)
+	projectId := ""
+	rr.Scan(&projectId)
+
+	row := svr.StorageClient.DB().QueryRow(`INSERT INTO users (name, role_Id) VALUES ('` + userName + `', ` + roleId + `) RETURNING id`)
+	id := ""
+	row.Scan(&id)
+
+	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES (` + id + `, ` + projectId + ` )`)
+
+	return &pb.PostUserReply{}, err
+}

@@ -12,6 +12,7 @@ service RbacService {
   rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
   rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
+  rpc PostUser (PostUserRequest) returns (PostUserReply) {}
 }
 
 enum Action {
@@ -102,4 +103,18 @@ message GetUsersRequest {
 message GetUsersReply {
   repeated User users = 1;
 }
+
+message PostUserRequest {
+  User user = 1;
+  string projectName = 2;
+}
+
+message PostUserReply {
+  Error error = 1;
+}
+
+message Error {
+  string error = 1;
+}
+
 

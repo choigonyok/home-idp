@@ -61,21 +61,35 @@ func (c *GatewayGitClient) CreateDockerFile(username, image, content string) err
 	)
 }
 
-func (c *GatewayGitClient) GetDockerFiles() []byte {
+func (c *GatewayGitClient) GetDockerFiles(projectName, userName string) []byte {
 	data := make(map[string]map[string]string)
 
-	users := c.Client.GetFilesByPath("docker")
-	for _, user := range users {
-		files := c.Client.GetFilesByPath("docker/" + user)
-		data[user] = make(map[string]string)
+	fmt.Println("PROJECTNAME:", projectName)
+	fmt.Println("USERNAME:", userName)
 
-		for _, file := range files {
-			content := c.Client.GetFilesByPath("docker/" + user + "/" + file)
-			fmt.Println("TEST DOCKERFILE CONTENTS:", content)
-			fmt.Println("TEST DOCKERFILE CONTENT:", content[0])
-			data[user][file] = content[0]
-		}
+	files := c.Client.GetFilesByPath("docker/" + userName)
+	fmt.Println("FILES:", userName)
+	data[userName] = make(map[string]string)
+
+	for _, file := range files {
+		content := c.Client.GetFilesByPath("docker/" + userName + "/" + file)
+		fmt.Println("TEST DOCKERFILE CONTENTS:", content)
+		fmt.Println("TEST DOCKERFILE CONTENT:", content[0])
+		data[userName][file] = content[0]
 	}
+
+	// users := c.Client.GetFilesByPath("docker")
+	// for _, user := range users {
+	// 	files := c.Client.GetFilesByPath("docker/" + user)
+	// 	data[user] = make(map[string]string)
+
+	// 	for _, file := range files {
+	// 		content := c.Client.GetFilesByPath("docker/" + user + "/" + file)
+	// 		fmt.Println("TEST DOCKERFILE CONTENTS:", content)
+	// 		fmt.Println("TEST DOCKERFILE CONTENT:", content[0])
+	// 		data[user][file] = content[0]
+	// 	}
+	// }
 
 	b, err := json.Marshal(data)
 	if err != nil {
