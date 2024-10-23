@@ -40,7 +40,7 @@ func (c *GatewayKubeClient) GetNamespaces() *[]string {
 }
 
 func (c *GatewayKubeClient) DeleteResources(resources, names, namespace string) error {
-	list := strings.Split(names, ", ")
+	list := strings.Split(names, ",")
 	switch resources {
 	case "pods":
 		if err := c.Client.DeletePods(&list, namespace); err != nil {
