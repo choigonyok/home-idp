@@ -9,8 +9,10 @@ option go_package = "./";
 
 service RbacService {
   rpc Check (RbacRequest) returns (RbacReply) {}
-  rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
+  rpc GetRoles (google.protobuf.Empty) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
+  rpc PostRole (PostRoleRequest) returns (google.protobuf.Empty) {}
+
   rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
   rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
@@ -46,6 +48,7 @@ message RbacReply {
 message Role {
   string id = 1;
   string name = 2;
+  string create_time = 3;
 }
 
 message PostProjectRequest {
@@ -102,7 +105,6 @@ message User {
 
 
 message GetUsersRequest {
-  string userId = 1;
   string projectName = 2;
 }
 
@@ -126,4 +128,8 @@ message PutUserRequest {
 
 message PutUserReply {
   Error error = 1;
+}
+
+message PostRoleRequest {
+  string role_name = 1;
 }

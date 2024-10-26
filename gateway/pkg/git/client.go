@@ -61,21 +61,39 @@ func (c *GatewayGitClient) CreateDockerFile(username, image, content string) err
 	)
 }
 
-func (c *GatewayGitClient) GetDockerFiles(projectName, userName string) []byte {
-	data := make(map[string]map[string]string)
-
+func (c *GatewayGitClient) GetDockerFiles(projectName string) []byte {
 	fmt.Println("PROJECTNAME:", projectName)
-	fmt.Println("USERNAME:", userName)
 
-	files := c.Client.GetFilesByPath("docker/" + userName)
-	fmt.Println("FILES:", userName)
-	data[userName] = make(map[string]string)
+	users := c.Client.GetFilesByPath("docker")
+	fmt.Println("USERS:", users)
 
-	for _, file := range files {
-		content := c.Client.GetFilesByPath("docker/" + userName + "/" + file)
-		fmt.Println("TEST DOCKERFILE CONTENTS:", content)
-		fmt.Println("TEST DOCKERFILE CONTENT:", content[0])
-		data[userName][file] = content[0]
+	datas := []struct {
+		Creator    string `json:"creator"`
+		Name       string `json:"name"`
+		Version    string `json:"version"`
+		Repository string `json:"repository"`
+	}{}
+
+	for _, user := range users {
+		files := c.Client.GetFilesByPath("docker/" + user)
+		for _, f := range files {
+			content := c.Client.GetFilesByPath("docker/" + user + "/" + f)
+			fmt.Println("TEST DOCKERFILE CONTENTS:", content[0])
+
+			img, _ := strings.CutPrefix(f, "Dockerfile.")
+			imgName, imgVersion, _ := strings.Cut(img, ":")
+
+			datas = append(datas, struct {
+				Creator    string `json:"creator"`
+				Name       string `json:"name"`
+				Version    string `json:"version"`
+				Repository string `json:"repository"`
+			}{
+				Creator: user,
+				Name:    imgName,
+				Version: imgVersion,
+			})
+		}
 	}
 
 	// users := c.Client.GetFilesByPath("docker")
@@ -91,7 +109,7 @@ func (c *GatewayGitClient) GetDockerFiles(projectName, userName string) []byte {
 	// 	}
 	// }
 
-	b, err := json.Marshal(data)
+	b, err := json.Marshal(datas)
 	if err != nil {
 		fmt.Println("TEST MARSHALED DOCKERFILES ERR:", err)
 	}

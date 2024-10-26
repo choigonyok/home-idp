@@ -456,7 +456,24 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
 
+		role := rbacPb.Role{}
+
+		json.Unmarshal(b, &role)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
+			RoleName: role.Name,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -538,16 +555,15 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetRolesHandler() http.HandlerFunc {
+func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
-		reply, err := c.GetRoles(context.TODO(), &rbacPb.GetRolesRequest{})
+		reply, err := c.GetRoles(context.TODO(), nil)
 		if err != nil {
-			fmt.Println("GET ROLES GRPC ERR:", err)
+			fmt.Println("ERR GETTING ROLE LIST ERR:", err)
 		}
 
 		roles := reply.GetRoles()
-
 		b, _ := json.Marshal(roles)
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -606,18 +622,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 			fmt.Println("GET USERS GRPC ERR:", err)
 		}
 
-		usrs := []model.User{}
-
-		for _, usr := range reply.GetUsers() {
-			usrs = append(usrs, model.User{
-				ID:         usr.Id,
-				Name:       usr.Name,
-				RoleID:     usr.RoleId,
-				CreateTime: usr.CreateTime,
-			})
-		}
-
-		b, _ := json.Marshal(usrs)
+		b, _ := json.Marshal(reply.GetUsers())
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)

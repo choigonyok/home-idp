@@ -13,7 +13,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 
-	apiv1 "k8s.io/api/core/v1"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,7 +65,7 @@ func getKubeConfig() (*rest.Config, error) {
 	return clientConfig.ClientConfig()
 }
 
-func ListServices(namespace string, client kubernetes.Interface) (*apiv1.ServiceList, error) {
+func ListServices(namespace string, client kubernetes.Interface) (*corev1.ServiceList, error) {
 	return client.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
 }
 
@@ -78,19 +77,37 @@ func getDynamicClient(kubeconfig *rest.Config) (*dynamic.DynamicClient, error) {
 	return client, nil
 }
 
-func (c *KubeClient) GetPodsByLabel(namespace, label string) []apiv1.Pod {
+func (c *KubeClient) GetPodsByLabel(namespace, label string) []corev1.Pod {
 	pods, _ := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: label})
 
 	return pods.Items
 }
 
-func (c *KubeClient) GetPods(namespace string) (*[]apiv1.Pod, error) {
+func (c *KubeClient) GetPods(namespace string) (*[]corev1.Pod, error) {
 	pods, err := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 	return &pods.Items, err
 }
 
-func (c *KubeClient) GetServices(namespace string) (*[]apiv1.Service, error) {
+func (c *KubeClient) GetServices(namespace string) (*[]corev1.Service, error) {
 	svcs, err := c.ClientSet.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	return &svcs.Items, err
+}
+
+func (c *KubeClient) GetServicesWithLabels(labels map[string]string, namespace string) (*[]corev1.Service, error) {
+	selector := []string{}
+
+	for k, v := range labels {
+		selector = append(selector, k+"="+v)
+	}
+
+	s := strings.Join(selector, ",")
+
+	fmt.Println("SELECTOR STRING:", s)
+
+	svcs, err := c.ClientSet.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
+		LabelSelector: s,
+	})
+
 	return &svcs.Items, err
 }
 
@@ -115,6 +132,27 @@ func (c *KubeClient) DeletePods(pods *[]string, namespace string) error {
 		}
 	}
 	return nil
+}
+
+func (c *KubeClient) GetPodsWithConfigmap(configmap, namespace string) ([]*corev1.Pod, error) {
+	ps, _ := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
+
+	pods := []*corev1.Pod{}
+	for _, pod := range ps.Items {
+		for _, v := range pod.Spec.Volumes {
+			// fmt.Println("1", v.String())
+			// fmt.Println("2", v.ConfigMap.LocalObjectReference.Name)
+			// fmt.Println("3", configmap)
+			if v.ConfigMap.String() != "nil" {
+				if v.ConfigMap.LocalObjectReference.Name == configmap {
+					pods = append(pods, &pod)
+					fmt.Println("POD NAME:", pod.Name)
+				}
+			}
+		}
+	}
+
+	return pods, nil
 }
 
 func (c *KubeClient) DeleteServices(services *[]string, namespace string) error {
@@ -158,7 +196,7 @@ func (c *KubeClient) GetSecrets(namespace string) (*[]corev1.Secret, error) {
 	return &secrets.Items, err
 }
 
-func (c *KubeClient) GetNamespaces() (*[]apiv1.Namespace, error) {
+func (c *KubeClient) GetNamespaces() (*[]corev1.Namespace, error) {
 	namespaces, err := c.ClientSet.CoreV1().Namespaces().List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		return nil, err

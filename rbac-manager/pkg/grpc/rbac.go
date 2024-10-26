@@ -64,8 +64,9 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 	return &pb.GetRoleReply{Role: &role}, nil
 }
 
-func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesRequest) (*pb.GetRolesReply, error) {
-	r, err := svr.StorageClient.DB().Query(`SELECT id, name FROM roles ORDER BY create_time DESC`)
+func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
+
+	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -74,11 +75,13 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesReque
 	roles := []*pb.Role{}
 	for r.Next() {
 		role := pb.Role{}
-		r.Scan(&role.Id, &role.Name)
+		r.Scan(&role.Id, &role.Name, &role.CreateTime)
 		roles = append(roles, &role)
 	}
 
-	return &pb.GetRolesReply{Roles: roles}, nil
+	return &pb.GetRolesReply{
+		Roles: roles,
+	}, nil
 }
 
 func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPoliciesRequest) (*pb.GetPoliciesReply, error) {
@@ -143,7 +146,8 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	row := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + in.ProjectName + `'`)
 	row.Scan(&pid)
 
-	r, err := svr.StorageClient.DB().Query(`SELECT users.id, users.name, users.create_time, users.role_id FROM users JOIN userprojectmapping ON users.id = userprojectmapping.user_id WHERE userprojectmapping.project_id = ` + pid)
+	r, err := svr.StorageClient.DB().Query(`SELECT users.id, users.name, users.create_time, users.role_id FROM users JOIN userprojectmapping ON users.id = userprojectmapping.user_id WHERE userprojectmapping.project_id = '` + pid + `'`)
+
 	if err != nil {
 		fmt.Println("TEST GETUSERS QUERY ERR:", err)
 		return nil, err
@@ -175,6 +179,19 @@ func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjec
 	return nil, nil
 }
 
+func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*emptypb.Empty, error) {
+	roleName := in.GetRoleName()
+
+	id := uuid.NewString()
+
+	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + id + `', '` + roleName + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserRequest) (*emptypb.Empty, error) {
 	usr := in.GetUser()
 	userName := usr.GetName()
@@ -185,19 +202,21 @@ func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserReque
 	projectId := ""
 	r.Scan(&projectId)
 
+	fmt.Println("username:", userName)
+	fmt.Println("roleid:", roleId)
+	fmt.Println("project name:", projectName)
+
 	id := ""
 	rr := svr.StorageClient.DB().QueryRow(`SELECT id FROM users WHERE name = '` + userName + `'`)
 
-	if rr.Err() == sql.ErrNoRows {
+	if rr.Scan(&id) == sql.ErrNoRows {
 		id = uuid.NewString()
 		if _, err := svr.StorageClient.DB().Exec(`INSERT INTO users  (id, name, role_id) VALUES ('` + id + `', '` + userName + `', '` + roleId + `')`); err != nil {
 			return nil, err
 		}
-	} else {
-		rr.Scan(&id)
 	}
 
-	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES (` + id + `, ` + projectId + ` )`)
+	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES ('` + id + `', '` + projectId + `' )`)
 
 	return nil, err
 }

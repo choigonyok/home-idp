@@ -42,10 +42,37 @@ func (c *GatewayKubeClient) GetConfigmaps(namespace string) *[]model.Configmap {
 
 func (c *GatewayKubeClient) GetConfigmap(name, namespace string) *map[string]string {
 	cms, err := c.Client.GetConfigmap(name, namespace)
+
 	if err != nil {
 		fmt.Println("TEST GET CONFIGMAP "+name+" FOR NAMESPACE "+namespace+" ERR:", err)
 		return nil
 	}
 
 	return &cms.Data
+}
+
+func (c *GatewayKubeClient) GetConfigmapMountedService(configmap, namespace string) []string {
+	pods, err := c.Client.GetPodsWithConfigmap(configmap, namespace)
+	if err != nil {
+		fmt.Println("TEST GET CONFIGMAP1: ", err)
+		return nil
+	}
+
+	service := []string{}
+	for i, pod := range pods {
+		fmt.Println("-------TEST", i, "-------")
+		l := pod.GetLabels()
+		fmt.Println("LABELS:", l)
+		svc, err := c.Client.GetServicesWithLabels(l, namespace)
+		if err != nil {
+			fmt.Println("TEST GET CONFIGMAP2: ", err)
+			return nil
+		}
+		for _, s := range *svc {
+			service = append(service, s.Name)
+			fmt.Println("SERVICE NAME:", s.Name)
+		}
+	}
+
+	return service
 }
