@@ -20,8 +20,12 @@ import (
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
+
+var testUserId = uuid.New().String()
 
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -426,6 +430,36 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
+
+		p := rbacPb.Project{}
+
+		json.Unmarshal(b, &p)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
+			ProjectName: p.GetName(),
+			CreatorId:   testUserId,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING PROJECT :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}
+
 func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
@@ -434,25 +468,20 @@ func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		b, _ := io.ReadAll(r.Body)
 
-		usr := model.User{}
+		usr := rbacPb.User{}
+
 		json.Unmarshal(b, &usr)
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
-		reply, err := c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
+		_, err := c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
 			User: &rbacPb.User{
-				RoleId: usr.RoleID,
+				RoleId: usr.RoleId,
 				Name:   usr.Name,
 			},
 			ProjectName: projectName,
 		})
 		if err != nil {
 			fmt.Println("POST USER GRPC ERR:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if reply.Error != nil {
-			fmt.Println("POST USER GRPC ERR2:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -492,14 +521,13 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetDockerfileHandler() http.HandlerFunc {
+func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		userName := vars["userName"]
 		projectName := vars["projectName"]
 
 		fmt.Println("GET GET DOCKER REQUEST")
-		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName, userName)
+		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName)
 		if len(dockerfiles) == 0 {
 			w.WriteHeader(http.StatusNoContent)
 			return
@@ -512,38 +540,15 @@ func (svc *Gateway) apiGetDockerfileHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRolesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-
-		fmt.Println()
-		fmt.Println("GET GET ROLES REQUEST")
-
-		userId := r.URL.Query().Get("user_id")
-		fmt.Println("USER ID ", userId, " tried to get every roles")
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
 		reply, err := c.GetRoles(context.TODO(), &rbacPb.GetRolesRequest{})
 		if err != nil {
 			fmt.Println("GET ROLES GRPC ERR:", err)
 		}
 
-		datas := []struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		}{}
-		data := struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		}{}
-
 		roles := reply.GetRoles()
-		for _, role := range roles {
-			fmt.Println(role.Id)
-			fmt.Println(role.Name)
-			roleId, _ := strconv.Atoi(role.GetId())
-			data.ID = roleId
-			data.Name = role.GetName()
-			datas = append(datas, data)
-		}
 
-		b, _ := json.Marshal(datas)
+		b, _ := json.Marshal(roles)
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
@@ -553,9 +558,6 @@ func (svc *Gateway) apiGetRolesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println()
-		fmt.Println("GET GET ROLE REQUEST")
-
 		vars := mux.Vars(r)
 		userId := vars["userId"]
 
@@ -623,31 +625,15 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetProjectsHandler() http.HandlerFunc {
+func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		uid := ""
-		uid = r.URL.Query().Get("user_id")
-
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
-		reply, err := c.GetProjects(context.TODO(), &rbacPb.GetProjectsRequest{
-			UserId: uid,
-		})
-
+		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
 		if err != nil {
-			fmt.Println("GET PROJECTS GRPC ERR:", err)
+			fmt.Println("ERR GET PROJECT LIST :", err)
 		}
 
-		projects := []model.Project{}
-
-		for _, p := range reply.GetProjects() {
-			projects = append(projects, model.Project{
-				ID:      p.Id,
-				Name:    p.Name,
-				Creator: p.Creator,
-			})
-		}
-
-		b, _ := json.Marshal(projects)
+		b, _ := json.Marshal(reply.GetProjects())
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
@@ -699,6 +685,71 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		proj := vars["projectName"]
+
+		data := []struct {
+			Name     string   `json:"name"`
+			Services []string `json:"services"`
+		}{}
+
+		configmaps := svc.ClientSet.KubeClient.GetConfigmaps(proj)
+		for _, cm := range *configmaps {
+			fmt.Println("CM NAME:", cm.Name)
+			service := svc.ClientSet.KubeClient.GetConfigmapMountedService(cm.Name, proj)
+			services := []string{}
+			for _, s := range service {
+				services = append(services, s)
+
+				data = append(data, struct {
+					Name     string   `json:"name"`
+					Services []string `json:"services"`
+				}{
+					Name:     cm.Name,
+					Services: services,
+				})
+			}
+		}
+
+		b, _ := json.Marshal(data)
+
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		proj := vars["projectName"]
+
+		data := []struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		}{}
+
+		secrets := *svc.ClientSet.KubeClient.GetSecret(proj)
+		for k, v := range secrets {
+			data = append(data, struct {
+				Key   string `json:"key"`
+				Value string `json:"value"`
+			}{
+				Key:   k,
+				Value: v,
+			})
+		}
+
+		b, _ := json.Marshal(data)
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)

@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -26,9 +27,10 @@ type RbacServiceClient interface {
 	GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
-	GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error)
+	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
-	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*PostUserReply, error)
+	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error)
 	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
 }
 
@@ -76,7 +78,7 @@ func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *GetPoliciesRequ
 	return out, nil
 }
 
-func (c *rbacServiceClient) GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error) {
+func (c *rbacServiceClient) GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error) {
 	out := new(GetProjectsReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetProjects", in, out, opts...)
 	if err != nil {
@@ -94,9 +96,18 @@ func (c *rbacServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, o
 	return out, nil
 }
 
-func (c *rbacServiceClient) PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*PostUserReply, error) {
-	out := new(PostUserReply)
+func (c *rbacServiceClient) PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/PostUser", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error) {
+	out := new(PostProjectReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/PostProject", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,9 +131,10 @@ type RbacServiceServer interface {
 	GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error)
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
-	GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error)
+	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
-	PostUser(context.Context, *PostUserRequest) (*PostUserReply, error)
+	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
+	PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error)
 	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
@@ -143,14 +155,17 @@ func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) 
 func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicies not implemented")
 }
-func (UnimplementedRbacServiceServer) GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error) {
+func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjects not implemented")
 }
 func (UnimplementedRbacServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
 }
-func (UnimplementedRbacServiceServer) PostUser(context.Context, *PostUserRequest) (*PostUserReply, error) {
+func (UnimplementedRbacServiceServer) PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostUser not implemented")
+}
+func (UnimplementedRbacServiceServer) PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostProject not implemented")
 }
 func (UnimplementedRbacServiceServer) PutUser(context.Context, *PutUserRequest) (*PutUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutUser not implemented")
@@ -241,7 +256,7 @@ func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec 
 }
 
 func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetProjectsRequest)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -253,7 +268,7 @@ func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.RbacService/GetProjects",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).GetProjects(ctx, req.(*GetProjectsRequest))
+		return srv.(RbacServiceServer).GetProjects(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -290,6 +305,24 @@ func _RbacService_PostUser_Handler(srv interface{}, ctx context.Context, dec fun
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RbacServiceServer).PostUser(ctx, req.(*PostUserRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_PostProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PostProjectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).PostProject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/PostProject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).PostProject(ctx, req.(*PostProjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -346,6 +379,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostUser",
 			Handler:    _RbacService_PostUser_Handler,
+		},
+		{
+			MethodName: "PostProject",
+			Handler:    _RbacService_PostProject_Handler,
 		},
 		{
 			MethodName: "PutUser",

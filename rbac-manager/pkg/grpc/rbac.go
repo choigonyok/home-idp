@@ -2,12 +2,15 @@ package grpc
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"strconv"
 	"strings"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
+	"github.com/google/uuid"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type RbacServiceServer struct {
@@ -64,7 +67,6 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesRequest) (*pb.GetRolesReply, error) {
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name FROM roles ORDER BY create_time DESC`)
 	if err != nil {
-		fmt.Println("TEST GETROLES QUERY ERR:", err)
 		return nil, err
 	}
 	defer r.Close()
@@ -115,22 +117,10 @@ func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPolicie
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProjectsRequest) (*pb.GetProjectsReply, error) {
-	// repo := repository.New(svr.StorageClient)
-	// i, err := repo.Table("projects").Get("id, name, creator")
-	// if err != nil {
-	// 	fmt.Println("TEST GETPROJECTS QUERY ERR:", err)
-	// 	return nil, err
-	// }
-	// projs := []*pb.Project{}
-	// p := i.([]*model.Project)
-	// for _, v := range p {
-	// 	v.Name
-	// }
-
-	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator FROM projects`)
+func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *emptypb.Empty) (*pb.GetProjectsReply, error) {
+	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator_id FROM projects`)
 	if err != nil {
-		fmt.Println("TEST GETPROJECTS QUERY ERR:", err)
+		fmt.Println("ERR GETTING PROJECT QUERY :", err)
 		return nil, err
 	}
 	defer r.Close()
@@ -139,7 +129,7 @@ func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProject
 
 	for r.Next() {
 		proj := pb.Project{}
-		r.Scan(&proj.Id, &proj.Name, &proj.Creator)
+		r.Scan(&proj.Id, &proj.Name, &proj.CreatorId)
 		projs = append(projs, &proj)
 	}
 
@@ -173,29 +163,43 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	}, nil
 }
 
-func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserRequest) (*pb.PostUserReply, error) {
-	usr := in.GetUser()
-	userName := usr.GetName()
-	roleName := usr.GetRoleId()
+func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjectRequest) (*pb.PostProjectReply, error) {
+	creatorId := in.GetCreatorId()
 	projectName := in.GetProjectName()
 
-	fmt.Println("TEST USERNAME AND ROLENAME:"+userName, roleName)
+	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO projects (id, name, creator_id) VALUES ('` + uuid.New().String() + `', '` + projectName + `', '` + creatorId + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW PROJECT :", err)
+		return nil, err
+	}
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM roles WHERE name = '` + roleName + `'`)
-	roleId := ""
-	r.Scan(&roleId)
+	return nil, nil
+}
 
-	rr := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + projectName + `'`)
+func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserRequest) (*emptypb.Empty, error) {
+	usr := in.GetUser()
+	userName := usr.GetName()
+	roleId := usr.GetRoleId()
+	projectName := in.GetProjectName()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + projectName + `'`)
 	projectId := ""
-	rr.Scan(&projectId)
+	r.Scan(&projectId)
 
-	row := svr.StorageClient.DB().QueryRow(`INSERT INTO users (name, role_Id) VALUES ('` + userName + `', ` + roleId + `) RETURNING id`)
 	id := ""
-	row.Scan(&id)
+	rr := svr.StorageClient.DB().QueryRow(`SELECT id FROM users WHERE name = '` + userName + `'`)
+
+	if rr.Err() == sql.ErrNoRows {
+		id = uuid.NewString()
+		if _, err := svr.StorageClient.DB().Exec(`INSERT INTO users  (id, name, role_id) VALUES ('` + id + `', '` + userName + `', '` + roleId + `')`); err != nil {
+			return nil, err
+		}
+	} else {
+		rr.Scan(&id)
+	}
 
 	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES (` + id + `, ` + projectId + ` )`)
 
-	return &pb.PostUserReply{}, err
+	return nil, err
 }
 
 func (svr *RbacServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.PutUserReply, error) {

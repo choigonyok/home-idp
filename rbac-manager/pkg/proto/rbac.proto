@@ -3,6 +3,8 @@ syntax = "proto3";
 
 package proto;
 
+import "google/protobuf/empty.proto";
+
 option go_package = "./";
 
 service RbacService {
@@ -10,12 +12,12 @@ service RbacService {
   rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
-  rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
+  rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
-  rpc PostUser (PostUserRequest) returns (PostUserReply) {}
+  rpc PostUser (PostUserRequest) returns (google.protobuf.Empty) {}
+  rpc PostProject (PostProjectRequest) returns (PostProjectReply) {}
   rpc PutUser (PutUserRequest) returns (PutUserReply) {}
 }
-
 
 enum Action {
   CREATE = 0;
@@ -45,6 +47,13 @@ message Role {
   string id = 1;
   string name = 2;
 }
+
+message PostProjectRequest {
+  string projectName = 1;
+  string creatorId = 2;
+}
+
+message PostProjectReply {}
 
 message GetRolesRequest {}
 
@@ -77,12 +86,7 @@ message GetPoliciesReply {
 message Project {
   string id = 1;
   string name = 2;
-  string creator = 3;
-}
-
-
-message GetProjectsRequest {
-  string userId = 1;
+  string creator_id = 3;
 }
 
 message GetProjectsReply {
@@ -92,8 +96,8 @@ message GetProjectsReply {
 message User {
   string id = 1;
   string name = 2;
-  string roleId = 3;
-  string createTime = 4;
+  string role_id = 3;
+  string create_time = 4;
 }
 
 
@@ -109,10 +113,6 @@ message GetUsersReply {
 message PostUserRequest {
   User user = 1;
   string projectName = 2;
-}
-
-message PostUserReply {
-  Error error = 1;
 }
 
 message Error {
