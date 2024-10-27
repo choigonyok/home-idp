@@ -33,27 +33,28 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
 
+	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.apiPostProjectHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.apiGetProjectListHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/user", svc.apiPostUserHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRoleListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/users", svc.apiGetUsersInProjectHandler())
-
+	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/role", svc.apiGetRoleHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/dockerfiles", svc.apiGetDockerfilesHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/dockerfile", svc.apiPostDockerfileHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
+
+	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
+	// svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
+
 	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetPoliciesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources", svc.apiGetResourcesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources/configmaps/{configmapName}", svc.apiGetConfigmapHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/projects/{projectName}/resources/{resourceName}", svc.apiDeleteResourcesHandler())
-	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/api/", svc.ApiOptionsHandler())
 	svr.Router.RegisterRoute(http.MethodPut, "/api/projects/{projectName}/users/{userName}", svc.apiPutUserHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userId}/role", svc.apiGetRoleHandler())
-
-	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/dockerfiles", svc.apiGetDockerfilesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/configmaps", svc.apiGetConfigmapsHandler())
-
 	svr.Router.RegisterRoute(http.MethodGet, "/progress/{image}", svc.GetProgressHandler())
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/progress/", svc.ApiOptionsHandler())
 
@@ -64,9 +65,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 }
 
 func (svc *Gateway) Stop() {
-	for _, cli := range svc.ClientSet.GrpcClient {
-		cli.Close()
-	}
+	svc.ClientSet.GrpcClient.Close()
 	svc.Server.Stop()
 }
 

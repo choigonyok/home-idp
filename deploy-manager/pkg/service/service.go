@@ -26,7 +26,6 @@ func New(port int, opts ...pkgclient.ClientOption) *DeployManager {
 
 func (svc *DeployManager) Stop() {
 	svc.Server.Close()
-	return
 }
 
 func (svc *DeployManager) Start() {
@@ -42,5 +41,4 @@ func (svc *DeployManager) Start() {
 	pb.RegisterDeployServer(svc.Server.Server, pbDeployServer)
 
 	svc.Server.Run()
-	return
 }

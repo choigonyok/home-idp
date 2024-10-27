@@ -15,17 +15,15 @@ import (
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
 	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	"github.com/choigonyok/home-idp/pkg/env"
-	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/model"
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
-	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-var testUserId = uuid.New().String()
+var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
 
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -142,7 +140,7 @@ func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
 		var userInfo map[string]interface{}
 		json.Unmarshal(userBody, &userInfo)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		reply, err := c.Check(context.TODO(), &rbacPb.RbacRequest{
 			Username: userInfo["login"].(string),
 			Target:   "everything",
@@ -287,7 +285,7 @@ func getFilepathFromCommit(e *github.PushEvent) string {
 }
 
 func (svc *Gateway) requestDeploy(filepath string) {
-	c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
+	c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient.GetConnection())
 	reply, err := c.Deploy(context.TODO(), &deployPb.DeployRequest{Filepath: filepath})
 	if err != nil {
 		fmt.Println("TEST DEPLOY REQUEST ERR:", err)
@@ -301,7 +299,7 @@ func (svc *Gateway) requestDeploy(filepath string) {
 }
 
 // func (svc *Gateway) requestLogin(username, password string) {
-// 	c := rbacPb.NewLoginServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+// 	c := rbacPb.NewLoginServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 // 	user := rbacPb.User{Username: username, Password: password}
 // 	resp, err := c.Login(context.TODO(), &rbacPb.LoginRequest{User: &user})
 // 	if err != nil {
@@ -319,7 +317,7 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	step := progress.NewStep(progress.DeployKaniko, progress.Continue, nil)
 	step.Add(name + ":" + version)
 	step.UpdateLog("Deploy-manager grpc client creating...")
-	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient[util.Components(util.DeployManager)].GetConnection())
+	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient.GetConnection())
 
 	step.UpdateLog("Deploy Kaniko to build image...")
 	reply, err := c.BuildDockerfile(context.TODO(), &deployPb.BuildDockerfileRequest{
@@ -394,8 +392,8 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 
 		// 클라이언트가 사용할 수 있는 HTTP 메서드 목록
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 
 		w.WriteHeader(http.StatusOK)
 	}
@@ -405,14 +403,14 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		userName := vars["userName"]
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		usr := model.User{}
 		json.Unmarshal(b, &usr)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		_, err := c.PutUser(context.TODO(), &rbacPb.PutUserRequest{
 			UserId: userName,
 			User: &rbacPb.User{
@@ -433,13 +431,15 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
 		b, _ := io.ReadAll(r.Body)
 
 		p := rbacPb.Project{}
 
 		json.Unmarshal(b, &p)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
 			ProjectName: p.GetName(),
 			CreatorId:   testUserId,
@@ -457,13 +457,14 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		role := rbacPb.Role{}
 
 		json.Unmarshal(b, &role)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
 			RoleName: role.Name,
 		})
@@ -483,13 +484,14 @@ func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 		projectName := vars["projectName"]
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		usr := rbacPb.User{}
 
 		json.Unmarshal(b, &usr)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		_, err := c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
 			User: &rbacPb.User{
 				RoleId: usr.RoleId,
@@ -507,57 +509,114 @@ func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
+func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("GET POST DOCKER REQUEST")
-		fmt.Println("TEST REQEUST BODY:", r.Body)
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 
 		b, _ := io.ReadAll(r.Body)
+		pod := deployPb.Pod{}
+		json.Unmarshal(b, &pod)
 
-		f := git.GitDockerFile{}
-		json.Unmarshal(b, &f)
-
-		step := progress.NewStep(progress.PushDockerfile, progress.Continue, []string{"GET POST DOCKER REQUEST", fmt.Sprintln("TEST REQEUST BODY:", r.Body)})
-
-		step.Add(f.Image)
-
-		imageName, _, _ := strings.Cut(f.Image, ":")
-		if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
-			fmt.Println("TEST DOCKERFILE ALREADY EXIST")
-			svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
-			step.UpdateState(progress.Fail, "TEST DOCKERFILE ALREADY EXIST")
+		c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient.GetConnection())
+		_, err := c.DeployPod(context.TODO(), &deployPb.DeployPodRequest{
+			Pod: &deployPb.Pod{
+				Name:          pod.GetName(),
+				Namespace:     pod.GetNamespace(),
+				Image:         pod.GetImage(),
+				ContainerPort: pod.GetContainerPort(),
+			},
+		})
+		if err != nil {
+			fmt.Println("ERR POSTTING NEW POD :", err)
+			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		step.UpdateLog("DOCKERFILE NOT EXIST! START TO CREATE...")
-		if err := svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content); err != nil {
-			step.UpdateState(progress.Fail, err.Error())
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+		b, _ := io.ReadAll(r.Body)
+
+		d := rbacPb.Dockerfile{}
+
+		json.Unmarshal(b, &d)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		_, err := c.PostDockerfile(context.TODO(), &rbacPb.PostDockerfileRequest{
+			Dockerfile: &rbacPb.Dockerfile{
+				ImageName:    d.ImageName,
+				ImageVersion: d.ImageVersion,
+				CreatorId:    testUserId,
+				Repository:   d.Repository,
+				Content:      d.Content,
+			},
+		})
+		if err != nil {
+			fmt.Println("POST DOCKERFILE GRPC ERR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
-		step.UpdateState(progress.Success, "CREATE DOCKERFILE FINISH!")
+
+		w.WriteHeader(http.StatusOK)
+
+		// f := git.GitDockerFile{}
+		// json.Unmarshal(b, &f)
+
+		// step := progress.NewStep(progress.PushDockerfile, progress.Continue, []string{"GET POST DOCKER REQUEST", fmt.Sprintln("TEST REQEUST BODY:", r.Body)})
+
+		// step.Add(f.Image)
+
+		// imageName, _, _ := strings.Cut(f.Image, ":")
+		// if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
+		// 	fmt.Println("TEST DOCKERFILE ALREADY EXIST")
+		// 	svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
+		// 	step.UpdateState(progress.Fail, "TEST DOCKERFILE ALREADY EXIST")
+		// 	return
+		// }
+		// step.UpdateLog("DOCKERFILE NOT EXIST! START TO CREATE...")
+		// if err := svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content); err != nil {
+		// 	step.UpdateState(progress.Fail, err.Error())
+		// }
+		// step.UpdateState(progress.Success, "CREATE DOCKERFILE FINISH!")
 	}
 }
 
 func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		projectName := vars["projectName"]
-
-		fmt.Println("GET GET DOCKER REQUEST")
-		dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName)
-		if len(dockerfiles) == 0 {
-			w.WriteHeader(http.StatusNoContent)
-			return
+		userName := vars["userName"]
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		reply, err := c.GetDockerfiles(context.TODO(), &rbacPb.GetDockerfilesRequest{
+			UserName: userName,
+		})
+		if err != nil {
+			fmt.Println("ERR GETTING DOCKERFILES ERR:", err)
 		}
+
+		// dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName)
+
+		// if len(dockerfiles) == 0 {
+		// 	w.WriteHeader(http.StatusNoContent)
+		// 	return
+		// }
+
+		b, _ := json.Marshal(reply.GetDockerfiles())
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
-		w.Write(dockerfiles)
+		w.Write(b)
 	}
 }
 
 func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		reply, err := c.GetRoles(context.TODO(), nil)
 		if err != nil {
 			fmt.Println("ERR GETTING ROLE LIST ERR:", err)
@@ -567,6 +626,7 @@ func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 		b, _ := json.Marshal(roles)
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -575,36 +635,21 @@ func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
-		userId := vars["userId"]
+		userName := vars["userName"]
 
-		fmt.Println("USER ID ", userId, " tried to get his role")
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
-		reply, err := c.GetRole(context.TODO(), &rbacPb.GetRoleRequest{UserId: userId})
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		reply, err := c.GetRole(context.TODO(), &rbacPb.GetRoleRequest{UserName: userName})
 		if err != nil {
 			fmt.Println("GET USER ROLE GRPC ERR:", err)
 		}
 
-		role := reply.GetRole()
-		fmt.Println("---USER " + userId + " ROLE---")
-		fmt.Println(role.Id)
-		fmt.Println(role.Name)
-		fmt.Println("---ROLE END---")
-		roleId, _ := strconv.Atoi(role.GetId())
-
-		data := struct {
-			ID   int    `json:"id"`
-			Name string `json:"name"`
-		}{
-			ID:   roleId,
-			Name: role.GetName(),
-		}
-
-		b, _ := json.Marshal(data)
+		b, _ := json.Marshal(reply.GetRole())
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
+
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
-
 	}
 }
 
@@ -613,7 +658,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
 			ProjectName: proj,
 		})
@@ -623,7 +668,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(reply.GetUsers())
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -632,7 +677,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
 		if err != nil {
 			fmt.Println("ERR GET PROJECT LIST :", err)
@@ -641,6 +686,7 @@ func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 		b, _ := json.Marshal(reply.GetProjects())
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -658,7 +704,7 @@ func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 	}
@@ -690,7 +736,7 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -726,7 +772,7 @@ func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(data)
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -757,6 +803,7 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 		b, _ := json.Marshal(data)
 
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -782,7 +829,7 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(data)
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -799,7 +846,7 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 		userId := r.URL.Query().Get("user_id")
 
 		fmt.Println("USER ", userId, " tried to get policies")
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient[util.Components(util.RbacManager)].GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
 		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
 			RoleId: roleId,
 		})
@@ -821,7 +868,7 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -834,7 +881,7 @@ func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 		username := r.URL.Query().Get("username")
 		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
 		fmt.Println(err)
-
+		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 	}
 }
