@@ -1,0 +1,201 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-config
+  namespace: idp-system
+data:
+  envoy.yaml: |
+    static_resources:
+      listeners:
+        - name: listener_inbound
+          address:
+            socket_address:
+              address: 0.0.0.0
+              port_value: 10000
+          filter_chains:
+            - filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: inbound_http
+                    route_config:
+                      name: local_route
+                      virtual_hosts:
+                        - name: service
+                          domains: ["*"]
+                          routes:
+                            - match: { prefix: "/proto." }
+                              route: { cluster: grpc_backend }
+                            - match: { prefix: "/" }
+                              route: { cluster: http_backend }
+                    http_filters:
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+                    access_log:
+                      - name: envoy.access_loggers.stdout
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
+                          log_format:
+                            text_format: "INBOUND REQUEST\n"
+
+        - name: listener_outbound
+          address:
+            socket_address: { address: 0.0.0.0, port_value: 15103 }
+          filter_chains:
+            - filters:
+                - name: envoy.filters.network.http_connection_manager
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                    stat_prefix: outbound
+                    codec_type: AUTO
+                    http2_protocol_options: {}
+                    route_config:
+                      name: local_route
+                      virtual_hosts:
+                        - name: rbac_manager_service
+                          domains: ["*"]
+                          request_headers_to_add:
+                            - header:
+                                key: "x-target-service"
+                                value: "deploy-manager"
+                          routes:
+                            - match: { prefix: "/proto.RbacService" }
+                              request_headers_to_add:
+                                - header:
+                                    key: "x-upstream-service"
+                                    value: "rbac-manager"
+                              route: 
+                                cluster: rbac_manager_service_cluster
+                              typed_per_filter_config:
+                                envoy.filters.http.header_mutation:
+                                  "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
+                                  mutations:
+                                    request_mutations:
+                                      - append:
+                                          header:
+                                            key: "x-service-route"
+                                            value: "service-a"
+                            - match: { prefix: "/proto.Deploy" }
+                              request_headers_to_add:
+                                - header:
+                                    key: "x-upstream-service"
+                                    value: "deploy-manager"
+                              typed_per_filter_config:
+                                envoy.filters.http.header_mutation:
+                                  "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
+                                  mutations:
+                                    request_mutations:
+                                      - append:
+                                          header:
+                                            key: "x-service-route"
+                                            value: "service-a"
+                              route: 
+                                cluster: deploy_manager_service_cluster
+                    http_filters:
+                      - name: envoy.filters.http.header_mutation
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
+                      - name: envoy.filters.http.lua
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                          inline_code: |
+                            function envoy_on_request(request_handle)
+                              local path = request_handle:headers():get(":path")
+                              local target_cluster = ""
+
+                              if path and path:find("^/proto.RbacService") then
+                                target_cluster = "rbac_manager_service_cluster"
+                                request_handle:logInfo("OUTBOUND REQUEST START FROM RBAC MANAGER")
+                              elseif path and path:find("^/proto.Deploy") then
+                                target_cluster = "deploy_manager_service_cluster"
+                                request_handle:logInfo("OUTBOUND REQUEST START FROM DEPLOY MANAGER")
+                              else
+                                target_cluster = "unknown_cluster"
+                                request_handle:logInfo("OUTBOUND REQUEST START FROM UNKNOWN MANAGER")
+                              end
+
+                              request_handle:headers():add("x-envoy-upstream-cluster", target_cluster)
+                            end
+
+
+                            function envoy_on_response(response_handle)
+                              local cluster_name = response_handle:headers():get("x-envoy-upstream-cluster")
+                              if cluster_name == "rbac_manager_service_cluster" then
+                                response_handle:logInfo("OUTBOUND REQUEST END FROM RBAC MANAGER")
+                              elseif cluster_name == "deploy_manager_service_cluster" then
+                                response_handle:logInfo("OUTBOUND REQUEST END FROM DEPLOY MANAGER")
+                              else
+                                response_handle:logInfo("OUTBOUND REQUEST END FROM UNKNOWN SERVICE")
+                              end
+                            end
+                          
+                      - name: envoy.filters.http.router
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
+      clusters:
+        - name: http_backend
+          connect_timeout: 0.25s
+          type: LOGICAL_DNS
+          lb_policy: ROUND_ROBIN
+          load_assignment:
+            cluster_name: http_backend
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: localhost
+                          port_value: 5103
+
+        - name: grpc_backend
+          connect_timeout: 0.25s
+          type: LOGICAL_DNS
+          lb_policy: ROUND_ROBIN
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: grpc_backend
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: localhost
+                          port_value: 5103
+
+        - name: rbac_manager_service_cluster
+          connect_timeout: 0.25s
+          type: LOGICAL_DNS
+          lb_policy: ROUND_ROBIN
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: rbac_manager_service_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: home-idp-rbac-manager
+                          port_value: 5103
+
+        - name: deploy_manager_service_cluster
+          connect_timeout: 0.25s
+          type: LOGICAL_DNS
+          lb_policy: ROUND_ROBIN
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: deploy_manager_service_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: home-idp-deploy-manager
+                          port_value: 5104
+
+    admin:
+      access_log_path: "/tmp/admin_access.log"
+      address:
+        socket_address:
+          address: 0.0.0.0
+          port_value: 20000
