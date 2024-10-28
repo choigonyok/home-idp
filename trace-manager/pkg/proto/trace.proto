@@ -1,0 +1,12 @@
+// protoc --go_out=trace-manager/pkg/proto --go-grpc_out=trace-manager/pkg/proto trace-manager/pkg/proto/trace.proto
+syntax = "proto3";
+
+package proto;
+
+// import "google/protobuf/empty.proto";
+
+option go_package = "./";
+
+service TraceService {
+}
+

@@ -1,0 +1,19 @@
+FROM achoistic98/base:1.22.5
+
+WORKDIR /app
+
+COPY go.mod .
+
+COPY go.sum .
+
+RUN go mod download
+
+COPY ./.idpctl ./.idpctl
+
+COPY ./pkg ./pkg
+
+COPY ./trace-manager ./trace-manager
+
+RUN go build -o ./tm ./trace-manager/cmd/main.go
+
+CMD [ "./tm", "server", "start", "-f", "/app/.idpctl/config.yaml" ]

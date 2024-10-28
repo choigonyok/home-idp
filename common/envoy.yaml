@@ -17,7 +17,7 @@ data:
                 - name: envoy.filters.network.http_connection_manager
                   typed_config:
                     "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
-                    stat_prefix: inbound_http
+                    stat_prefix: inbound
                     route_config:
                       name: local_route
                       virtual_hosts:
@@ -29,15 +29,34 @@ data:
                             - match: { prefix: "/" }
                               route: { cluster: http_backend }
                     http_filters:
+                      - name: envoy.filters.http.lua
+                        typed_config:
+                          "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+                          inline_code: |
+                            function get_current_time_iso8601_inbound()
+                              local date = os.date("!%Y-%m-%dT%H:%M:%S")
+                              local ms = math.floor((os.clock() % 1) * 1000)
+                              local formatted_time = string.format("%s.%03dZ-INBOUND", date, ms)
+                              return formatted_time
+                            end
+
+                            function envoy_on_request(request_handle)
+                              local current_time = get_current_time_iso8601_inbound()
+                              local request_time = request_handle:headers():get("x-request-time")
+                                
+                              local request_id = request_handle:headers():get("x-trace-id")
+
+                              if request_id then
+                                request_handle:headers():replace("x-request-time", request_time .. ", " .. current_time)
+                                request_handle:logInfo("X-Trace-ID: " .. request_id)
+                                request_handle:logInfo("X-Request-Time: " .. request_handle:headers():get("x-request-time"))
+                              end
+                            end
+
                       - name: envoy.filters.http.router
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
-                    access_log:
-                      - name: envoy.access_loggers.stdout
-                        typed_config:
-                          "@type": type.googleapis.com/envoy.extensions.access_loggers.stream.v3.StdoutAccessLog
-                          log_format:
-                            text_format: "INBOUND REQUEST\n"
+
 
         - name: listener_outbound
           address:
@@ -55,81 +74,52 @@ data:
                       virtual_hosts:
                         - name: rbac_manager_service
                           domains: ["*"]
-                          request_headers_to_add:
-                            - header:
-                                key: "x-target-service"
-                                value: "deploy-manager"
                           routes:
                             - match: { prefix: "/proto.RbacService" }
-                              request_headers_to_add:
-                                - header:
-                                    key: "x-upstream-service"
-                                    value: "rbac-manager"
                               route: 
                                 cluster: rbac_manager_service_cluster
-                              typed_per_filter_config:
-                                envoy.filters.http.header_mutation:
-                                  "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
-                                  mutations:
-                                    request_mutations:
-                                      - append:
-                                          header:
-                                            key: "x-service-route"
-                                            value: "service-a"
                             - match: { prefix: "/proto.Deploy" }
-                              request_headers_to_add:
-                                - header:
-                                    key: "x-upstream-service"
-                                    value: "deploy-manager"
-                              typed_per_filter_config:
-                                envoy.filters.http.header_mutation:
-                                  "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
-                                  mutations:
-                                    request_mutations:
-                                      - append:
-                                          header:
-                                            key: "x-service-route"
-                                            value: "service-a"
                               route: 
                                 cluster: deploy_manager_service_cluster
+                            - match: { prefix: "/proto.TraceService" }
+                              route: 
+                                cluster: trace_manager_service_cluster
                     http_filters:
-                      - name: envoy.filters.http.header_mutation
-                        typed_config:
-                          "@type": type.googleapis.com/envoy.extensions.filters.http.header_mutation.v3.HeaderMutationPerRoute
                       - name: envoy.filters.http.lua
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
                           inline_code: |
-                            function envoy_on_request(request_handle)
-                              local path = request_handle:headers():get(":path")
-                              local target_cluster = ""
-
-                              if path and path:find("^/proto.RbacService") then
-                                target_cluster = "rbac_manager_service_cluster"
-                                request_handle:logInfo("OUTBOUND REQUEST START FROM RBAC MANAGER")
-                              elseif path and path:find("^/proto.Deploy") then
-                                target_cluster = "deploy_manager_service_cluster"
-                                request_handle:logInfo("OUTBOUND REQUEST START FROM DEPLOY MANAGER")
-                              else
-                                target_cluster = "unknown_cluster"
-                                request_handle:logInfo("OUTBOUND REQUEST START FROM UNKNOWN MANAGER")
-                              end
-
-                              request_handle:headers():add("x-envoy-upstream-cluster", target_cluster)
+                            function get_current_time_iso8601_outbound()
+                              local date = os.date("!%Y-%m-%dT%H:%M:%S")
+                              local ms = math.floor((os.clock() % 1) * 1000)
+                              local formatted_time = string.format("%s.%03dZ-OUTBOUND", date, ms)
+                              return formatted_time
                             end
 
+                            function envoy_on_request(request_handle)
+                              local current_time = get_current_time_iso8601_outbound()
+                              local request_time = request_handle:headers():get("x-request-time")
+                                
+                              local request_id = request_handle:headers():get("x-trace-id")
+
+                              if request_id then
+                                request_handle:headers():replace("x-request-time", request_time .. ", " .. current_time)
+                                request_handle:logInfo("X-Trace-ID: " .. request_id)
+                                request_handle:logInfo("X-Request-Time: " .. request_handle:headers():get("x-request-time"))
+                              end
+                            end
 
                             function envoy_on_response(response_handle)
-                              local cluster_name = response_handle:headers():get("x-envoy-upstream-cluster")
-                              if cluster_name == "rbac_manager_service_cluster" then
-                                response_handle:logInfo("OUTBOUND REQUEST END FROM RBAC MANAGER")
-                              elseif cluster_name == "deploy_manager_service_cluster" then
-                                response_handle:logInfo("OUTBOUND REQUEST END FROM DEPLOY MANAGER")
-                              else
-                                response_handle:logInfo("OUTBOUND REQUEST END FROM UNKNOWN SERVICE")
+                              local current_time = get_current_time_iso8601_outbound()
+                              response_handle:headers():add("x-response-time", current_time)
+
+                              local request_id = response_handle:headers():get("x-trace-id")
+                              if request_id then
+                                response_handle:logInfo("X-Trace-ID: " .. request_id)
+                                response_handle:logInfo("X-Response-Time: " .. current_time)
                               end
                             end
-                          
+
                       - name: envoy.filters.http.router
                         typed_config:
                           "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router
@@ -191,7 +181,22 @@ data:
                       address:
                         socket_address:
                           address: home-idp-deploy-manager
-                          port_value: 5104
+                          port_value: 5103
+
+        - name: trace_manager_service_cluster
+          connect_timeout: 0.25s
+          type: LOGICAL_DNS
+          lb_policy: ROUND_ROBIN
+          http2_protocol_options: {}
+          load_assignment:
+            cluster_name: trace_manager_service_cluster
+            endpoints:
+              - lb_endpoints:
+                  - endpoint:
+                      address:
+                        socket_address:
+                          address: home-idp-trace-manager
+                          port_value: 5103
 
     admin:
       access_log_path: "/tmp/admin_access.log"
