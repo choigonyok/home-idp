@@ -12,10 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultHomeIdpConfig = ".idpctl/config.yaml"
-)
-
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "gateway",
@@ -47,9 +43,7 @@ func getServerStartCmd() *cobra.Command {
 			port, _ := strconv.Atoi(env.Get("GATEWAY_SERVICE_PORT"))
 			svc := service.New(
 				port,
-				client.WithGrpcInstallManagerClient(5051),
-				client.WithGrpcDeployManagerClient(5104),
-				client.WithGrpcRbacManagerClient(5105),
+				client.WithGrpcClient(15103),
 				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 				client.WithKubeClient(),
 				client.WithHttpClient(),

@@ -13,9 +13,7 @@ type DeployManagerClientSet struct {
 }
 
 func EmptyClientSet() *DeployManagerClientSet {
-	return &DeployManagerClientSet{
-		// GrpcClient: make(map[util.Components]client.GrpcClient),
-	}
+	return &DeployManagerClientSet{}
 }
 
 func (cs *DeployManagerClientSet) Set(cli util.Clients, i interface{}) {

@@ -24,11 +24,6 @@ func EmptyClientSet() *InstallManagerClientSet {
 
 func (cs *InstallManagerClientSet) Set(cli util.Clients, i interface{}) {
 	switch cli {
-	// case util.GrpcRbacManagerClient:
-	// 	tmp := &grpc.InstallManagerGrpcClient{}
-	// 	tmp.Set(i)
-	// 	cs.GrpcClient[util.RbacManager] = tmp
-	// 	return
 	case util.HelmClient:
 		tmp := &helm.HelmClient{}
 		tmp.Set(i)

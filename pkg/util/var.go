@@ -18,11 +18,6 @@ const (
 	HelmClient
 	StoragePostgresClient
 	MailClient
-	GrpcInstallManagerClient
-	GrpcGatewayClient
-	GrpcRbacManagerClient
-	GrpcDeployManagerClient
-	GrpcSecretManagerClient
 	DockerClient
 	KubeClient
 	HttpClient

@@ -68,7 +68,7 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("HOME_IDP_UI_TLS_ENABLED", strconv.FormatBool(cfg.Global.UI.TLS))
 	env.Set("HOME_IDP_UI_PORT", strconv.Itoa(cfg.Global.UI.Port))
 	env.Set("HOME_IDP_GIT_TOKEN", cfg.Global.Git.Token)
-	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Service.Service.Port))
+	env.Set("GATEWAY_SERVICE_PORT", strconv.Itoa(cfg.Global.Port))
 	env.Set("GATEWAY_SERVICE_TYPE", cfg.Service.Service.Type)
 	env.Set("GATEWAY_ENABLED", strconv.FormatBool(cfg.Service.Enabled))
 }

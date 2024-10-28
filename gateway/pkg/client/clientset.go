@@ -11,7 +11,7 @@ import (
 )
 
 type GatewayClientSet struct {
-	GrpcClient map[util.Components]client.GrpcClient
+	GrpcClient client.GrpcClient
 	MailClient mail.MailClient
 	KubeClient *kube.GatewayKubeClient
 	GitClient  *git.GatewayGitClient
@@ -19,32 +19,15 @@ type GatewayClientSet struct {
 }
 
 func EmptyClientSet() *GatewayClientSet {
-	return &GatewayClientSet{
-		GrpcClient: make(map[util.Components]client.GrpcClient),
-	}
+	return &GatewayClientSet{}
 }
 
 func (cs *GatewayClientSet) Set(cli util.Clients, i interface{}) {
 	switch cli {
-	case util.GrpcInstallManagerClient:
+	case util.GrpcClient:
 		tmp := &grpc.GatewayGrpcClient{}
 		tmp.Set(i)
-		cs.GrpcClient[util.InstallManager] = tmp
-		return
-	case util.GrpcRbacManagerClient:
-		tmp := &grpc.GatewayGrpcClient{}
-		tmp.Set(i)
-		cs.GrpcClient[util.RbacManager] = tmp
-		return
-	case util.GrpcDeployManagerClient:
-		tmp := &grpc.GatewayGrpcClient{}
-		tmp.Set(i)
-		cs.GrpcClient[util.DeployManager] = tmp
-		return
-	case util.GrpcSecretManagerClient:
-		tmp := &grpc.GatewayGrpcClient{}
-		tmp.Set(i)
-		cs.GrpcClient[util.SecretManager] = tmp
+		cs.GrpcClient = tmp
 		return
 	case util.KubeClient:
 		tmp := &kube.GatewayKubeClient{}

@@ -44,7 +44,6 @@ func getServerStartCmd() *cobra.Command {
 
 			svc := service.New(
 				port,
-				client.WithGrpcRbacManagerClient(5054),
 				client.WithHelmClient(),
 				client.WithKubeClient(),
 				client.WithHttpClient(),
