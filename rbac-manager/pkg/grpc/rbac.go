@@ -6,10 +6,13 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/uuid"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -56,15 +59,40 @@ func (svr *RbacServiceServer) Check(ctx context.Context, in *pb.RbacRequest) (*p
 }
 
 func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest) (*pb.GetRoleReply, error) {
-	r := svr.StorageClient.DB().QueryRow(`SELECT users.role_id, roles.name AS role_name FROM users JOIN roles ON users.role_id = roles.id WHERE users.id = ` + in.GetUserId())
+	userName := in.GetUserName()
+	r := svr.StorageClient.DB().QueryRow(`SELECT roles.id, roles.name, roles.create_time FROM roles JOIN users ON users.role_id = roles.id WHERE users.name = '` + userName + `'`)
 
 	role := pb.Role{}
-	r.Scan(&role.Id, &role.Name)
+	r.Scan(&role.Id, &role.Name, &role.CreateTime)
 
 	return &pb.GetRoleReply{Role: &role}, nil
 }
 
 func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
+	reqId := ""
+
+	md, ok := metadata.FromIncomingContext(ctx)
+
+	if ok {
+		fmt.Println("Received x-request-id:", md.Get("x-request-id"))
+		fmt.Println("Received x-request-time:", md.Get("x-request-time"))
+
+		if md.Get("x-request-id") != nil {
+			reqId = md.Get("x-request-id")[0]
+		}
+	} else {
+		fmt.Println("No x-request-time found")
+	}
+
+	times := md.Get("x-request-time")
+	times = append(times, time.Now().Format("2006-01-02T15:04:05.999Z-SERVER"))
+	trailer := metadata.Pairs(
+		"x-envoy-upstream-cluster", "rbac_manager_service_cluster",
+		"x-request-id", reqId,
+		"x-request-time", strings.Join(times, ", "),
+	)
+
+	grpc.SetTrailer(ctx, trailer)
 
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
@@ -141,6 +169,28 @@ func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *emptypb.Empty
 	}, nil
 }
 
+func (svr *RbacServiceServer) GetDockerfiles(ctx context.Context, in *pb.GetDockerfilesRequest) (*pb.GetDockerfilesReply, error) {
+	userName := in.GetUserName()
+	r, err := svr.StorageClient.DB().Query(`SELECT dockerfiles.id, dockerfiles.image_name, dockerfiles.image_version, dockerfiles.repository, dockerfiles.creator_id, dockerfiles.content FROM dockerfiles JOIN users ON dockerfiles.creator_id = users.id WHERE users.name = '` + userName + `'`)
+	if err != nil {
+		fmt.Println("ERR GETTING DOCKERFILES QUERY :", err)
+		return nil, err
+	}
+	defer r.Close()
+
+	ds := []*pb.Dockerfile{}
+
+	for r.Next() {
+		d := pb.Dockerfile{}
+		r.Scan(&d.Id, &d.ImageName, &d.ImageVersion, &d.Repository, &d.CreatorId, &d.Content)
+		ds = append(ds, &d)
+	}
+
+	return &pb.GetDockerfilesReply{
+		Dockerfiles: ds,
+	}, nil
+}
+
 func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
 	pid := ""
 	row := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + in.ProjectName + `'`)
@@ -171,8 +221,13 @@ func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjec
 	creatorId := in.GetCreatorId()
 	projectName := in.GetProjectName()
 
-	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO projects (id, name, creator_id) VALUES ('` + uuid.New().String() + `', '` + projectName + `', '` + creatorId + `')`); err != nil {
-		fmt.Println("ERR CREATING NEW PROJECT :", err)
+	r := svr.StorageClient.DB().QueryRow(`INSERT INTO projects (id, name, creator_id) VALUES ('` + uuid.NewString() + `', '` + projectName + `', '` + creatorId + `') RETURNING id`)
+
+	projectId := ""
+	r.Scan(&projectId)
+
+	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES ('` + creatorId + `', '` + projectId + `')`); err != nil {
+		fmt.Println("ERR POSTING NEW PROJECT QUERY :", err)
 		return nil, err
 	}
 
@@ -217,6 +272,18 @@ func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserReque
 	}
 
 	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES ('` + id + `', '` + projectId + `' )`)
+
+	return nil, err
+}
+
+func (svr *RbacServiceServer) PostDockerfile(ctx context.Context, in *pb.PostDockerfileRequest) (*emptypb.Empty, error) {
+	imgName := in.GetDockerfile().GetImageName()
+	imgVersion := in.GetDockerfile().GetImageVersion()
+	creatorId := in.GetDockerfile().GetCreatorId()
+	repo := in.GetDockerfile().GetRepository()
+	content := in.GetDockerfile().GetContent()
+
+	_, err := svr.StorageClient.DB().Exec(`INSERT INTO dockerfiles (id, image_name, image_version, creator_id, repository, content) VALUES ('` + uuid.NewString() + `', '` + imgName + `', '` + imgVersion + `', '` + creatorId + `', '` + repo + `', '` + content + `')`)
 
 	return nil, err
 }

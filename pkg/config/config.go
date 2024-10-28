@@ -30,6 +30,7 @@ type GlobalConfig struct {
 	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
 	UI            *GlobalConfigUI      `yaml:"ui,omitempty"`
 	Storage       *GlobalConfigStorage `yaml:"storage,omitempty"`
+	Port          int                  `yaml:"port,omitempty"`
 }
 
 type GlobalConfigStorage struct {

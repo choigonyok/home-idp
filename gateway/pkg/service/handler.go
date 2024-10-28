@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	deployPb "github.com/choigonyok/home-idp/deploy-manager/pkg/proto"
 	"github.com/choigonyok/home-idp/gateway/pkg/progress"
@@ -20,6 +21,8 @@ import (
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
 	"github.com/gorilla/mux"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -540,15 +543,20 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		b, _ := io.ReadAll(r.Body)
-
 		d := rbacPb.Dockerfile{}
-
 		json.Unmarshal(b, &d)
 
+		reqTimes := r.Header.Get("x-request-time")
+		reqId := r.Header.Get("x-request-id")
+		fmt.Println("REQ TIME:", reqTimes)
+		fmt.Println("REQ ID:", reqId)
+		md := metadata.Pairs("x-request-time", reqTimes+","+time.Now().Format("2006-01-02T15:04:05.999Z"), "x-request-id", reqId)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+		trailer := metadata.MD{}
+
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
-		_, err := c.PostDockerfile(context.TODO(), &rbacPb.PostDockerfileRequest{
+		_, err := c.PostDockerfile(ctx, &rbacPb.PostDockerfileRequest{
 			Dockerfile: &rbacPb.Dockerfile{
 				ImageName:    d.ImageName,
 				ImageVersion: d.ImageVersion,
@@ -556,12 +564,22 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 				Repository:   d.Repository,
 				Content:      d.Content,
 			},
-		})
+		}, grpc.Trailer(&trailer))
 		if err != nil {
 			fmt.Println("POST DOCKERFILE GRPC ERR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		respTimes := trailer.Get("x-request-time")
+		respId := trailer.Get("x-request-id")
+		respUpstream := trailer.Get("x-envoy-upstream-cluster")
+		fmt.Println("RESP TIME:", respTimes)
+		fmt.Println("RESP ID:", respId)
+		fmt.Println("RESP UPSTREAM:", respUpstream)
+		w.Header().Set("X-Request-Time", strings.Join(respTimes, ","))
+		w.Header().Set("X-Request-Id", strings.Join(respId, ","))
+		w.Header().Set("X-Envoy-Upstream-Cluster", strings.Join(respUpstream, ","))
 
 		w.WriteHeader(http.StatusOK)
 
@@ -616,17 +634,39 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		reqTimes := r.Header.Get("x-request-time")
+		reqId := r.Header.Get("x-request-id")
+
+		fmt.Println("REQ TIME:", reqTimes)
+		fmt.Println("REQ ID:", reqId)
+
+		md := metadata.Pairs("x-request-time", reqTimes+","+time.Now().Format("2006-01-02T15:04:05.999Z-CLIENT"), "x-request-id", reqId)
+		ctx := metadata.NewOutgoingContext(context.Background(), md)
+
+		trailer := metadata.MD{}
+
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
-		reply, err := c.GetRoles(context.TODO(), nil)
+		reply, err := c.GetRoles(ctx, nil, grpc.Trailer(&trailer))
 		if err != nil {
 			fmt.Println("ERR GETTING ROLE LIST ERR:", err)
 		}
 
+		respTimes := trailer.Get("x-request-time")
+		respId := trailer.Get("x-request-id")
+		respUpstream := trailer.Get("x-envoy-upstream-cluster")
+
+		fmt.Println("RESP TIME:", respTimes)
+		fmt.Println("RESP ID:", respId)
+		fmt.Println("RESP UPSTREAM:", respUpstream)
+
 		roles := reply.GetRoles()
 		b, _ := json.Marshal(roles)
 
+		w.Header().Set("X-Request-Time", strings.Join(respTimes, ","))
+		w.Header().Set("X-Request-Id", strings.Join(respId, ","))
+		w.Header().Set("X-Envoy-Upstream-Cluster", strings.Join(respUpstream, ","))
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}

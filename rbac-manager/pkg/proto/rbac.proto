@@ -19,6 +19,9 @@ service RbacService {
   rpc PostUser (PostUserRequest) returns (google.protobuf.Empty) {}
   rpc PostProject (PostProjectRequest) returns (PostProjectReply) {}
   rpc PutUser (PutUserRequest) returns (PutUserReply) {}
+
+  rpc GetDockerfiles (GetDockerfilesRequest) returns (GetDockerfilesReply) {}
+  rpc PostDockerfile (PostDockerfileRequest) returns (google.protobuf.Empty) {}
 }
 
 enum Action {
@@ -65,7 +68,7 @@ message GetRolesReply {
 }
 
 message GetRoleRequest {
-  string userId = 1;
+  string user_name = 1;
 }
 
 message GetRoleReply {
@@ -132,4 +135,25 @@ message PutUserReply {
 
 message PostRoleRequest {
   string role_name = 1;
+}
+
+message Dockerfile {
+  string id = 1;
+  string image_name = 2;
+  string image_version = 3;
+  string creator_id = 4;
+  string repository = 5;
+  string content = 6;
+}
+
+message GetDockerfilesRequest {
+  string user_name = 1;
+}
+
+message GetDockerfilesReply {
+  repeated Dockerfile dockerfiles = 1;
+}
+
+message PostDockerfileRequest {
+  Dockerfile dockerfile = 1;
 }

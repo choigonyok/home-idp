@@ -31,89 +31,23 @@ func (opt *GrpcClientOption) Apply(cli ClientSet) error {
 	return nil
 }
 
-func WithGrpcRbacManagerClient(port int) ClientOption {
-	return useGrpcRbacManagerClient(port)
+func WithGrpcClient(port int) ClientOption {
+	return useGrpcClient(port)
 }
 
-func useGrpcRbacManagerClient(port int) ClientOption {
-	return newGrpcRbacManagerClientOption(func(cli ClientSet) {
+func useGrpcClient(port int) ClientOption {
+	return newGrpcClientOption(func(cli ClientSet) {
 		grpcOptions := []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("home-idp-rbac-manager:"+strconv.Itoa(port), grpcOptions...)
-		cli.Set(util.GrpcRbacManagerClient, conn)
+		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
+		cli.Set(util.GrpcClient, conn)
 	})
 }
 
-func newGrpcRbacManagerClientOption(f func(cli ClientSet)) *GrpcClientOption {
-	return &GrpcClientOption{
-		F: f,
-	}
-}
-
-func WithGrpcSecretManagerClient(port int) ClientOption {
-	return useGrpcSecretManagerClient(port)
-}
-
-func useGrpcSecretManagerClient(port int) ClientOption {
-	return newGrpcSecretManagerClientOption(func(cli ClientSet) {
-		grpcOptions := []grpc.DialOption{
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			// grpc.WithTransportCredentials(tlsOpt),
-		}
-
-		conn, _ := grpc.NewClient("home-idp-secret-manager:"+strconv.Itoa(port), grpcOptions...)
-		cli.Set(util.GrpcSecretManagerClient, conn)
-	})
-}
-
-func newGrpcSecretManagerClientOption(f func(cli ClientSet)) *GrpcClientOption {
-	return &GrpcClientOption{
-		F: f,
-	}
-}
-
-func WithGrpcDeployManagerClient(port int) ClientOption {
-	return useGrpcDeployManagerClient(port)
-}
-
-func useGrpcDeployManagerClient(port int) ClientOption {
-	return newGrpcDeployManagerClientOption(func(cli ClientSet) {
-		grpcOptions := []grpc.DialOption{
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			// grpc.WithTransportCredentials(tlsOpt),
-		}
-
-		conn, _ := grpc.NewClient("home-idp-deploy-manager:"+strconv.Itoa(port), grpcOptions...)
-		cli.Set(util.GrpcDeployManagerClient, conn)
-	})
-}
-
-func newGrpcDeployManagerClientOption(f func(cli ClientSet)) *GrpcClientOption {
-	return &GrpcClientOption{
-		F: f,
-	}
-}
-
-func WithGrpcInstallManagerClient(port int) ClientOption {
-	return useGrpcInstallManagerClient(port)
-}
-
-func useGrpcInstallManagerClient(port int) ClientOption {
-	return newGrpcInstallManagerClientOption(func(cli ClientSet) {
-		grpcOptions := []grpc.DialOption{
-			grpc.WithTransportCredentials(insecure.NewCredentials()),
-			// grpc.WithTransportCredentials(tlsOpt),
-		}
-
-		conn, _ := grpc.NewClient("home-idp-install-manager:"+strconv.Itoa(port), grpcOptions...)
-		cli.Set(util.GrpcInstallManagerClient, conn)
-	})
-}
-
-func newGrpcInstallManagerClientOption(f func(cli ClientSet)) *GrpcClientOption {
+func newGrpcClientOption(f func(cli ClientSet)) *GrpcClientOption {
 	return &GrpcClientOption{
 		F: f,
 	}

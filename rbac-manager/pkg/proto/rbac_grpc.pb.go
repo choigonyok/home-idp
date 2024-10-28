@@ -33,6 +33,8 @@ type RbacServiceClient interface {
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error)
 	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
+	GetDockerfiles(ctx context.Context, in *GetDockerfilesRequest, opts ...grpc.CallOption) (*GetDockerfilesReply, error)
+	PostDockerfile(ctx context.Context, in *PostDockerfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type rbacServiceClient struct {
@@ -133,6 +135,24 @@ func (c *rbacServiceClient) PutUser(ctx context.Context, in *PutUserRequest, opt
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetDockerfiles(ctx context.Context, in *GetDockerfilesRequest, opts ...grpc.CallOption) (*GetDockerfilesReply, error) {
+	out := new(GetDockerfilesReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetDockerfiles", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) PostDockerfile(ctx context.Context, in *PostDockerfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/PostDockerfile", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
@@ -147,6 +167,8 @@ type RbacServiceServer interface {
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
 	PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error)
 	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
+	GetDockerfiles(context.Context, *GetDockerfilesRequest) (*GetDockerfilesReply, error)
+	PostDockerfile(context.Context, *PostDockerfileRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -183,6 +205,12 @@ func (UnimplementedRbacServiceServer) PostProject(context.Context, *PostProjectR
 }
 func (UnimplementedRbacServiceServer) PutUser(context.Context, *PutUserRequest) (*PutUserReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PutUser not implemented")
+}
+func (UnimplementedRbacServiceServer) GetDockerfiles(context.Context, *GetDockerfilesRequest) (*GetDockerfilesReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetDockerfiles not implemented")
+}
+func (UnimplementedRbacServiceServer) PostDockerfile(context.Context, *PostDockerfileRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostDockerfile not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -377,6 +405,42 @@ func _RbacService_PutUser_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_GetDockerfiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetDockerfilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetDockerfiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetDockerfiles",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetDockerfiles(ctx, req.(*GetDockerfilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_PostDockerfile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PostDockerfileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).PostDockerfile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/PostDockerfile",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).PostDockerfile(ctx, req.(*PostDockerfileRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -423,6 +487,14 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PutUser",
 			Handler:    _RbacService_PutUser_Handler,
+		},
+		{
+			MethodName: "GetDockerfiles",
+			Handler:    _RbacService_GetDockerfiles_Handler,
+		},
+		{
+			MethodName: "PostDockerfile",
+			Handler:    _RbacService_PostDockerfile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

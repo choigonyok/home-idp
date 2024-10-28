@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
 
@@ -68,19 +69,24 @@ func NewPostgresClient(username, password, database string) StorageClient {
 }
 
 func (c *PostgresClient) CreateAdminUser(username string) error {
-	if _, err := c.DB().Exec(`INSERT INTO roles (name) VALUES ('admin')`); err != nil {
+	roleId := uuid.NewString()
+	policyId := uuid.NewString()
+	// userId := uuid.NewString() // for prod
+	userId := "37e54287-af53-42a1-80a6-ac95361d3005" // for test
+
+	if _, err := c.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + roleId + `', 'admin')`); err != nil {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO policies (name, policy) VALUES ('admin', '` + getAdminPolicy() + `')`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + policyId + `', 'admin', '` + getAdminPolicy() + `')`); err != nil {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES (1, 1)`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + roleId + `', '` + policyId + `')`); err != nil {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO users (name, role_id) VALUES ('` + username + `', 1)`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO users (id, name, role_id) VALUES ('` + userId + `', '` + username + `', '` + roleId + `')`); err != nil {
 		return err
 	}
 
