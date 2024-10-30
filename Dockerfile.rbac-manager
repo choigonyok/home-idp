@@ -12,9 +12,9 @@ COPY ./.idpctl ./.idpctl
 
 COPY ./pkg ./pkg
 
-COPY ./deploy-manager ./deploy-manager
+COPY ./rbac-manager ./rbac-manager
 COPY ./trace-manager/pkg/proto ./trace-manager/pkg/proto
 
-RUN go build -o ./dm ./deploy-manager/cmd/main.go
+RUN go build -o ./rm ./rbac-manager/cmd/main.go
 
-CMD [ "./dm", "server", "start", "-f", "/app/.idpctl/config.yaml" ]
+CMD [ "./rm", "server", "start", "-f", "/app/.idpctl/config.yaml" ]

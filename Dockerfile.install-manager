@@ -13,6 +13,7 @@ COPY ./.idpctl ./.idpctl
 COPY ./pkg ./pkg
 
 COPY ./install-manager ./install-manager
+COPY ./trace-manager/pkg/proto ./trace-manager/pkg/proto
 
 RUN go build -o ./im ./install-manager/cmd/main.go
 
