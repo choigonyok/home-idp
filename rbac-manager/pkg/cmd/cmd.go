@@ -7,9 +7,8 @@ import (
 	"github.com/choigonyok/home-idp/pkg/cmd"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/util"
-	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
-
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/config"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/service"
 	"github.com/spf13/cobra"
 )
 
@@ -20,6 +19,7 @@ func NewRootCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 	}
 	addSubCmds(c)
+
 	return c
 }
 
@@ -46,6 +46,7 @@ func getServerStartCmd() *cobra.Command {
 
 			svc := service.New(
 				port,
+				client.WithTraceClient(5103),
 				client.WithStorageClient(
 					"postgres",
 					env.Get("HOME_IDP_STORAGE_USERNAME"),

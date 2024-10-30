@@ -6,6 +6,7 @@ const (
 	SecretManager Components = iota
 	DeployManager
 	RbacManager
+	TraceManager
 	Gateway
 	InstallManager
 	WebhookManager
@@ -22,4 +23,22 @@ const (
 	KubeClient
 	HttpClient
 	GitClient
+	TraceClient
+	GrpcInstallManager
+	GrpcDeployManager
+	GrpcRbacManager
+	Nothing
 )
+
+func GetGrpcClient(host string) Clients {
+	switch host {
+	case "home-idp-rbac-manager":
+		return GrpcRbacManager
+	case "home-idp-deploy-manager":
+		return GrpcDeployManager
+	case "home-idp-install-manager":
+		return GrpcInstallManager
+	default:
+		return Nothing
+	}
+}

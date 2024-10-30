@@ -3,13 +3,15 @@ package client
 import (
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/git"
 	"github.com/choigonyok/home-idp/deploy-manager/pkg/kube"
+	"github.com/choigonyok/home-idp/pkg/trace"
 	"github.com/choigonyok/home-idp/pkg/util"
 )
 
 type DeployManagerClientSet struct {
 	// GrpcClient map[util.Components]client.GrpcClient
-	KubeClient *kube.DeployManagerKubeClient
-	GitClient  *git.DeployManagerGitClient
+	TraceClient *trace.TraceClient
+	KubeClient  *kube.DeployManagerKubeClient
+	GitClient   *git.DeployManagerGitClient
 }
 
 func EmptyClientSet() *DeployManagerClientSet {
@@ -18,6 +20,11 @@ func EmptyClientSet() *DeployManagerClientSet {
 
 func (cs *DeployManagerClientSet) Set(cli util.Clients, i interface{}) {
 	switch cli {
+	case util.TraceClient:
+		tmp := &trace.TraceClient{}
+		tmp.Set(i)
+		cs.TraceClient = tmp
+		return
 	case util.KubeClient:
 		tmp := &kube.DeployManagerKubeClient{}
 		tmp.Set(i)

@@ -13,10 +13,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const (
-	defaultHomeIdpConfig = "$HOME/.home-idp/config.yaml"
-)
-
 func NewRootCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "deploy-manager",
@@ -49,6 +45,7 @@ func getServerStartCmd() *cobra.Command {
 			log.Printf("Start installing deploy-manager server...")
 			svc := service.New(
 				port,
+				client.WithTraceClient(5103),
 				client.WithKubeClient(),
 				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 			)

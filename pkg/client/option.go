@@ -11,6 +11,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/http"
 	"github.com/choigonyok/home-idp/pkg/kube"
 	"github.com/choigonyok/home-idp/pkg/storage"
+	"github.com/choigonyok/home-idp/pkg/trace"
 	"github.com/choigonyok/home-idp/pkg/util"
 	"github.com/docker/docker/api/types/registry"
 	dockercli "github.com/docker/docker/client"
@@ -31,23 +32,40 @@ func (opt *GrpcClientOption) Apply(cli ClientSet) error {
 	return nil
 }
 
-func WithGrpcClient(port int) ClientOption {
-	return useGrpcClient(port)
+func WithGrpcClient(host string, port int) ClientOption {
+	return useGrpcClient(host, port)
 }
 
-func useGrpcClient(port int) ClientOption {
+func useGrpcClient(host string, port int) ClientOption {
 	return newGrpcClientOption(func(cli ClientSet) {
 		grpcOptions := []grpc.DialOption{
 			grpc.WithTransportCredentials(insecure.NewCredentials()),
 			// grpc.WithTransportCredentials(tlsOpt),
 		}
 
-		conn, _ := grpc.NewClient("localhost:"+strconv.Itoa(port), grpcOptions...)
-		cli.Set(util.GrpcClient, conn)
+		conn, _ := grpc.NewClient(host+":"+strconv.Itoa(port), grpcOptions...)
+		cli.Set(util.GetGrpcClient(host), conn)
 	})
 }
 
 func newGrpcClientOption(f func(cli ClientSet)) *GrpcClientOption {
+	return &GrpcClientOption{
+		F: f,
+	}
+}
+
+func WithTraceClient(port int) ClientOption {
+	return useTraceClient(port)
+}
+
+func useTraceClient(port int) ClientOption {
+	return newTraceClientOption(func(cli ClientSet) {
+		i := trace.NewTraceClient(port)
+		cli.Set(util.TraceClient, i)
+	})
+}
+
+func newTraceClientOption(f func(cli ClientSet)) *GrpcClientOption {
 	return &GrpcClientOption{
 		F: f,
 	}

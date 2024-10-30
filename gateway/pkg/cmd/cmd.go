@@ -43,7 +43,9 @@ func getServerStartCmd() *cobra.Command {
 			port, _ := strconv.Atoi(env.Get("GATEWAY_SERVICE_PORT"))
 			svc := service.New(
 				port,
-				client.WithGrpcClient(15103),
+				client.WithGrpcClient("home-idp-rbac-manager", 5103),
+				client.WithGrpcClient("home-idp-deploy-manager", 5103),
+				client.WithTraceClient(5103),
 				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 				client.WithKubeClient(),
 				client.WithHttpClient(),
