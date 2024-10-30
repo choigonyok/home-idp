@@ -35,6 +35,7 @@ func (svc *RbacManager) Stop() {
 func (svc *RbacManager) Start() {
 	rbacPbServer := &grpc.RbacServiceServer{
 		StorageClient: svc.ClientSet.StorageClient,
+		TraceClient:   svc.ClientSet.TraceClient,
 	}
 
 	pb.RegisterRbacServiceServer(svc.Server.Grpc, rbacPbServer)

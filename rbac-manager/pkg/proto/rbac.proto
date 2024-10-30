@@ -22,6 +22,8 @@ service RbacService {
 
   rpc GetDockerfiles (GetDockerfilesRequest) returns (GetDockerfilesReply) {}
   rpc PostDockerfile (PostDockerfileRequest) returns (google.protobuf.Empty) {}
+
+  rpc GetTraceId (GetTraceIdRequest) returns (GetTraceIdReply) {}
 }
 
 enum Action {
@@ -36,6 +38,15 @@ enum Result {
   ALLOW = 1;
   DENY = 2;
   ERROR = 3;
+}
+
+message GetTraceIdRequest {
+  string image_name = 1;
+  string image_version = 2;
+}
+
+message GetTraceIdReply {
+  string trace_id = 1;
 }
 
 message RbacRequest {
@@ -144,6 +155,7 @@ message Dockerfile {
   string creator_id = 4;
   string repository = 5;
   string content = 6;
+  string trace_id = 7;
 }
 
 message GetDockerfilesRequest {

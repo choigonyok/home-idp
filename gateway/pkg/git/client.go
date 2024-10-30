@@ -119,9 +119,6 @@ func (c *GatewayGitClient) GetDockerFiles(projectName string) []byte {
 }
 
 func (c *GatewayGitClient) UpdateDockerFile(username, image, content string) error {
-	fmt.Println("TEST START UPDATE FILE!")
-	fmt.Println("TEST START UPDATE FILE!")
-	fmt.Println("TEST START UPDATE FILE!")
 	files := c.Client.GetFilesByPath("docker/" + username)
 	imageName, _, _ := strings.Cut(image, ":")
 
@@ -196,16 +193,18 @@ func (c *GatewayGitClient) CreatePodManifestFile(username, email, image string, 
 	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod.yaml", []byte(manifest), git.Manifest)
 }
 
-func (c *GatewayGitClient) IsDockerfileExist(username, imagename string) bool {
-	files := c.Client.GetFilesByPath("docker/" + username)
-	fmt.Println("FOUND FILES:", files)
-	for _, f := range files {
-		img, _ := strings.CutPrefix(f, "Dockerfile.")
-		fmt.Println("IMGS:", img)
-		imgname, _, _ := strings.Cut(img, ":")
-		fmt.Println("IMGNAMES:", imgname)
-		if imgname == imagename {
-			return true
+func (c *GatewayGitClient) IsDockerfileExist(imagename string) bool {
+	users := c.Client.GetFilesByPath("docker")
+
+	for _, u := range users {
+		files := c.Client.GetFilesByPath("docker/" + u)
+		for _, f := range files {
+			img, _ := strings.CutPrefix(f, "Dockerfile.")
+			imgname, _, _ := strings.Cut(img, ":")
+			fmt.Println("IMGNAMES:", imgname)
+			if imgname == imagename {
+				return true
+			}
 		}
 	}
 	return false

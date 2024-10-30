@@ -35,6 +35,7 @@ type RbacServiceClient interface {
 	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
 	GetDockerfiles(ctx context.Context, in *GetDockerfilesRequest, opts ...grpc.CallOption) (*GetDockerfilesReply, error)
 	PostDockerfile(ctx context.Context, in *PostDockerfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetTraceId(ctx context.Context, in *GetTraceIdRequest, opts ...grpc.CallOption) (*GetTraceIdReply, error)
 }
 
 type rbacServiceClient struct {
@@ -153,6 +154,15 @@ func (c *rbacServiceClient) PostDockerfile(ctx context.Context, in *PostDockerfi
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetTraceId(ctx context.Context, in *GetTraceIdRequest, opts ...grpc.CallOption) (*GetTraceIdReply, error) {
+	out := new(GetTraceIdReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetTraceId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
@@ -169,6 +179,7 @@ type RbacServiceServer interface {
 	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
 	GetDockerfiles(context.Context, *GetDockerfilesRequest) (*GetDockerfilesReply, error)
 	PostDockerfile(context.Context, *PostDockerfileRequest) (*emptypb.Empty, error)
+	GetTraceId(context.Context, *GetTraceIdRequest) (*GetTraceIdReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -211,6 +222,9 @@ func (UnimplementedRbacServiceServer) GetDockerfiles(context.Context, *GetDocker
 }
 func (UnimplementedRbacServiceServer) PostDockerfile(context.Context, *PostDockerfileRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostDockerfile not implemented")
+}
+func (UnimplementedRbacServiceServer) GetTraceId(context.Context, *GetTraceIdRequest) (*GetTraceIdReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTraceId not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -441,6 +455,24 @@ func _RbacService_PostDockerfile_Handler(srv interface{}, ctx context.Context, d
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_GetTraceId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTraceIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetTraceId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetTraceId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetTraceId(ctx, req.(*GetTraceIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -495,6 +527,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostDockerfile",
 			Handler:    _RbacService_PostDockerfile_Handler,
+		},
+		{
+			MethodName: "GetTraceId",
+			Handler:    _RbacService_GetTraceId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

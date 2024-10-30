@@ -22,6 +22,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	for _, opt := range opts {
 		opt.Apply(cs)
 	}
+
 	svr := gatewayhttp.New(port)
 	svc := &Gateway{
 		Server:    svr,
@@ -45,6 +46,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/dockerfile", svc.apiPostDockerfileHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
 
+	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
+
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
 	// svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
 
@@ -65,7 +68,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 }
 
 func (svc *Gateway) Stop() {
-	svc.ClientSet.GrpcClient.Close()
+	svc.ClientSet.DeployGrpcClient.Close()
+	svc.ClientSet.RbacGrpcClient.Close()
 	svc.Server.Stop()
 }
 

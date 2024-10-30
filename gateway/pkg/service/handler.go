@@ -17,20 +17,24 @@ import (
 	"github.com/choigonyok/home-idp/gateway/pkg/progress"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/model"
+	"github.com/choigonyok/home-idp/pkg/trace"
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
 	"github.com/gorilla/mux"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
+var testUserName = "choigonyok"
+
+var Spans = make(map[string]*trace.Span1)
+var RootSpans = make(map[string]*trace.Span1)
 
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Body)
+		// tracer, s := otel.GetTracerProvider().Tracer("name").Start(context.TODO(),"")
 		fmt.Println("TESTHANDLER1")
 	}
 }
@@ -45,28 +49,64 @@ func (svc *Gateway) TestHandler2() http.HandlerFunc {
 // /api/webhook/harbor?username="choigonyok"&email="choigonyok@naver.com"
 func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		step := progress.NewStep(progress.PushManifest, progress.Continue, nil)
 		fmt.Println(r.Body)
 		b, err := io.ReadAll(r.Body)
 		fmt.Println("TESTHANDLER3:", err)
 		m := make(map[string]interface{})
-		err = json.Unmarshal(b, &m)
+		json.Unmarshal(b, &m)
 
 		img := util.ParseInterfaceMap(m, []string{"event_data", "resources", "resource_url"}).(string)
 		s := strings.Split(img, "/")
 		name, version, _ := strings.Cut(s[2], ":")
-		step.Add(name + ":" + version)
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		resp, err := c.GetTraceId(context.TODO(), &rbacPb.GetTraceIdRequest{
+			ImageName:    name,
+			ImageVersion: version,
+		})
+		if err != nil {
+			fmt.Println("ERR GETTING TRACE ID :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		ImageSpan := Spans[resp.GetTraceId()]
+		err = ImageSpan.Stop()
+		if err != nil {
+			fmt.Println("BUILD SPAN STOP ERR:", err)
+		}
+		rootSpan := RootSpans[resp.GetTraceId()]
+		deploySpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(rootSpan.Context)
+		err = deploySpan.Start(rootSpan.Context)
+		if err != nil {
+			fmt.Println("DEPLOY SPAN START ERR:", err)
+		}
+		updateManifestSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
+		err = updateManifestSpan.Start(deploySpan.Context)
+		if err != nil {
+			fmt.Println("UPDATE MANIFEST SPAN START ERR:", err)
+		}
 
-		fmt.Println(err)
-		fmt.Println("MAPPED MAP:", name, version)
-
-		step.UpdateLog("START TO UPDATE MANIFEST")
 		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
-			step.UpdateState(progress.Fail, err.Error())
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
-		step.UpdateState(progress.Success, "SUCCESS TO MANIFEST!")
+		err = updateManifestSpan.Stop()
+		if err != nil {
+			fmt.Println("UPDATE MANIFEST SPAN STOP ERR:", err)
+		}
+
+		Spans[deploySpan.TraceID] = deploySpan
+		// TO DO: push된 manifest에서 docker image name, version 찾고, traceid 조회해서 argocd wehook span 생성 및 종료하고 마지막에 deploySpan도 종료시키기
+		// TO DO: k8s watcher 만들어서 kaniko pod랑 배포된 리소스 pod 완료되는지 체크하고 trace 구성하기
+		err = deploySpan.Stop()
+		if err != nil {
+			fmt.Println("DEPLOY SPAN STOP ERR:", err)
+		}
+
+		err = rootSpan.Stop()
+		if err != nil {
+			fmt.Println("ROOT SPAN STOP ERR:", err)
+		}
+
 	}
 }
 
@@ -143,7 +183,7 @@ func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
 		var userInfo map[string]interface{}
 		json.Unmarshal(userBody, &userInfo)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.Check(context.TODO(), &rbacPb.RbacRequest{
 			Username: userInfo["login"].(string),
 			Target:   "everything",
@@ -203,11 +243,28 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 			switch t {
 			case "docker":
 				name, version := getImageNameAndVersionFromCommit(event)
+				c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+				resp, err := c.GetTraceId(context.TODO(), &rbacPb.GetTraceIdRequest{
+					ImageName:    name,
+					ImageVersion: version,
+				})
+				if err != nil {
+					fmt.Println("ERR GETTING TRACE ID :", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				RootSpan := RootSpans[resp.GetTraceId()]
+
+				ImageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
+
+				err = ImageSpan.Start(RootSpan.Context)
+				if err != nil {
+					fmt.Println("IMAGE SPAN START ERR:", err)
+				}
 				username := getUserFromCommit(event)
-				fmt.Println("TEST RELATED USERNAME: ", username)
-				fmt.Println("TEST WEBHOOK IMGNAME:", name)
-				fmt.Println("TEST WEBHOOK IMGVERSION:", version)
-				svc.requestBuildDockerfile(name, version, username)
+				svc.requestBuildDockerfile(ImageSpan, name, version, username)
+				Spans[ImageSpan.TraceID] = ImageSpan
+
 			case "cd":
 				path := getFilepathFromCommit(event)
 				svc.requestDeploy(path)
@@ -288,7 +345,7 @@ func getFilepathFromCommit(e *github.PushEvent) string {
 }
 
 func (svc *Gateway) requestDeploy(filepath string) {
-	c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient.GetConnection())
+	c := deployPb.NewDeployClient(svc.ClientSet.DeployGrpcClient.GetConnection())
 	reply, err := c.Deploy(context.TODO(), &deployPb.DeployRequest{Filepath: filepath})
 	if err != nil {
 		fmt.Println("TEST DEPLOY REQUEST ERR:", err)
@@ -316,14 +373,9 @@ func (svc *Gateway) requestDeploy(filepath string) {
 // 	}
 // }
 
-func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
-	step := progress.NewStep(progress.DeployKaniko, progress.Continue, nil)
-	step.Add(name + ":" + version)
-	step.UpdateLog("Deploy-manager grpc client creating...")
-	c := deployPb.NewBuildClient(svc.ClientSet.GrpcClient.GetConnection())
-
-	step.UpdateLog("Deploy Kaniko to build image...")
-	reply, err := c.BuildDockerfile(context.TODO(), &deployPb.BuildDockerfileRequest{
+func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, username string) {
+	c := deployPb.NewBuildClient(svc.ClientSet.DeployGrpcClient.GetConnection())
+	reply, err := c.BuildDockerfile(span.Context, &deployPb.BuildDockerfileRequest{
 		Img: &deployPb.Image{
 			Pusher:  username,
 			Name:    name,
@@ -332,16 +384,13 @@ func (svc *Gateway) requestBuildDockerfile(name, version, username string) {
 	})
 	if err != nil {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST ERR:", err)
-		step.UpdateState(progress.Fail, err.Error())
 		return
 	}
 
 	if !reply.Succeed {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST FAILED")
-		step.UpdateState(progress.Fail, "FAILED")
 		return
 	}
-	step.UpdateState(progress.Success, "SUCCESS!")
 }
 
 func (svc *Gateway) requestArgoCDWebhook(r *http.Request, payload []byte) error {
@@ -413,7 +462,7 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 		usr := model.User{}
 		json.Unmarshal(b, &usr)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PutUser(context.TODO(), &rbacPb.PutUserRequest{
 			UserId: userName,
 			User: &rbacPb.User{
@@ -442,7 +491,7 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 
 		json.Unmarshal(b, &p)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
 			ProjectName: p.GetName(),
 			CreatorId:   testUserId,
@@ -467,7 +516,7 @@ func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 
 		json.Unmarshal(b, &role)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
 			RoleName: role.Name,
 		})
@@ -494,7 +543,7 @@ func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 
 		json.Unmarshal(b, &usr)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
 			User: &rbacPb.User{
 				RoleId: usr.RoleId,
@@ -521,7 +570,7 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 		pod := deployPb.Pod{}
 		json.Unmarshal(b, &pod)
 
-		c := deployPb.NewDeployClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := deployPb.NewDeployClient(svc.ClientSet.DeployGrpcClient.GetConnection())
 		_, err := c.DeployPod(context.TODO(), &deployPb.DeployPodRequest{
 			Pod: &deployPb.Pod{
 				Name:          pod.GetName(),
@@ -540,68 +589,139 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		traceId := vars["traceId"]
+
+		req, _ := http.NewRequest("GET", "http://home-idp-trace-manager:5103/api/traces/"+traceId, nil)
+		resp, _ := http.DefaultClient.Do(req)
+		bytes, _ := io.ReadAll(resp.Body)
+		spans := []*model.Trace{}
+		json.Unmarshal(bytes, &spans)
+
+		datas := []struct {
+			TraceID      string `json:"trace_id"`
+			SpanID       string `json:"span_id"`
+			Duration     string `json:"duration"`
+			Status       string `json:"status"`
+			StartTime    string `json:"start_time"`
+			EndTime      string `json:"end_time"`
+			ParentSpanID string `json:"parent_span_id"`
+		}{}
+
+		for _, span := range spans {
+			st, _ := time.Parse("2006-01-02T15:04:05.999Z", span.StartTime)
+			et, _ := time.Parse("2006-01-02T15:04:05.999Z", span.EndTime)
+			d := et.Sub(st)
+			datas = append(datas, struct {
+				TraceID      string `json:"trace_id"`
+				SpanID       string `json:"span_id"`
+				Duration     string `json:"duration"`
+				Status       string `json:"status"`
+				StartTime    string `json:"start_time"`
+				EndTime      string `json:"end_time"`
+				ParentSpanID string `json:"parent_span_id"`
+			}{
+				TraceID:      span.TraceID,
+				Status:       span.Status,
+				SpanID:       span.SpanID,
+				Duration:     d.String(),
+				StartTime:    span.StartTime,
+				EndTime:      span.EndTime,
+				ParentSpanID: span.ParentSpanID,
+			})
+		}
+
+		b, _ := json.Marshal(datas)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
 func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
+
 		b, _ := io.ReadAll(r.Body)
-		d := rbacPb.Dockerfile{}
+		// t := rbacPb.Dockerfile{}
+		d := struct {
+			Id           string `json:"id"`
+			ImageName    string `json:"image_name"`
+			ImageVersion string `json:"image_version"`
+			CreatorId    string `json:"creator_id"`
+			Repository   string `json:"repository"`
+			Content      string `json:"content"`
+			TraceId      string `json:"trace_id"`
+		}{}
+
+		// d := rbacPb.Dockerfile{}
 		json.Unmarshal(b, &d)
+		fmt.Println("PARSE TRACEID:", d.TraceId)
+		RootSpan := svc.ClientSet.TraceClient.NewTrace(d.TraceId)
 
-		reqTimes := r.Header.Get("x-request-time")
-		reqId := r.Header.Get("x-request-id")
-		fmt.Println("REQ TIME:", reqTimes)
-		fmt.Println("REQ ID:", reqId)
-		md := metadata.Pairs("x-request-time", reqTimes+","+time.Now().Format("2006-01-02T15:04:05.999Z"), "x-request-id", reqId)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
-		trailer := metadata.MD{}
+		fmt.Println("SPANID:", RootSpan.SpanID)
+		fmt.Println("TRACEID:", RootSpan.TraceID)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
-		_, err := c.PostDockerfile(ctx, &rbacPb.PostDockerfileRequest{
+		err := RootSpan.Start(context.Background())
+		if err != nil {
+			fmt.Println("ROOT SPAN START ERR:", err)
+		}
+
+		postDockerfileSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
+		err = postDockerfileSpan.Start(RootSpan.Context)
+		if err != nil {
+			fmt.Println("POST DOCKERFILE SPAN START ERR:", err)
+		}
+
+		// trace.Context, , grpc.Trailer(&trace.Trailer)
+		c := rbacPb.NewRbacServiceClient(conn)
+		_, err = c.PostDockerfile(postDockerfileSpan.Context, &rbacPb.PostDockerfileRequest{
 			Dockerfile: &rbacPb.Dockerfile{
 				ImageName:    d.ImageName,
 				ImageVersion: d.ImageVersion,
 				CreatorId:    testUserId,
 				Repository:   d.Repository,
 				Content:      d.Content,
+				TraceId:      d.TraceId,
 			},
-		}, grpc.Trailer(&trailer))
+		})
 		if err != nil {
 			fmt.Println("POST DOCKERFILE GRPC ERR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		respTimes := trailer.Get("x-request-time")
-		respId := trailer.Get("x-request-id")
-		respUpstream := trailer.Get("x-envoy-upstream-cluster")
-		fmt.Println("RESP TIME:", respTimes)
-		fmt.Println("RESP ID:", respId)
-		fmt.Println("RESP UPSTREAM:", respUpstream)
-		w.Header().Set("X-Request-Time", strings.Join(respTimes, ","))
-		w.Header().Set("X-Request-Id", strings.Join(respId, ","))
-		w.Header().Set("X-Envoy-Upstream-Cluster", strings.Join(respUpstream, ","))
+		gitPushSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(postDockerfileSpan.Context)
+		err = gitPushSpan.Start(postDockerfileSpan.Context)
+		if err != nil {
+			fmt.Println("ERR GIT CONTEXT:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		RootSpans[RootSpan.TraceID] = RootSpan
+
+		if svc.ClientSet.GitClient.IsDockerfileExist(d.ImageName) {
+			svc.ClientSet.GitClient.UpdateDockerFile(testUserName, d.ImageName+":"+d.ImageVersion, d.Content)
+			return
+		} else {
+			svc.ClientSet.GitClient.CreateDockerFile(testUserName, d.ImageName+":"+d.ImageVersion, d.Content)
+		}
+
+		err = gitPushSpan.Stop()
+		if err != nil {
+			fmt.Println("GIT PUSH SPAN STOP ERR:", err)
+		}
+		err = postDockerfileSpan.Stop()
+		if err != nil {
+			fmt.Println("POST DOCKERFILE SPAN STOP ERR:", err)
+		}
 
 		w.WriteHeader(http.StatusOK)
-
-		// f := git.GitDockerFile{}
-		// json.Unmarshal(b, &f)
-
-		// step := progress.NewStep(progress.PushDockerfile, progress.Continue, []string{"GET POST DOCKER REQUEST", fmt.Sprintln("TEST REQEUST BODY:", r.Body)})
-
-		// step.Add(f.Image)
-
-		// imageName, _, _ := strings.Cut(f.Image, ":")
-		// if svc.ClientSet.GitClient.IsDockerfileExist(f.Username, imageName) {
-		// 	fmt.Println("TEST DOCKERFILE ALREADY EXIST")
-		// 	svc.ClientSet.GitClient.UpdateDockerFile(f.Username, f.Image, f.Content)
-		// 	step.UpdateState(progress.Fail, "TEST DOCKERFILE ALREADY EXIST")
-		// 	return
-		// }
-		// step.UpdateLog("DOCKERFILE NOT EXIST! START TO CREATE...")
-		// if err := svc.ClientSet.GitClient.CreateDockerFile(f.Username, f.Image, f.Content); err != nil {
-		// 	step.UpdateState(progress.Fail, err.Error())
-		// }
-		// step.UpdateState(progress.Success, "CREATE DOCKERFILE FINISH!")
+		w.Write(b)
 	}
 }
 
@@ -609,7 +729,7 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		userName := vars["userName"]
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetDockerfiles(context.TODO(), &rbacPb.GetDockerfilesRequest{
 			UserName: userName,
 		})
@@ -634,40 +754,23 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
+		// trace := svc.ClientSet.TraceClient.StartTrace(conn, w, r, "GATEWAY")
 
-		reqTimes := r.Header.Get("x-request-time")
-		reqId := r.Header.Get("x-request-id")
-
-		fmt.Println("REQ TIME:", reqTimes)
-		fmt.Println("REQ ID:", reqId)
-
-		md := metadata.Pairs("x-request-time", reqTimes+","+time.Now().Format("2006-01-02T15:04:05.999Z-CLIENT"), "x-request-id", reqId)
-		ctx := metadata.NewOutgoingContext(context.Background(), md)
-
-		trailer := metadata.MD{}
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
-		reply, err := c.GetRoles(ctx, nil, grpc.Trailer(&trailer))
-		if err != nil {
-			fmt.Println("ERR GETTING ROLE LIST ERR:", err)
-		}
-
-		respTimes := trailer.Get("x-request-time")
-		respId := trailer.Get("x-request-id")
-		respUpstream := trailer.Get("x-envoy-upstream-cluster")
-
-		fmt.Println("RESP TIME:", respTimes)
-		fmt.Println("RESP ID:", respId)
-		fmt.Println("RESP UPSTREAM:", respUpstream)
+		c := rbacPb.NewRbacServiceClient(conn)
+		// trace.Context , grpc.Trailer(&trace.Trailer)
+		reply, _ := c.GetRoles(context.TODO(), nil)
+		// if err != nil {
+		// 	svc.ClientSet.TraceClient.ErrorTrace(trace)
+		// }
 
 		roles := reply.GetRoles()
 		b, _ := json.Marshal(roles)
 
-		w.Header().Set("X-Request-Time", strings.Join(respTimes, ","))
-		w.Header().Set("X-Request-Id", strings.Join(respId, ","))
-		w.Header().Set("X-Envoy-Upstream-Cluster", strings.Join(respUpstream, ","))
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		// svc.ClientSet.TraceClient.StopTrace(trace)
+
 		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(b)
 	}
 }
@@ -677,7 +780,7 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 		vars := mux.Vars(r)
 		userName := vars["userName"]
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetRole(context.TODO(), &rbacPb.GetRoleRequest{UserName: userName})
 		if err != nil {
 			fmt.Println("GET USER ROLE GRPC ERR:", err)
@@ -698,7 +801,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
 			ProjectName: proj,
 		})
@@ -717,7 +820,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
 		if err != nil {
 			fmt.Println("ERR GET PROJECT LIST :", err)
@@ -886,7 +989,7 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 		userId := r.URL.Query().Get("user_id")
 
 		fmt.Println("USER ", userId, " tried to get policies")
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.GrpcClient.GetConnection())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
 			RoleId: roleId,
 		})

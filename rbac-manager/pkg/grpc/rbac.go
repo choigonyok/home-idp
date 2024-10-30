@@ -6,19 +6,18 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/choigonyok/home-idp/pkg/storage"
+	"github.com/choigonyok/home-idp/pkg/trace"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/uuid"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type RbacServiceServer struct {
 	pb.UnimplementedRbacServiceServer
 	StorageClient storage.StorageClient
+	TraceClient   *trace.TraceClient
 }
 
 func (svr *RbacServiceServer) Check(ctx context.Context, in *pb.RbacRequest) (*pb.RbacReply, error) {
@@ -69,30 +68,30 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 }
 
 func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
-	reqId := ""
+	// reqId := ""
 
-	md, ok := metadata.FromIncomingContext(ctx)
+	// md, ok := metadata.FromIncomingContext(ctx)
 
-	if ok {
-		fmt.Println("Received x-request-id:", md.Get("x-request-id"))
-		fmt.Println("Received x-request-time:", md.Get("x-request-time"))
+	// if ok {
+	// 	fmt.Println("Received x-trace-id:", md.Get("x-trace-id"))
+	// 	fmt.Println("Received x-request-time:", md.Get("x-request-time"))
 
-		if md.Get("x-request-id") != nil {
-			reqId = md.Get("x-request-id")[0]
-		}
-	} else {
-		fmt.Println("No x-request-time found")
-	}
+	// 	if md.Get("x-trace-id") != nil {
+	// 		reqId = md.Get("x-trace-id")[0]
+	// 	}
+	// } else {
+	// 	fmt.Println("No x-request-time found")
+	// }
 
-	times := md.Get("x-request-time")
-	times = append(times, time.Now().Format("2006-01-02T15:04:05.999Z-SERVER"))
-	trailer := metadata.Pairs(
-		"x-envoy-upstream-cluster", "rbac_manager_service_cluster",
-		"x-request-id", reqId,
-		"x-request-time", strings.Join(times, ", "),
-	)
+	// times := md.Get("x-request-time")
+	// times = append(times, time.Now().Format("2006-01-02T15:04:05.999Z-SERVER"))
+	// trailer := metadata.Pairs(
+	// 	"x-envoy-upstream-cluster", "rbac_manager_service_cluster",
+	// 	"x-trace-id", reqId,
+	// 	"x-request-time", strings.Join(times, ", "),
+	// )
 
-	grpc.SetTrailer(ctx, trailer)
+	// grpc.SetTrailer(ctx, trailer)
 
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
@@ -277,15 +276,29 @@ func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserReque
 }
 
 func (svr *RbacServiceServer) PostDockerfile(ctx context.Context, in *pb.PostDockerfileRequest) (*emptypb.Empty, error) {
+	storeDockerfileSpan := svr.TraceClient.NewSpanFromIncomingContext(ctx)
+	err := storeDockerfileSpan.Start(ctx)
+	if err != nil {
+		fmt.Println("SPAN START ERR:", err)
+	}
+
 	imgName := in.GetDockerfile().GetImageName()
 	imgVersion := in.GetDockerfile().GetImageVersion()
 	creatorId := in.GetDockerfile().GetCreatorId()
 	repo := in.GetDockerfile().GetRepository()
 	content := in.GetDockerfile().GetContent()
+	traceId := in.GetDockerfile().GetTraceId()
 
-	_, err := svr.StorageClient.DB().Exec(`INSERT INTO dockerfiles (id, image_name, image_version, creator_id, repository, content) VALUES ('` + uuid.NewString() + `', '` + imgName + `', '` + imgVersion + `', '` + creatorId + `', '` + repo + `', '` + content + `')`)
+	if _, err = svr.StorageClient.DB().Exec(`INSERT INTO dockerfiles (id, image_name, image_version, creator_id, repository, content, trace_id) VALUES ('` + uuid.NewString() + `', '` + imgName + `', '` + imgVersion + `', '` + creatorId + `', '` + repo + `', '` + content + `', '` + traceId + `')`); err != nil {
+		fmt.Println(err)
+	}
 
-	return nil, err
+	err = storeDockerfileSpan.Stop()
+	if err != nil {
+		fmt.Println("TRACE STOP ERR:", err)
+	}
+
+	return &emptypb.Empty{}, err
 }
 
 func (svr *RbacServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest) (*pb.PutUserReply, error) {
@@ -298,4 +311,17 @@ func (svr *RbacServiceServer) PutUser(ctx context.Context, in *pb.PutUserRequest
 	_, err := svr.StorageClient.DB().Exec(`UPDATE users SET role_id = ` + roleId + ` WHERE name = '` + usr.GetName() + `'`)
 
 	return &pb.PutUserReply{}, err
+}
+
+func (svr *RbacServiceServer) GetTraceId(ctx context.Context, in *pb.GetTraceIdRequest) (*pb.GetTraceIdReply, error) {
+	name := in.GetImageName()
+	version := in.GetImageVersion()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT trace_id FROM dockerfiles WHERE image_name = '` + name + `' and image_version = '` + version + `'`)
+	traceId := ""
+	r.Scan(&traceId)
+
+	return &pb.GetTraceIdReply{
+		TraceId: traceId,
+	}, nil
 }
