@@ -187,10 +187,9 @@ func (c *GatewayGitClient) UpdateManifest(image string) error {
 	return nil
 }
 
-func (c *GatewayGitClient) CreatePodManifestFile(username, email, image string, port int) error {
-	name, _, _ := strings.Cut(image, ":")
-	manifest := manifest.GetPodManifest(name+"-"+username, image, port)
-	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod.yaml", []byte(manifest), git.Manifest)
+func (c *GatewayGitClient) CreatePodManifestFile(username, email, imageName, imageVersion string, port int) error {
+	manifest := manifest.GetPodManifest(imageName+"-"+username, imageName+":"+imageVersion, port)
+	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod-"+imageName+".yaml", []byte(manifest), git.Manifest)
 }
 
 func (c *GatewayGitClient) IsDockerfileExist(imagename string) bool {

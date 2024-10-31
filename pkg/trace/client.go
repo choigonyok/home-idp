@@ -114,24 +114,13 @@ func (c *TraceClient) NewSpanFromIncomingContext(ctx context.Context) *Span1 {
 	}
 }
 
-type Key string
-
 func (s *Span1) Start(ctx context.Context) error {
-	// nextCtx := context.WithValue(ctx, Key("trace-id"), c.TraceID)
-	// nextCtx = context.WithValue(nextCtx, Key("parent-span-id"), c.SpanID)
 	md := metadata.Pairs(
 		"trace-id", s.TraceID,
 		"parent-span-id", s.SpanID,
 	)
 	c := metadata.NewOutgoingContext(ctx, md)
 	s.Context = c
-
-	// fmt.Println("STARTTEST1 ", c.TraceID)
-	// fmt.Println("STARTTEST2 ", c.ParentSpanID)
-	// fmt.Println("STARTTEST3 ", nextCtx.Value(Key("trace-id")))
-	// fmt.Println("STARTTEST4 ", nextCtx.Value(Key("parent-span-id")))
-	// fmt.Println("STARTTEST5 ", nextCtx.Value(Key("trace-id")))
-	// fmt.Println("STARTTEST6 ", nextCtx.Value(Key("parent-span-id")))
 
 	data := model.Trace{
 		SpanID:       s.SpanID,

@@ -23,10 +23,12 @@ import (
 	"github.com/google/go-github/v63/github"
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"gopkg.in/yaml.v2"
 )
 
 var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
 var testUserName = "choigonyok"
+var testUserEmail = "achoistic98@naver.com"
 
 var Spans = make(map[string]*trace.Span1)
 var RootSpans = make(map[string]*trace.Span1)
@@ -34,7 +36,6 @@ var RootSpans = make(map[string]*trace.Span1)
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Body)
-		// tracer, s := otel.GetTracerProvider().Tracer("name").Start(context.TODO(),"")
 		fmt.Println("TESTHANDLER1")
 	}
 }
@@ -79,17 +80,21 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		if err != nil {
 			fmt.Println("DEPLOY SPAN START ERR:", err)
 		}
-		updateManifestSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
-		err = updateManifestSpan.Start(deploySpan.Context)
+		manifestSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
+		err = manifestSpan.Start(deploySpan.Context)
 		if err != nil {
 			fmt.Println("UPDATE MANIFEST SPAN START ERR:", err)
 		}
 
-		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+		if err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80); err != nil {
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
-		err = updateManifestSpan.Stop()
+		// if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+		// 	fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
+		// 	return
+		// }
+		err = manifestSpan.Stop()
 		if err != nil {
 			fmt.Println("UPDATE MANIFEST SPAN STOP ERR:", err)
 		}
@@ -97,10 +102,10 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		Spans[deploySpan.TraceID] = deploySpan
 		// TO DO: push된 manifest에서 docker image name, version 찾고, traceid 조회해서 argocd wehook span 생성 및 종료하고 마지막에 deploySpan도 종료시키기
 		// TO DO: k8s watcher 만들어서 kaniko pod랑 배포된 리소스 pod 완료되는지 체크하고 trace 구성하기
-		err = deploySpan.Stop()
-		if err != nil {
-			fmt.Println("DEPLOY SPAN STOP ERR:", err)
-		}
+		// err = deploySpan.Stop()
+		// if err != nil {
+		// 	fmt.Println("DEPLOY SPAN STOP ERR:", err)
+		// }
 
 		err = rootSpan.Stop()
 		if err != nil {
@@ -267,21 +272,75 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 
 			case "cd":
 				path := getFilepathFromCommit(event)
+
 				svc.requestDeploy(path)
-				// case "manifest":
-				// 	path := forwardToArgoCD(event)
-				// 	svc.requestDeploy(path)
+			// case "manifest":
+			// 	path := forwardToArgoCD(event)
+			// 	svc.requestDeploy(path)
 			case "manifest":
+				path := getFilepathFromCommit(event)
+				file := svc.ClientSet.GitClient.Client.GetFilesByPath(path)
+				tmp := struct {
+					Spec struct {
+						Containers []struct {
+							Image string `yaml:"image"`
+						} `yaml:"containers"`
+					} `yaml:"spec"`
+				}{}
+
+				err := yaml.Unmarshal([]byte(file[0]), &tmp)
+				if err != nil {
+					fmt.Println("ERR UNMARSHALING MANIFEST TO POD : ", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+
+				imageName := ""
+				imageVersion := ""
+				parts := strings.Split(tmp.Spec.Containers[0].Image, ":")
+				if len(parts) == 2 {
+					imageName = parts[0]
+					imageVersion = parts[1]
+					fmt.Println("imageName: ", imageName)
+					fmt.Println("imageVersion: ", imageVersion)
+				}
+
+				c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+				resp, err := c.GetTraceId(context.TODO(), &rbacPb.GetTraceIdRequest{
+					ImageName:    imageName,
+					ImageVersion: imageVersion,
+				})
+				if err != nil {
+					fmt.Println("ERR GETTING TRACE ID :", err)
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				fmt.Println("TRACE ID MANIFEST:", resp.GetTraceId())
+				deploySpan := Spans[resp.GetTraceId()]
+				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
+				err = argocdWebhookSpan.Start(deploySpan.Context)
+				if err != nil {
+					fmt.Println("ARGOCD WEBHOOK SPAN START ERR:", err)
+				}
+
 				if fn := getFilename(event); fn != ".gitkeep" {
 					svc.requestArgoCDWebhook(r, payload)
 				}
+
+				err = argocdWebhookSpan.Stop()
+				if err != nil {
+					fmt.Println("ARGOCD WEBHOOK SPAN STOP ERR:", err)
+				}
+				err = deploySpan.Stop()
+				if err != nil {
+					fmt.Println("DEPLOY SPAN STOP ERR:", err)
+				}
 			default:
-				return
+				fmt.Println("TEST PING WEBHOOK RECEIVED")
 			}
-		case *github.RepositoryEvent:
-			fmt.Println("TEST PING WEBHOOK RECEIVED")
 		}
 	}
+
 }
 
 func getFileType(e *github.PushEvent) string {
@@ -754,23 +813,16 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
-		// trace := svc.ClientSet.TraceClient.StartTrace(conn, w, r, "GATEWAY")
 
 		c := rbacPb.NewRbacServiceClient(conn)
-		// trace.Context , grpc.Trailer(&trace.Trailer)
 		reply, _ := c.GetRoles(context.TODO(), nil)
-		// if err != nil {
-		// 	svc.ClientSet.TraceClient.ErrorTrace(trace)
-		// }
 
 		roles := reply.GetRoles()
 		b, _ := json.Marshal(roles)
 
-		// svc.ClientSet.TraceClient.StopTrace(trace)
-
 		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Write(b)
 	}
 }
@@ -1022,7 +1074,7 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := r.URL.Query().Get("username")
-		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test:v1.0", 8080)
+		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080)
 		fmt.Println(err)
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
