@@ -24,6 +24,8 @@ import (
 	"github.com/gorilla/mux"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
+	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 )
 
 var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
@@ -1010,17 +1012,17 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 		proj := vars["projectName"]
 
 		data := struct {
-			Pods       []model.Pod       `json:"pod"`
-			Services   []model.Service   `json:"service"`
-			Ingresses  []model.Ingress   `json:"ingress"`
-			Configmaps []model.Configmap `json:"configmap"`
-			Secrets    []model.Secret    `json:"secret"`
+			Pods       *[]corev1.Pod           `json:"pod"`
+			Services   *[]corev1.Service       `json:"service"`
+			Ingresses  *[]networkingv1.Ingress `json:"ingress"`
+			Configmaps *[]corev1.ConfigMap     `json:"configmap"`
+			Secrets    *[]corev1.Secret        `json:"secret"`
 		}{
-			Pods:       *svc.ClientSet.KubeClient.GetPods(proj),
-			Services:   *svc.ClientSet.KubeClient.GetServices(proj),
-			Ingresses:  *svc.ClientSet.KubeClient.GetIngresses(proj),
-			Configmaps: *svc.ClientSet.KubeClient.GetConfigmaps(proj),
-			Secrets:    *svc.ClientSet.KubeClient.GetSecrets(proj),
+			Pods:       svc.ClientSet.KubeClient.GetPods(proj),
+			Services:   svc.ClientSet.KubeClient.GetServices(proj),
+			Ingresses:  svc.ClientSet.KubeClient.GetIngresses(proj),
+			Configmaps: svc.ClientSet.KubeClient.GetConfigmaps(proj),
+			Secrets:    svc.ClientSet.KubeClient.GetSecrets(proj),
 		}
 
 		b, _ := json.Marshal(data)
