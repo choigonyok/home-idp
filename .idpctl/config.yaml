@@ -1,6 +1,34 @@
 global:
   namespace: idp-system
-  storageClass: idp-sc    
+  storageClass: idp-sc
+  port: 5103
+  ingress:
+    host: api-idp.choigonyok.com
+    port: 8080
+    tls: false
+  git:
+    username: choigonyok
+    email : achoistic98@naver.com
+    token: xxxxxxxx
+    repository: test1256
+    oauth:
+      clientId: xxxxxxxx
+      clientSecret: xxxxxxxx
+  adminPassword: tester1234
+  harbor:
+    host: ci.choigonyok.com
+    port: 8080
+    tls: false
+  ui:
+    host: idp.choigonyok.com
+    port: 8080
+    tls: false
+  storage:
+    # type: postgresql
+    username: tester
+    password: tester1234
+    database: home-idp
+    # port: 5432
 
 secret-manager:
   enabled: true
@@ -24,9 +52,38 @@ deploy-manager:
     host: localhost
     username: tester
     password: tester1234
-    
+
+webhook-manager:
+  enabled: true
+  replicas: 3
+  service:
+    port: 5108
   
 rbac-manager:
+  enabled: true
+  replicas: 3
+  service:
+    port: 5105
+  storage:
+    type: postgresql
+    host: localhost
+    username: tester
+    password: tester1234
+    database: idp
+    port: 5432
+  admin:
+    username: choigonyok
+    password: tester1234
+    email: test@naver.com
+  smtp:
+    enabled: true
+    config:
+      host: "127.0.0.1"
+      port: 1587
+      user: idp@choigonyok.com
+      password: tester1234
+
+trace-manager:
   enabled: true
   replicas: 3
   service:
@@ -60,6 +117,8 @@ gateway:
 install-manager:
   enabled: true
   replicas: 3
+  harbor:
+    host: ci.choigonyok.com
   service:
     port: 5051
   docker:
