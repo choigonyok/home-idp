@@ -1,6 +1,9 @@
 package manifest
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/choigonyok/home-idp/pkg/docker"
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/util"
@@ -10,6 +13,11 @@ import (
 )
 
 func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
+	i := strings.LastIndex(repo, "/")
+	repoName := repo[i+1:]
+	fmt.Println("REPO:", repo)
+	fmt.Println("REPONAME:", repoName)
+
 	return &batchv1.Job{
 		TypeMeta: v1.TypeMeta{
 			Kind:       "Job",
@@ -28,6 +36,111 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 					Namespace: env.Get("HOME_IDP_NAMESPACE"),
 				},
 				Spec: corev1.PodSpec{
+					InitContainers: []corev1.Container{
+						{
+							Name:  "git-sync-dockerfile-repo",
+							Image: "k8s.gcr.io/git-sync/git-sync:v3.2.2",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "GIT_SYNC_REPO",
+									Value: "https://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + env.Get("HOME_IDP_GIT_REPO") + ".git",
+								},
+								{
+									Name:  "GIT_SYNC_BRANCH",
+									Value: "main",
+								},
+								{
+									Name:  "GIT_SYNC_ROOT",
+									Value: "/tmp/git/dockerfile",
+								},
+								{
+									Name:  "GIT_SYNC_DEPTH",
+									Value: "1",
+								},
+								{
+									Name:  "GIT_SYNC_ONE_TIME",
+									Value: "true",
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "share-dockerfile",
+									MountPath: "/tmp/git/dockerfile",
+								},
+							},
+						},
+						{
+							Name:  "git-sync-source-repo",
+							Image: "k8s.gcr.io/git-sync/git-sync:v3.2.2",
+							Env: []corev1.EnvVar{
+								{
+									Name:  "GIT_SYNC_REPO",
+									Value: repo,
+								},
+								{
+									Name:  "GIT_SYNC_BRANCH",
+									Value: "main",
+								},
+								{
+									Name:  "GIT_SYNC_ROOT",
+									Value: "/tmp/git/source",
+								},
+								{
+									Name:  "GIT_SYNC_DEPTH",
+									Value: "1",
+								},
+								{
+									Name:  "GIT_SYNC_ONE_TIME",
+									Value: "true",
+								},
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "share-source",
+									MountPath: "/tmp/git/source",
+								},
+							},
+						},
+						{
+							Name:  "git-sync-merge-1",
+							Image: "busybox:latest",
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"cp -R /tmp/git/source /workspace/tmp",
+							},
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "share-source",
+									MountPath: "/tmp/git/source",
+								},
+								{
+									Name:      "share-merge",
+									MountPath: "/workspace",
+								},
+							},
+						},
+						{
+							Name:  "git-sync-merge-2",
+							Image: "busybox:latest",
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"mv /tmp/git/dockerfile/" + env.Get("HOME_IDP_GIT_REPO") + ".git/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version + " /workspace/tmp/" + repoName + "/Dockerfile." + img.Name + ":" + img.Version,
+							},
+							// /workspace/test-for-home-idp.git/Dockerfile.name1:version1
+							VolumeMounts: []corev1.VolumeMount{
+								{
+									Name:      "share-dockerfile",
+									MountPath: "/tmp/git/dockerfile",
+								},
+								{
+									Name:      "share-merge",
+									MountPath: "/workspace",
+								},
+							},
+						},
+					},
 					Containers: []corev1.Container{
 						{
 							Name:  "kaniko",
@@ -35,16 +148,20 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Args: []string{
 								"--insecure",
 								"--skip-tls-verify",
-								"--dockerfile=/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version,
-								"--context=git://github.com/" + env.Get("HOME_IDP_GIT_USERNAME") + "/" + repo + "#main",
-								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":8080/library/" + img.Name + ":" + img.Version,
+								"--context=dir:///workspace/tmp/" + repoName,
+								"--dockerfile=Dockerfile." + img.Name + ":" + img.Version,
+								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT") + "/library/" + img.Name + ":" + img.Version,
 								"--cache=true",
 							},
-							// "--destination=harbor." + env.Get("HOME_IDP_NAMESPACE") + ".svc.cluster.local:80/library/" + img.Name + ":" + img.Version,
+
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "kaniko-secret",
 									MountPath: "/kaniko/.docker",
+								},
+								{
+									Name:      "share-merge",
+									MountPath: "/workspace",
 								},
 							},
 						},
@@ -63,6 +180,24 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 										},
 									},
 								},
+							},
+						},
+						{
+							Name: "share-source",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						{
+							Name: "share-dockerfile",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
+							},
+						},
+						{
+							Name: "share-merge",
+							VolumeSource: corev1.VolumeSource{
+								EmptyDir: &corev1.EmptyDirVolumeSource{},
 							},
 						},
 					},

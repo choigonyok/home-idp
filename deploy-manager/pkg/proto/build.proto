@@ -13,6 +13,7 @@ message Image {
   string name = 1;
   string version = 2;
   string pusher = 3;
+  string repository = 4;
 }
 
 message BuildDockerfileRequest {

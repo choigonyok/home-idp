@@ -22,7 +22,7 @@ func (svr *BuildServer) BuildDockerfile(ctx context.Context, in *pb.BuildDockerf
 		fmt.Println("DEPLOY KANIKO SPAN START ERR:", err)
 	}
 
-	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName()+":"+in.Img.GetVersion(), in.Img.GetPusher()); err != nil {
+	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName()+":"+in.Img.GetVersion(), in.Img.GetPusher(), in.Img.GetRepository()); err != nil {
 		fmt.Println("TEST APPLY KANIKO BUILD MANIFEST ERR:", err)
 		return &pb.BuildDockerfileReply{
 			Succeed: false,

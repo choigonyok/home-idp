@@ -317,11 +317,12 @@ func (svr *RbacServiceServer) GetTraceId(ctx context.Context, in *pb.GetTraceIdR
 	name := in.GetImageName()
 	version := in.GetImageVersion()
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT trace_id FROM dockerfiles WHERE image_name = '` + name + `' and image_version = '` + version + `'`)
-	traceId := ""
-	r.Scan(&traceId)
+	r := svr.StorageClient.DB().QueryRow(`SELECT trace_id, repository FROM dockerfiles WHERE image_name = '` + name + `' and image_version = '` + version + `'`)
+	traceId, repository := "", ""
+	r.Scan(&traceId, &repository)
 
 	return &pb.GetTraceIdReply{
-		TraceId: traceId,
+		TraceId:    traceId,
+		Repository: repository,
 	}, nil
 }

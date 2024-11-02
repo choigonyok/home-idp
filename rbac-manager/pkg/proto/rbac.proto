@@ -47,6 +47,7 @@ message GetTraceIdRequest {
 
 message GetTraceIdReply {
   string trace_id = 1;
+  string repository = 2;
 }
 
 message RbacRequest {

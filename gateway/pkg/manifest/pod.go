@@ -11,6 +11,8 @@ import (
 )
 
 func GetPodManifest(name, image string, port int) string {
+	harborHost := env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get(env.Get("HOME_IDP_HARBOR_PORT"))
+
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -24,7 +26,7 @@ func GetPodManifest(name, image string, port int) string {
 			Containers: []corev1.Container{
 				{
 					Name:  name,
-					Image: "harbor/library/" + image,
+					Image: harborHost + "/library/" + image,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: int32(port),

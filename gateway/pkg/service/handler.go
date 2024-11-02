@@ -102,12 +102,6 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		}
 
 		Spans[deploySpan.TraceID] = deploySpan
-		// TO DO: push된 manifest에서 docker image name, version 찾고, traceid 조회해서 argocd wehook span 생성 및 종료하고 마지막에 deploySpan도 종료시키기
-		// TO DO: k8s watcher 만들어서 kaniko pod랑 배포된 리소스 pod 완료되는지 체크하고 trace 구성하기
-		// err = deploySpan.Stop()
-		// if err != nil {
-		// 	fmt.Println("DEPLOY SPAN STOP ERR:", err)
-		// }
 
 		err = rootSpan.Stop()
 		if err != nil {
@@ -261,6 +255,7 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 					return
 				}
 				RootSpan := RootSpans[resp.GetTraceId()]
+				repo := resp.GetRepository()
 
 				ImageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
 
@@ -269,7 +264,7 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 					fmt.Println("IMAGE SPAN START ERR:", err)
 				}
 				username := getUserFromCommit(event)
-				svc.requestBuildDockerfile(ImageSpan, name, version, username)
+				svc.requestBuildDockerfile(ImageSpan, name, version, username, repo)
 				Spans[ImageSpan.TraceID] = ImageSpan
 
 			case "cd":
@@ -434,13 +429,14 @@ func (svc *Gateway) requestDeploy(filepath string) {
 // 	}
 // }
 
-func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, username string) {
+func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, username, repo string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.DeployGrpcClient.GetConnection())
 	reply, err := c.BuildDockerfile(span.Context, &deployPb.BuildDockerfileRequest{
 		Img: &deployPb.Image{
-			Pusher:  username,
-			Name:    name,
-			Version: version,
+			Pusher:     username,
+			Name:       name,
+			Version:    version,
+			Repository: repo,
 		},
 	})
 	if err != nil {
@@ -798,6 +794,11 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 			fmt.Println("ERR GETTING DOCKERFILES ERR:", err)
 		}
 
+		if len(reply.GetDockerfiles()) == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
 		// dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName)
 
 		// if len(dockerfiles) == 0 {
@@ -806,7 +807,6 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 		// }
 
 		b, _ := json.Marshal(reply.GetDockerfiles())
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
