@@ -11,7 +11,7 @@ import (
 )
 
 func GetPodManifest(name, image string, port int) string {
-	harborHost := env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get(env.Get("HOME_IDP_HARBOR_PORT"))
+	harborHost := env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT")
 
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
