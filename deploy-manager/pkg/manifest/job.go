@@ -15,8 +15,10 @@ import (
 func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 	i := strings.LastIndex(repo, "/")
 	repoName := repo[i+1:]
+	repoNameWithoutDotGit, _, _ := strings.Cut(repoName, ".")
 	fmt.Println("REPO:", repo)
 	fmt.Println("REPONAME:", repoName)
+	fmt.Println("REPONAME:", repoNameWithoutDotGit)
 
 	return &batchv1.Job{
 		TypeMeta: v1.TypeMeta{
@@ -107,7 +109,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"cp -R /tmp/git/source /workspace/tmp",
+								"mkdir -p /workspace/" + repoNameWithoutDotGit + " && cp -rL --remove-destination /tmp/git/source/" + repoName + " /workspace/" + repoNameWithoutDotGit + "/source",
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -126,9 +128,8 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"mv /tmp/git/dockerfile/" + env.Get("HOME_IDP_GIT_REPO") + ".git/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version + " /workspace/tmp/" + repoName + "/Dockerfile." + img.Name + ":" + img.Version,
+								"mv /tmp/git/dockerfile/" + env.Get("HOME_IDP_GIT_REPO") + ".git/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version + " /workspace/" + repoNameWithoutDotGit + "/source/Dockerfile." + img.Name + ":" + img.Version,
 							},
-							// /workspace/test-for-home-idp.git/Dockerfile.name1:version1
 							VolumeMounts: []corev1.VolumeMount{
 								{
 									Name:      "share-dockerfile",
@@ -148,7 +149,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Args: []string{
 								"--insecure",
 								"--skip-tls-verify",
-								"--context=dir:///workspace/tmp/" + repoName,
+								"--context=dir:///workspace/" + repoNameWithoutDotGit + "/source",
 								"--dockerfile=Dockerfile." + img.Name + ":" + img.Version,
 								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT") + "/library/" + img.Name + ":" + img.Version,
 								"--cache=true",
