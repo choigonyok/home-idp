@@ -58,6 +58,13 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		m := make(map[string]interface{})
 		json.Unmarshal(b, &m)
 
+		fmt.Println("harbor webhook: ", string(b))
+
+		repoName := util.ParseInterfaceMap(m, []string{"event_data", "repository", "name"}).(string)
+		if strings.SplitAfter(repoName, "/")[1] == "cache" {
+			return
+		}
+
 		img := util.ParseInterfaceMap(m, []string{"event_data", "resources", "resource_url"}).(string)
 		s := strings.Split(img, "/")
 		name, version, _ := strings.Cut(s[2], ":")
@@ -71,8 +78,8 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		ImageSpan := Spans[resp.GetTraceId()]
-		err = ImageSpan.Stop()
+		imageSpan := Spans[resp.GetTraceId()]
+		err = imageSpan.Stop()
 		if err != nil {
 			fmt.Println("BUILD SPAN STOP ERR:", err)
 		}
@@ -102,6 +109,12 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		}
 
 		Spans[deploySpan.TraceID] = deploySpan
+
+		// remove later
+		err = deploySpan.Stop()
+		if err != nil {
+			fmt.Println("DEPLOY SPAN STOP ERR:", err)
+		}
 
 		err = rootSpan.Stop()
 		if err != nil {
@@ -257,15 +270,15 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				RootSpan := RootSpans[resp.GetTraceId()]
 				repo := resp.GetRepository()
 
-				ImageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
+				imageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
 
-				err = ImageSpan.Start(RootSpan.Context)
+				err = imageSpan.Start(RootSpan.Context)
 				if err != nil {
 					fmt.Println("IMAGE SPAN START ERR:", err)
 				}
 				username := getUserFromCommit(event)
-				svc.requestBuildDockerfile(ImageSpan, name, version, username, repo)
-				Spans[ImageSpan.TraceID] = ImageSpan
+				Spans[imageSpan.TraceID] = imageSpan
+				svc.requestBuildDockerfile(imageSpan, name, version, username, repo)
 
 			case "cd":
 				path := getFilepathFromCommit(event)
@@ -294,6 +307,13 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 
 				imageName := ""
 				imageVersion := ""
+
+				// exception handling for .gitkeep file
+				if tmp.Spec.Containers[0].Image == "" {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
+
 				parts := strings.Split(tmp.Spec.Containers[0].Image, ":")
 				if len(parts) == 2 {
 					imageName = parts[0]
@@ -314,7 +334,7 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				}
 				fmt.Println("TRACE ID MANIFEST:", resp.GetTraceId())
 				deploySpan := Spans[resp.GetTraceId()]
-				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
+				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromIncomingContext(deploySpan.Context)
 				err = argocdWebhookSpan.Start(deploySpan.Context)
 				if err != nil {
 					fmt.Println("ARGOCD WEBHOOK SPAN START ERR:", err)
