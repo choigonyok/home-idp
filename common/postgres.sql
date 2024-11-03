@@ -56,6 +56,7 @@ data:
       image_name VARCHAR(100) NOT NULL,
       image_version VARCHAR(100) NOT NULL,
       creator_id VARCHAR(100) NOT NULL,
+      trace_id VARCHAR(100) NOT NULL,
       repository VARCHAR(100) NOT NULL,
       content TEXT NOT NULL,
       FOREIGN KEY (creator_id) REFERENCES users(id)
@@ -64,8 +65,9 @@ data:
     CREATE TABLE spans (
       trace_id VARCHAR(100) NOT NULL,
       span_id VARCHAR(100) PRIMARY KEY,
-      elapsed_time VARCHAR(100) NOT NULL,
+      parent_span_id VARCHAR(100) DEFAULT '',
+      start_time VARCHAR(100) NOT NULL,
+      end_time VARCHAR(100) DEFAULT '',
       status VARCHAR(100) NOT NULL,
-      message TEXT NOT NULL,
       create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
