@@ -962,6 +962,7 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -989,10 +990,40 @@ func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(data)
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiPostSecretHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		vars := mux.Vars(r)
+		proj := vars["projectName"]
+
+		b, _ := io.ReadAll(r.Body)
+
+		fmt.Println("TEST1 : ", string(b))
+
+		data := []*deployPb.Secret{}
+
+		json.Unmarshal(b, &data)
+
+		fmt.Println("TEST2 : ", data)
+
+		conn := svc.ClientSet.DeployGrpcClient.GetConnection()
+		c := deployPb.NewDeployClient(conn)
+		if _, err := c.DeploySecret(context.TODO(), &deployPb.DeploySecretRequest{
+			Namespace: proj,
+			Pusher:    testUserName,
+			Secrets:   data,
+		}); err != nil {
+			fmt.Println("ERR DEPLOYING SECRET: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 

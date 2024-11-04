@@ -12,6 +12,7 @@ option go_package = "./";
 service Deploy {
   rpc Deploy (DeployRequest) returns (DeployReply) {}
   rpc DeployPod (DeployPodRequest) returns (google.protobuf.Empty) {}
+  rpc DeploySecret (DeploySecretRequest) returns (google.protobuf.Empty) {}
 }
 
 
@@ -32,4 +33,15 @@ message Pod {
   string namespace = 2;
   string image = 3;
   string container_port = 4;
+}
+
+message Secret {
+  string key = 2;
+  string value = 3;
+}
+
+message DeploySecretRequest {
+  string namespace = 1;
+  string pusher = 2;
+  repeated Secret secrets = 3;
 }

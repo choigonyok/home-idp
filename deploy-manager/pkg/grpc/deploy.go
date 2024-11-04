@@ -2,6 +2,7 @@ package grpc
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"strconv"
 
@@ -149,4 +150,54 @@ func (svr *DeployServer) Test2(name, namespace, image, port string) {
 	}
 
 	fmt.Println("TEST2 END")
+}
+
+func (svr *DeployServer) DeploySecret(ctx context.Context, in *pb.DeploySecretRequest) (*emptypb.Empty, error) {
+	ns := in.GetNamespace()
+	pusher := in.GetPusher()
+	secrets := in.GetSecrets()
+
+	obj := svr.GetSecretObject(pusher, ns, secrets)
+	gvr := schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "secrets",
+	}
+
+	_, err := svr.KubeClient.Client.Dynamic.Resource(gvr).Namespace(ns).Apply(context.TODO(), "secret-"+pusher, &obj, v1.ApplyOptions{
+		FieldManager: "deploy-manager",
+	})
+	if err != nil {
+		fmt.Println("ERR DEPLOY SECRET :", err)
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (svr *DeployServer) GetSecretObject(pusher, namespace string, kvs []*pb.Secret) unstructured.Unstructured {
+	obj := unstructured.Unstructured{}
+	obj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "Secret",
+	})
+
+	obj.Object = map[string]interface{}{
+		"apiVersion": "v1",
+		"kind":       "Secret",
+		"metadata": map[string]interface{}{
+			"name":      "secret-" + pusher,
+			"namespace": namespace,
+		},
+		"type": "Opaque",
+		"data": map[string]string{},
+	}
+
+	for _, kv := range kvs {
+		m := obj.Object["data"].(map[string]string)
+		m[kv.Key] = base64.StdEncoding.EncodeToString([]byte(kv.Value))
+	}
+
+	return obj
 }

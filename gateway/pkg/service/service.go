@@ -49,7 +49,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
-	// svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetPoliciesHandler())
