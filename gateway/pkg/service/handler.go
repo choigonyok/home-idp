@@ -1027,6 +1027,39 @@ func (svc *Gateway) apiPostSecretHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiPostConfigmapHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		vars := mux.Vars(r)
+		proj := vars["projectName"]
+
+		b, _ := io.ReadAll(r.Body)
+
+		fmt.Println("TEST1 : ", string(b))
+
+		data := deployPb.ConfigMap{}
+
+		json.Unmarshal(b, &data)
+
+		conn := svc.ClientSet.DeployGrpcClient.GetConnection()
+		c := deployPb.NewDeployClient(conn)
+		if _, err := c.DeployConfigMap(context.TODO(), &deployPb.DeployConfigMapRequest{
+			Namespace: proj,
+			Pusher:    testUserName,
+			Configmap: &deployPb.ConfigMap{
+				Filename:    data.Filename,
+				FileContent: data.FileContent,
+			},
+		}); err != nil {
+			fmt.Println("ERR DEPLOYING CONFIGMAP: ", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)

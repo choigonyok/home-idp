@@ -175,6 +175,53 @@ func (svr *DeployServer) DeploySecret(ctx context.Context, in *pb.DeploySecretRe
 	return nil, nil
 }
 
+func (svr *DeployServer) DeployConfigMap(ctx context.Context, in *pb.DeployConfigMapRequest) (*emptypb.Empty, error) {
+	ns := in.GetNamespace()
+	pusher := in.GetPusher()
+	cm := in.GetConfigmap()
+
+	obj := svr.GetConfigMapObject(pusher, ns, cm)
+	gvr := schema.GroupVersionResource{
+		Group:    "",
+		Version:  "v1",
+		Resource: "configmaps",
+	}
+
+	_, err := svr.KubeClient.Client.Dynamic.Resource(gvr).Namespace(ns).Apply(context.TODO(), "configmap-"+pusher, &obj, v1.ApplyOptions{
+		FieldManager: "deploy-manager",
+	})
+	if err != nil {
+		fmt.Println("ERR DEPLOY CONFIGMAP :", err)
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+func (svr *DeployServer) GetConfigMapObject(pusher, namespace string, cm *pb.ConfigMap) unstructured.Unstructured {
+	obj := unstructured.Unstructured{}
+	obj.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "",
+		Version: "v1",
+		Kind:    "ConfigMap",
+	})
+
+	obj.Object = map[string]interface{}{
+		"apiVersion": "v1",
+		"kind":       "ConfigMap",
+		"metadata": map[string]interface{}{
+			"name":      "configmap-" + pusher,
+			"namespace": namespace,
+		},
+		"data": map[string]string{},
+	}
+
+	m := obj.Object["data"].(map[string]string)
+	m[cm.Filename] = cm.FileContent
+
+	return obj
+}
+
 func (svr *DeployServer) GetSecretObject(pusher, namespace string, kvs []*pb.Secret) unstructured.Unstructured {
 	obj := unstructured.Unstructured{}
 	obj.SetGroupVersionKind(schema.GroupVersionKind{

@@ -13,6 +13,7 @@ service Deploy {
   rpc Deploy (DeployRequest) returns (DeployReply) {}
   rpc DeployPod (DeployPodRequest) returns (google.protobuf.Empty) {}
   rpc DeploySecret (DeploySecretRequest) returns (google.protobuf.Empty) {}
+  rpc DeployConfigMap (DeployConfigMapRequest) returns (google.protobuf.Empty) {}
 }
 
 
@@ -44,4 +45,15 @@ message DeploySecretRequest {
   string namespace = 1;
   string pusher = 2;
   repeated Secret secrets = 3;
+}
+
+message ConfigMap {
+  string filename = 1;
+  string fileContent = 2;
+}
+
+message DeployConfigMapRequest {
+  string namespace = 1;
+  string pusher = 2;
+  ConfigMap configmap = 3;
 }

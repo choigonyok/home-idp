@@ -26,6 +26,7 @@ type DeployClient interface {
 	Deploy(ctx context.Context, in *DeployRequest, opts ...grpc.CallOption) (*DeployReply, error)
 	DeployPod(ctx context.Context, in *DeployPodRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeploySecret(ctx context.Context, in *DeploySecretRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	DeployConfigMap(ctx context.Context, in *DeployConfigMapRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 }
 
 type deployClient struct {
@@ -63,6 +64,15 @@ func (c *deployClient) DeploySecret(ctx context.Context, in *DeploySecretRequest
 	return out, nil
 }
 
+func (c *deployClient) DeployConfigMap(ctx context.Context, in *DeployConfigMapRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.Deploy/DeployConfigMap", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // DeployServer is the server API for Deploy service.
 // All implementations must embed UnimplementedDeployServer
 // for forward compatibility
@@ -70,6 +80,7 @@ type DeployServer interface {
 	Deploy(context.Context, *DeployRequest) (*DeployReply, error)
 	DeployPod(context.Context, *DeployPodRequest) (*emptypb.Empty, error)
 	DeploySecret(context.Context, *DeploySecretRequest) (*emptypb.Empty, error)
+	DeployConfigMap(context.Context, *DeployConfigMapRequest) (*emptypb.Empty, error)
 	mustEmbedUnimplementedDeployServer()
 }
 
@@ -85,6 +96,9 @@ func (UnimplementedDeployServer) DeployPod(context.Context, *DeployPodRequest) (
 }
 func (UnimplementedDeployServer) DeploySecret(context.Context, *DeploySecretRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeploySecret not implemented")
+}
+func (UnimplementedDeployServer) DeployConfigMap(context.Context, *DeployConfigMapRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeployConfigMap not implemented")
 }
 func (UnimplementedDeployServer) mustEmbedUnimplementedDeployServer() {}
 
@@ -153,6 +167,24 @@ func _Deploy_DeploySecret_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Deploy_DeployConfigMap_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeployConfigMapRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(DeployServer).DeployConfigMap(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.Deploy/DeployConfigMap",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(DeployServer).DeployConfigMap(ctx, req.(*DeployConfigMapRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Deploy_ServiceDesc is the grpc.ServiceDesc for Deploy service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -171,6 +203,10 @@ var Deploy_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeploySecret",
 			Handler:    _Deploy_DeploySecret_Handler,
+		},
+		{
+			MethodName: "DeployConfigMap",
+			Handler:    _Deploy_DeployConfigMap_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
