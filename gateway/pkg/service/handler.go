@@ -22,6 +22,8 @@ import (
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
 	"github.com/gorilla/mux"
+	"golang.org/x/oauth2"
+	oauthGit "golang.org/x/oauth2/github"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -568,7 +570,6 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		role := rbacPb.Role{}
@@ -593,9 +594,7 @@ func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		vars := mux.Vars(r)
 		projectName := vars["projectName"]
-
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		usr := rbacPb.User{}
@@ -1134,5 +1133,83 @@ func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 		fmt.Println(err)
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+	}
+}
+
+func (svc *Gateway) LoginHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		scheme := "http"
+		port := env.Get("HOME_IDP_API_PORT")
+		host := env.Get("HOME_IDP_API_HOST")
+		if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
+			scheme = "https"
+		}
+
+		oauthConf := &oauth2.Config{
+			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
+			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
+			RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
+			Scopes:       []string{"user:email"},
+			Endpoint:     oauthGit.Endpoint,
+		}
+
+		url := oauthConf.AuthCodeURL("randomstring", oauth2.AccessTypeOffline)
+		http.Redirect(w, r, url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (svc *Gateway) CallbackHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		scheme := "http"
+		port := env.Get("HOME_IDP_API_PORT")
+		host := env.Get("HOME_IDP_API_HOST")
+		if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
+			scheme = "https"
+		}
+
+		oauthConf := &oauth2.Config{
+			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
+			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
+			RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
+			Scopes:       []string{"user:email"},
+			Endpoint:     oauthGit.Endpoint,
+		}
+
+		state := r.FormValue("state")
+		if state != "randomstring" {
+			log.Printf("invalid oauth state, expected '%s', got '%s'\n", "randomstring", state)
+			http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
+			return
+		}
+
+		code := r.FormValue("code")
+		token, err := oauthConf.Exchange(context.Background(), code)
+		if err != nil {
+			log.Printf("Code exchange failed with '%s'\n", err)
+			http.Error(w, "Code exchange failed", http.StatusBadRequest)
+			return
+		}
+
+		client := oauthConf.Client(context.Background(), token)
+		resp, err := client.Get("https://api.github.com/user")
+		if err != nil {
+			log.Printf("Failed to get user info: '%s'\n", err)
+			http.Error(w, "Failed to get user info", http.StatusBadRequest)
+			return
+		}
+		defer resp.Body.Close()
+
+		var userInfo map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+			log.Printf("Failed to parse user info: '%s'\n", err)
+			http.Error(w, "Failed to parse user info", http.StatusBadRequest)
+			return
+		}
+
+		// db에 저장되어있는 사용자인지 체크
+		// - 있으면 homepage로 리다이렉트
+		// - 없으면 등록되지 않은 사용자 알림
+
+		fmt.Fprintf(w, "User Info: %v\n", userInfo)
 	}
 }
