@@ -58,7 +58,10 @@ func (c *GatewayKubeClient) GetConfigmapFiles(namespace string) []model.ConfigMa
 	for _, cm := range *cms {
 		data := model.ConfigMap{}
 		data.Name = cm.Name
-		data.Creator, _ = strings.CutPrefix(cm.Name, "configmap-")
+		creator, found := strings.CutPrefix(cm.Name, "configmap-")
+		if found {
+			data.Creator = creator
+		}
 		data.Namespace = namespace
 		files := []model.File{}
 		for fileName, content := range cm.Data {
@@ -70,6 +73,7 @@ func (c *GatewayKubeClient) GetConfigmapFiles(namespace string) []model.ConfigMa
 			for _, l := range labels {
 				svc, _ := c.Client.GetServicesWithLabels(l, namespace)
 				for _, s := range *svc {
+					fmt.Println("[SERVICE]: ", s.Name)
 					fileMountedServices = append(fileMountedServices, s.Name)
 				}
 				fmt.Println("[MOUNT SERVICES]: ", fileMountedServices)

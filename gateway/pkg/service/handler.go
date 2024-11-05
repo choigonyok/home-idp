@@ -124,24 +124,6 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) LoginHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		b, _ := io.ReadAll(r.Body)
-
-		tmp := struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}{}
-
-		json.Unmarshal(b, &tmp)
-
-		// svc.requestLogin(tmp.Username, tmp.Password)
-
-		fmt.Println(tmp)
-	}
-}
-
 func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		code := r.URL.Query().Get("code")
@@ -1046,19 +1028,28 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 		proj := vars["projectName"]
 
 		data := []struct {
-			Key   string `json:"key"`
-			Value string `json:"value"`
+			Key     string `json:"key"`
+			Value   string `json:"value"`
+			Creator string `json:"creator"`
+			Secret  string `json:"secret"`
 		}{}
 
-		secrets := *svc.ClientSet.KubeClient.GetSecret(proj)
-		for k, v := range secrets {
-			data = append(data, struct {
-				Key   string `json:"key"`
-				Value string `json:"value"`
-			}{
-				Key:   k,
-				Value: v,
-			})
+		secrets := *svc.ClientSet.KubeClient.GetSecrets(proj)
+
+		for _, s := range secrets {
+			for k, v := range s.Data {
+				data = append(data, struct {
+					Key     string `json:"key"`
+					Value   string `json:"value"`
+					Creator string `json:"creator"`
+					Secret  string `json:"secret"`
+				}{
+					Key:     k,
+					Value:   string(v),
+					Creator: testUserName,
+					Secret:  s.Name,
+				})
+			}
 		}
 
 		b, _ := json.Marshal(data)
@@ -1136,7 +1127,6 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 	}
 }
 
-// /api/manifest?username="choigonyok"
 func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := r.URL.Query().Get("username")

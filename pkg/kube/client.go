@@ -83,22 +83,24 @@ func (c *KubeClient) GetServices(namespace string) (*[]corev1.Service, error) {
 	return &svcs.Items, err
 }
 
-func (c *KubeClient) GetServicesWithLabels(labels map[string]string, namespace string) (*[]corev1.Service, error) {
-	selector := []string{}
-
-	for k, v := range labels {
-		selector = append(selector, k+"="+v)
+func (c *KubeClient) GetServicesWithLabels(l map[string]string, namespace string) (*[]corev1.Service, error) {
+	list := []corev1.Service{}
+	svcs, err := c.ClientSet.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{})
+	for _, svc := range svcs.Items {
+		if labelMapToString(svc.Spec.Selector) == labelMapToString(l) {
+			list = append(list, svc)
+		}
 	}
 
-	s := strings.Join(selector, ",")
+	return &list, err
+}
 
-	fmt.Println("SELECTOR STRING:", s)
-
-	svcs, err := c.ClientSet.CoreV1().Services(namespace).List(context.TODO(), metav1.ListOptions{
-		LabelSelector: s,
-	})
-
-	return &svcs.Items, err
+func labelMapToString(m map[string]string) string {
+	l := []string{}
+	for k, v := range m {
+		l = append(l, k+"="+v)
+	}
+	return strings.Join(l, ",")
 }
 
 func (c *KubeClient) GetIngresses(namespace string) (*[]v1.Ingress, error) {
@@ -158,35 +160,23 @@ func (c *KubeClient) GetConfigmapMountPathFromPod(configmap string, pod *corev1.
 
 func (c *KubeClient) GetConfigMapFileMountedPodLabels(namespace, fileName string) []map[string]string {
 	labels := []map[string]string{}
-
+	found := false
 	pods, _ := c.GetPods(namespace)
 	for _, p := range *pods {
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println(p)
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
-		fmt.Println()
+		found = false
 		for _, v := range p.Spec.Volumes {
-			for _, item := range v.VolumeSource.ConfigMap.Items {
+			if v.ConfigMap == nil {
+				continue
+			}
+			for _, item := range (*v.ConfigMap).Items {
 				if item.Key == fileName {
 					labels = append(labels, p.Labels)
+					found = true
+					break
 				}
+			}
+			if found {
+				break
 			}
 		}
 	}
@@ -256,12 +246,7 @@ func (c *KubeClient) GetServiceSelectors(name, namespace string) string {
 		fmt.Println("TEST GET SERVICE ERR:", err)
 	}
 
-	l := []string{}
-	for k, v := range svc.Spec.Selector {
-		l = append(l, k+"="+v)
-	}
-
-	return strings.Join(l, ",")
+	return labelMapToString(svc.Spec.Selector)
 }
 
 func (c *KubeClient) GetSecret(name, namespace, key string) []byte {

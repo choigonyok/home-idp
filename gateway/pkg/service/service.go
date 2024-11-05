@@ -62,8 +62,8 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/progress/{image}", svc.GetProgressHandler())
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/progress/", svc.ApiOptionsHandler())
 
-	svr.Router.RegisterRoute(http.MethodPost, "/login", svc.LoginHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/login/callback", svc.LoginCallbackHandler())
+	// svr.Router.RegisterRoute(http.MethodGet, "/login", svc.LoginHandler())
+	// svr.Router.RegisterRoute(http.MethodGet, "/github/callback", svc.CallbackHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/signup", svc.SignUpHandler())
 	return svc
 }
