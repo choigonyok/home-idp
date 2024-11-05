@@ -13,10 +13,17 @@ type IngressRule struct {
 	Port    string `json:"port"`
 }
 
-type Configmap struct {
-	Name string `json:"name"`
-	Data int    `json:"data"`
-	Age  string `json:"age"`
+type ConfigMap struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Files     []File `json:"files"`
+	Creator   string `json:"creator"`
+}
+
+type File struct {
+	Name          string   `json:"name"`
+	MountServices []string `json:"mount_services"`
+	Content       string   `json:"content"`
 }
 
 type Pod struct {
@@ -40,4 +47,17 @@ type Service struct {
 	Age      string            `json:"age"`
 	Port     []string          `json:"port"`
 	IP       string            `json:"ip"`
+}
+
+type IngressEdge struct {
+	Ingress          *Ingress
+	ConnectResources *ConnectResources
+}
+
+type ConnectResources struct {
+	Pods       []string `json:"conntect_pods"`
+	Services   []string `json:"conntect_services"`
+	Configmaps []string `json:"conntect_configmaps"`
+	Secrets    []string `json:"conntect_secrets"`
+	Ingresses  []string `json:"conntect_ingresses"`
 }

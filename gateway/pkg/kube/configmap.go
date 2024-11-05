@@ -2,7 +2,9 @@ package kube
 
 import (
 	"fmt"
+	"strings"
 
+	"github.com/choigonyok/home-idp/pkg/model"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -49,28 +51,36 @@ func (c *GatewayKubeClient) GetConfigmap(name, namespace string) *map[string]str
 	return &cms.Data
 }
 
-func (c *GatewayKubeClient) GetConfigmapMountedService(configmap, namespace string) []string {
-	pods, err := c.Client.GetPodsWithConfigmap(configmap, namespace)
-	if err != nil {
-		fmt.Println("TEST GET CONFIGMAP1: ", err)
-		return nil
-	}
+func (c *GatewayKubeClient) GetConfigmapFiles(namespace string) []model.ConfigMap {
+	cms, _ := c.Client.GetConfigmaps(namespace)
+	datas := []model.ConfigMap{}
 
-	service := []string{}
-	for i, pod := range pods {
-		fmt.Println("-------TEST", i, "-------")
-		l := pod.GetLabels()
-		fmt.Println("LABELS:", l)
-		svc, err := c.Client.GetServicesWithLabels(l, namespace)
-		if err != nil {
-			fmt.Println("TEST GET CONFIGMAP2: ", err)
-			return nil
+	for _, cm := range *cms {
+		data := model.ConfigMap{}
+		data.Name = cm.Name
+		data.Creator, _ = strings.CutPrefix(cm.Name, "configmap-")
+		data.Namespace = namespace
+		files := []model.File{}
+		for fileName, content := range cm.Data {
+			f := model.File{}
+			f.Name = fileName
+			f.Content = content
+			fileMountedServices := []string{}
+			labels := c.Client.GetConfigMapFileMountedPodLabels(namespace, fileName)
+			for _, l := range labels {
+				svc, _ := c.Client.GetServicesWithLabels(l, namespace)
+				for _, s := range *svc {
+					fileMountedServices = append(fileMountedServices, s.Name)
+				}
+				fmt.Println("[MOUNT SERVICES]: ", fileMountedServices)
+			}
+			f.MountServices = fileMountedServices
+			files = append(files, f)
+			fmt.Println("[FILE]: ", f)
 		}
-		for _, s := range *svc {
-			service = append(service, s.Name)
-			fmt.Println("SERVICE NAME:", s.Name)
-		}
+		data.Files = files
+		datas = append(datas, data)
+		fmt.Println("[DATA]: ", data)
 	}
-
-	return service
+	return datas
 }

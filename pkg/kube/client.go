@@ -34,16 +34,6 @@ func NewKubeClient() *KubeClient {
 	}
 }
 
-func (c *KubeClient) Set(i interface{}) {
-	c.Dynamic = parseKubeClientFromInterface(i).Dynamic
-	c.ClientSet = parseKubeClientFromInterface(i).ClientSet
-}
-
-func parseKubeClientFromInterface(i interface{}) *KubeClient {
-	client := i.(*KubeClient)
-	return client
-}
-
 func (c *KubeClient) ApplyManifest(manifest, resource, namespace string) error {
 	gvk, obj := object.ParseObjectsFromManifest(manifest)
 
@@ -134,19 +124,18 @@ func (c *KubeClient) DeletePods(pods *[]string, namespace string) error {
 	return nil
 }
 
-func (c *KubeClient) GetPodsWithConfigmap(configmap, namespace string) ([]*corev1.Pod, error) {
+func (c *KubeClient) GetPodsWithConfigmap(configmap, fileName, namespace string) ([]*corev1.Pod, error) {
 	ps, _ := c.ClientSet.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{})
 
 	pods := []*corev1.Pod{}
 	for _, pod := range ps.Items {
 		for _, v := range pod.Spec.Volumes {
-			// fmt.Println("1", v.String())
-			// fmt.Println("2", v.ConfigMap.LocalObjectReference.Name)
-			// fmt.Println("3", configmap)
-			if v.ConfigMap.String() != "nil" {
-				if v.ConfigMap.LocalObjectReference.Name == configmap {
-					pods = append(pods, &pod)
-					fmt.Println("POD NAME:", pod.Name)
+			fmt.Println("[TEST]", pod.Name, ":", v.ConfigMap.LocalObjectReference.Name)
+			for _, c := range pod.Spec.Containers {
+				for _, mnt := range c.VolumeMounts {
+					if mnt.Name == v.ConfigMap.LocalObjectReference.Name {
+						pods = append(pods, &pod)
+					}
 				}
 			}
 		}
@@ -154,6 +143,62 @@ func (c *KubeClient) GetPodsWithConfigmap(configmap, namespace string) ([]*corev
 
 	return pods, nil
 }
+
+func (c *KubeClient) GetConfigmapMountPathFromPod(configmap string, pod *corev1.Pod) string {
+	for _, c := range pod.Spec.Containers {
+		for _, v := range c.VolumeMounts {
+			if v.Name == configmap {
+				return v.MountPath
+			}
+		}
+	}
+
+	return ""
+}
+
+func (c *KubeClient) GetConfigMapFileMountedPodLabels(namespace, fileName string) []map[string]string {
+	labels := []map[string]string{}
+
+	pods, _ := c.GetPods(namespace)
+	for _, p := range *pods {
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println(p)
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		fmt.Println()
+		for _, v := range p.Spec.Volumes {
+			for _, item := range v.VolumeSource.ConfigMap.Items {
+				if item.Key == fileName {
+					labels = append(labels, p.Labels)
+				}
+			}
+		}
+	}
+	return labels
+}
+
+// volumes:
+// - configMap:
+// 		defaultMode: 420
+// 		items:
+// 		- key: app.conf
+// 			path: app.conf
 
 func (c *KubeClient) DeleteServices(services *[]string, namespace string) error {
 	for _, svc := range *services {

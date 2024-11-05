@@ -966,30 +966,10 @@ func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
-		data := []struct {
-			Name     string   `json:"name"`
-			Services []string `json:"services"`
-		}{}
+		configmaps := svc.ClientSet.KubeClient.GetConfigmapFiles(proj)
+		fmt.Println("[CONFIGMAPS]:", configmaps)
 
-		configmaps := svc.ClientSet.KubeClient.GetConfigmaps(proj)
-		for _, cm := range *configmaps {
-			fmt.Println("CM NAME:", cm.Name)
-			service := svc.ClientSet.KubeClient.GetConfigmapMountedService(cm.Name, proj)
-			services := []string{}
-			for _, s := range service {
-				services = append(services, s)
-
-				data = append(data, struct {
-					Name     string   `json:"name"`
-					Services []string `json:"services"`
-				}{
-					Name:     cm.Name,
-					Services: services,
-				})
-			}
-		}
-
-		b, _ := json.Marshal(data)
+		b, _ := json.Marshal(configmaps)
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
