@@ -38,21 +38,3 @@ func (c *GatewayKubeClient) GetSecrets(namespace string) *[]corev1.Secret {
 
 	return secrets
 }
-
-func (c *GatewayKubeClient) GetSecret(namespace string) *map[string]string {
-	secret, err := c.Client.GetSecrets(namespace)
-	if err != nil {
-		fmt.Println("TEST GET SECRETS FOR NAMESPACE "+namespace+" ERR:", err)
-		return nil
-	}
-
-	kv := make(map[string]string)
-
-	for _, s := range *secret {
-		for k, v := range s.Data {
-			kv[k] = string(v)
-		}
-	}
-
-	return &kv
-}

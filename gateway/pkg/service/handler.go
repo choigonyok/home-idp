@@ -36,6 +36,8 @@ var testUserEmail = "achoistic98@naver.com"
 
 var Spans = make(map[string]*trace.Span1)
 var RootSpans = make(map[string]*trace.Span1)
+var FileMap = make(map[string][]*model.File)
+var EnvMap = make(map[string][]*model.EnvVar)
 
 func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -63,7 +65,7 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		fmt.Println("harbor webhook: ", string(b))
 
 		repoName := util.ParseInterfaceMap(m, []string{"event_data", "repository", "name"}).(string)
-		if strings.SplitAfter(repoName, "/")[1] == "cache" {
+		if strings.Contains(repoName, "cache") {
 			return
 		}
 
@@ -97,7 +99,10 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 			fmt.Println("UPDATE MANIFEST SPAN START ERR:", err)
 		}
 
-		if err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80); err != nil {
+		envVars := EnvMap[resp.GetTraceId()]
+		files := FileMap[resp.GetTraceId()]
+
+		if err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80, envVars, files); err != nil {
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
@@ -268,9 +273,6 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				path := getFilepathFromCommit(event)
 
 				svc.requestDeploy(path)
-			// case "manifest":
-			// 	path := forwardToArgoCD(event)
-			// 	svc.requestDeploy(path)
 			case "manifest":
 				path := getFilepathFromCommit(event)
 				file := svc.ClientSet.GitClient.Client.GetFilesByPath(path)
@@ -318,6 +320,8 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				}
 				fmt.Println("TRACE ID MANIFEST:", resp.GetTraceId())
 				deploySpan := Spans[resp.GetTraceId()]
+				fmt.Println("[DEPLOYTRACEID]:", deploySpan.TraceID)
+				fmt.Println("[DEPLOYSPANID]:", deploySpan.SpanID)
 				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromIncomingContext(deploySpan.Context)
 				err = argocdWebhookSpan.Start(deploySpan.Context)
 				if err != nil {
@@ -704,24 +708,23 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
 
 		b, _ := io.ReadAll(r.Body)
-		// t := rbacPb.Dockerfile{}
 		d := struct {
-			Id           string `json:"id"`
-			ImageName    string `json:"image_name"`
-			ImageVersion string `json:"image_version"`
-			CreatorId    string `json:"creator_id"`
-			Repository   string `json:"repository"`
-			Content      string `json:"content"`
-			TraceId      string `json:"trace_id"`
+			Id           string          `json:"id"`
+			ImageName    string          `json:"image_name"`
+			ImageVersion string          `json:"image_version"`
+			CreatorId    string          `json:"creator_id"`
+			Repository   string          `json:"repository"`
+			Content      string          `json:"content"`
+			TraceId      string          `json:"trace_id"`
+			EnvVars      []*model.EnvVar `json:"envs"`
+			Files        []*model.File   `json:"files"`
 		}{}
 
-		// d := rbacPb.Dockerfile{}
 		json.Unmarshal(b, &d)
-		fmt.Println("PARSE TRACEID:", d.TraceId)
-		RootSpan := svc.ClientSet.TraceClient.NewTrace(d.TraceId)
 
-		fmt.Println("SPANID:", RootSpan.SpanID)
-		fmt.Println("TRACEID:", RootSpan.TraceID)
+		EnvMap[d.TraceId] = d.EnvVars
+		FileMap[d.TraceId] = d.Files
+		RootSpan := svc.ClientSet.TraceClient.NewTrace(d.TraceId)
 
 		err := RootSpan.Start(context.Background())
 		if err != nil {
@@ -734,7 +737,6 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 			fmt.Println("POST DOCKERFILE SPAN START ERR:", err)
 		}
 
-		// trace.Context, , grpc.Trailer(&trace.Trailer)
 		c := rbacPb.NewRbacServiceClient(conn)
 		_, err = c.PostDockerfile(postDockerfileSpan.Context, &rbacPb.PostDockerfileRequest{
 			Dockerfile: &rbacPb.Dockerfile{
@@ -1089,6 +1091,12 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+	}
+}
+
+func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println()
 		fmt.Println("GET GET POLICIES REQUEST")
 
@@ -1129,7 +1137,7 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := r.URL.Query().Get("username")
-		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080)
+		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
 		fmt.Println(err)
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")

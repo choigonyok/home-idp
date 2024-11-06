@@ -5,13 +5,55 @@ import (
 	"fmt"
 
 	"github.com/choigonyok/home-idp/pkg/env"
+	"github.com/choigonyok/home-idp/pkg/model"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/yaml"
 )
 
-func GetPodManifest(name, image string, port int) string {
+func GetPodManifest(name, image string, port int, e []*model.EnvVar, f []*model.File) string {
 	harborHost := env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT")
+	volumes := []corev1.Volume{}
+	mnts := []corev1.VolumeMount{}
+
+	m := make(map[string][]*model.File)
+	for _, item := range f {
+		m[(*item).ConfigMap] = append(m[(*item).ConfigMap], item)
+	}
+
+	for cm, files := range m {
+		v := corev1.Volume{
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: cm,
+					},
+					Items: []corev1.KeyToPath{},
+				},
+			},
+			Name: cm,
+		}
+
+		kp := []corev1.KeyToPath{}
+		for _, file := range files {
+			kp = append(kp, corev1.KeyToPath{
+				Key:  (*file).Name,
+				Path: (*file).MountPath,
+			})
+		}
+
+		v.VolumeSource.ConfigMap.Items = kp
+
+		volumes = append(volumes, v)
+
+		mnt := corev1.VolumeMount{
+			Name:      cm,
+			MountPath: "/" + cm,
+		}
+
+		mnts = append(mnts, mnt)
+
+	}
 
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
@@ -32,6 +74,7 @@ func GetPodManifest(name, image string, port int) string {
 							ContainerPort: int32(port),
 						},
 					},
+					VolumeMounts: mnts,
 				},
 			},
 			ImagePullSecrets: []corev1.LocalObjectReference{
@@ -39,10 +82,9 @@ func GetPodManifest(name, image string, port int) string {
 					Name: "harborcred",
 				},
 			},
+			Volumes: volumes,
 		},
 	}
-
-	// b, _ := yaml.Marshal(pod)
 
 	jsonBytes, _ := json.Marshal(pod)
 	yamlBytes, _ := yaml.JSONToYAML(jsonBytes)
