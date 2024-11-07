@@ -92,8 +92,13 @@ message PostProjectReply {}
 
 message GetRolesRequest {}
 
+message RolePolicy {
+  Role role = 1;
+  repeated Policy policy = 2;
+}
+
 message GetRolesReply {
-  repeated Role roles = 1;
+  repeated RolePolicy rolePolicies = 1;
 }
 
 message GetRoleRequest {

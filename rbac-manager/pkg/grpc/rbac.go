@@ -68,46 +68,46 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 }
 
 func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
-	// reqId := ""
-
-	// md, ok := metadata.FromIncomingContext(ctx)
-
-	// if ok {
-	// 	fmt.Println("Received x-trace-id:", md.Get("x-trace-id"))
-	// 	fmt.Println("Received x-request-time:", md.Get("x-request-time"))
-
-	// 	if md.Get("x-trace-id") != nil {
-	// 		reqId = md.Get("x-trace-id")[0]
-	// 	}
-	// } else {
-	// 	fmt.Println("No x-request-time found")
-	// }
-
-	// times := md.Get("x-request-time")
-	// times = append(times, time.Now().Format("2006-01-02T15:04:05.999Z-SERVER"))
-	// trailer := metadata.Pairs(
-	// 	"x-envoy-upstream-cluster", "rbac_manager_service_cluster",
-	// 	"x-trace-id", reqId,
-	// 	"x-request-time", strings.Join(times, ", "),
-	// )
-
-	// grpc.SetTrailer(ctx, trailer)
-
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
 
-	roles := []*pb.Role{}
+	rps := []*pb.RolePolicy{}
+
 	for r.Next() {
 		role := pb.Role{}
 		r.Scan(&role.Id, &role.Name, &role.CreateTime)
-		roles = append(roles, &role)
+
+		r2, err := svr.StorageClient.DB().Query(`SELECT policies.id, policies.name FROM policies JOIN rolepolicymapping ON policies.id = rolepolicymapping.policy_id WHERE rolepolicymapping.role_id = '` + role.Id + `'`)
+		if err != nil {
+			return nil, err
+		}
+		defer r2.Close()
+
+		ps := []*pb.Policy{}
+
+		tmp := pb.RolePolicy{
+			Role: &role,
+		}
+
+		for r2.Next() {
+			id, name := "", ""
+			r2.Scan(&id, &name)
+			p := pb.Policy{
+				Id:   id,
+				Name: name,
+			}
+			ps = append(ps, &p)
+		}
+
+		tmp.Policy = ps
+		rps = append(rps, &tmp)
 	}
 
 	return &pb.GetRolesReply{
-		Roles: roles,
+		RolePolicies: rps,
 	}, nil
 }
 
@@ -369,7 +369,7 @@ func (svr *RbacServiceServer) GetTraceIdByDockerfileId(ctx context.Context, in *
 func (svr *RbacServiceServer) GetPolicyJson(ctx context.Context, in *pb.GetPolicyJsonRequest) (*pb.GetPolicyJsonReply, error) {
 	pid := in.GetPolicyId()
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT id, name ,policy FROM policies WHERE id = '` + pid + `'`)
+	r := svr.StorageClient.DB().QueryRow(`SELECT id, name, policy FROM policies WHERE id = '` + pid + `'`)
 	p := pb.Policy{}
 	r.Scan(&p.Id, &p.Name, &p.Json)
 
