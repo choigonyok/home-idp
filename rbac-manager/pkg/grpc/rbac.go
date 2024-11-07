@@ -365,3 +365,15 @@ func (svr *RbacServiceServer) GetTraceIdByDockerfileId(ctx context.Context, in *
 		TraceId: traceId,
 	}, nil
 }
+
+func (svr *RbacServiceServer) GetPolicyJson(ctx context.Context, in *pb.GetPolicyJsonRequest) (*pb.GetPolicyJsonReply, error) {
+	pid := in.GetPolicyId()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id, name ,policy FROM policies WHERE id = '` + pid + `'`)
+	p := pb.Policy{}
+	r.Scan(&p.Id, &p.Name, &p.Json)
+
+	return &pb.GetPolicyJsonReply{
+		Policy: &p,
+	}, nil
+}

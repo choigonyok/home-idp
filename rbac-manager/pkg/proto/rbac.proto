@@ -16,6 +16,8 @@ service RbacService {
 
   rpc GetPolicy (GetPolicyRequest) returns (GetPolicyReply) {}
   rpc GetPolicies (google.protobuf.Empty) returns (GetPoliciesReply) {}
+  rpc GetPolicyJson (GetPolicyJsonRequest) returns (GetPolicyJsonReply) {}
+
   rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
 
@@ -191,5 +193,12 @@ message PostDockerfileRequest {
 }
 
 message PostPolicyRequest {
+  Policy policy = 1;
+}
+
+message GetPolicyJsonRequest {
+  string policy_id = 1;
+}
+message GetPolicyJsonReply {
   Policy policy = 1;
 }

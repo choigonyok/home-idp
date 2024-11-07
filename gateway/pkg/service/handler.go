@@ -264,7 +264,6 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 
 			case "cd":
 				path := getFilepathFromCommit(event)
-
 				svc.requestDeploy(path)
 			case "manifest":
 				path := getFilepathFromCommit(event)
@@ -909,8 +908,8 @@ func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 		c := rbacPb.NewRbacServiceClient(conn)
 		reply, _ := c.GetRoles(context.TODO(), nil)
 
-		roles := reply.GetRoles()
-		b, _ := json.Marshal(roles)
+		rps := reply.GetRolePolicies()
+		b, _ := json.Marshal(rps)
 
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -1187,6 +1186,28 @@ func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(reply.GetPolicies())
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiGetPolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		vars := mux.Vars(r)
+		policyId := vars["policyId"]
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		reply, err := c.GetPolicyJson(context.TODO(), &rbacPb.GetPolicyJsonRequest{
+			PolicyId: policyId,
+		})
+		if err != nil {
+			fmt.Println("ERR GETTING POLICIES :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		b, _ := json.Marshal(reply.GetPolicy())
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}

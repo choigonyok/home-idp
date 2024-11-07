@@ -57,6 +57,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetRolePoliciesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.apiGetPoliciesHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/policies/{policyId}", svc.apiGetPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources", svc.apiGetResourcesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources/configmaps/{configmapName}", svc.apiGetConfigmapHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/projects/{projectName}/resources/{resourceName}", svc.apiDeleteResourcesHandler())

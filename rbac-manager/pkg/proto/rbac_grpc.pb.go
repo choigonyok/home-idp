@@ -30,6 +30,7 @@ type RbacServiceClient interface {
 	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error)
 	GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error)
+	GetPolicyJson(ctx context.Context, in *GetPolicyJsonRequest, opts ...grpc.CallOption) (*GetPolicyJsonReply, error)
 	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -106,6 +107,15 @@ func (c *rbacServiceClient) GetPolicy(ctx context.Context, in *GetPolicyRequest,
 func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
 	out := new(GetPoliciesReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicies", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) GetPolicyJson(ctx context.Context, in *GetPolicyJsonRequest, opts ...grpc.CallOption) (*GetPolicyJsonReply, error) {
+	out := new(GetPolicyJsonReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicyJson", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -204,6 +214,7 @@ type RbacServiceServer interface {
 	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
 	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error)
 	GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error)
+	GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error)
 	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
@@ -240,6 +251,9 @@ func (UnimplementedRbacServiceServer) GetPolicy(context.Context, *GetPolicyReque
 }
 func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicies not implemented")
+}
+func (UnimplementedRbacServiceServer) GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPolicyJson not implemented")
 }
 func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjects not implemented")
@@ -403,6 +417,24 @@ func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_GetPolicyJson_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPolicyJsonRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetPolicyJson(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetPolicyJson",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetPolicyJson(ctx, req.(*GetPolicyJsonRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -603,6 +635,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPolicies",
 			Handler:    _RbacService_GetPolicies_Handler,
+		},
+		{
+			MethodName: "GetPolicyJson",
+			Handler:    _RbacService_GetPolicyJson_Handler,
 		},
 		{
 			MethodName: "GetProjects",
