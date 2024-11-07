@@ -264,9 +264,17 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 
 			case "cd":
 				path := getFilepathFromCommit(event)
+				if path == "" {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
 				svc.requestDeploy(path)
 			case "manifest":
 				path := getFilepathFromCommit(event)
+				if path == "" {
+					w.WriteHeader(http.StatusNoContent)
+					return
+				}
 				file := svc.ClientSet.GitClient.Client.GetFilesByPath(path)
 				tmp := struct {
 					Spec struct {
@@ -400,6 +408,12 @@ func getUserFromCommit(e *github.PushEvent) string {
 }
 
 func getFilepathFromCommit(e *github.PushEvent) string {
+	if len(e.Commits[0].Added) == 0 {
+		if len(e.Commits[0].Modified) == 0 {
+			return ""
+		}
+		return e.Commits[0].Modified[0]
+	}
 	return e.Commits[0].Added[0]
 }
 
