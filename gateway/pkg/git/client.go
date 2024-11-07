@@ -10,6 +10,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/pkg/git"
 	"github.com/choigonyok/home-idp/pkg/model"
+	"github.com/google/go-github/v63/github"
 )
 
 type GatewayGitClient struct {
@@ -188,7 +189,7 @@ func (c *GatewayGitClient) UpdateManifest(image string) error {
 	return nil
 }
 
-func (c *GatewayGitClient) CreatePodManifestFile(username, email, imageName, imageVersion string, port int, e []*model.EnvVar, f []*model.File) error {
+func (c *GatewayGitClient) CreatePodManifestFile(username, email, imageName, imageVersion string, port int, e []*model.EnvVar, f []*model.File) (*github.Response, error) {
 	manifest := manifest.GetPodManifest(imageName+"-"+username, imageName+":"+imageVersion, port, e, f)
 	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod-"+imageName+".yaml", []byte(manifest), git.Manifest)
 }

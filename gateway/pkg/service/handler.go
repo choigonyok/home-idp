@@ -102,32 +102,24 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		envVars := EnvMap[resp.GetTraceId()]
 		files := FileMap[resp.GetTraceId()]
 
-		if err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80, envVars, files); err != nil {
+		gitResp, err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80, envVars, files)
+		if gitResp.StatusCode == 422 {
+
+		}
+		if gitResp.StatusCode != 422 && err != nil {
 			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
 			return
 		}
-		// if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
-		// 	fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
-		// 	return
-		// }
+		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
+			return
+		}
 		err = manifestSpan.Stop()
 		if err != nil {
 			fmt.Println("UPDATE MANIFEST SPAN STOP ERR:", err)
 		}
 
 		Spans[deploySpan.TraceID] = deploySpan
-
-		// remove later
-		err = deploySpan.Stop()
-		if err != nil {
-			fmt.Println("DEPLOY SPAN STOP ERR:", err)
-		}
-
-		err = rootSpan.Stop()
-		if err != nil {
-			fmt.Println("ROOT SPAN STOP ERR:", err)
-		}
-
 	}
 }
 
@@ -300,13 +292,11 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 					return
 				}
 
-				parts := strings.Split(tmp.Spec.Containers[0].Image, ":")
-				if len(parts) == 2 {
-					imageName = parts[0]
-					imageVersion = parts[1]
-					fmt.Println("imageName: ", imageName)
-					fmt.Println("imageVersion: ", imageVersion)
-				}
+				img := tmp.Spec.Containers[0].Image[strings.LastIndex(tmp.Spec.Containers[0].Image, "/")+1:]
+				fmt.Println("TEST:", img)
+				imageName, imageVersion, _ = strings.Cut(img, ":")
+				fmt.Println("imageName: ", imageName)
+				fmt.Println("imageVersion: ", imageVersion)
 
 				c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 				resp, err := c.GetTraceId(context.TODO(), &rbacPb.GetTraceIdRequest{
@@ -320,9 +310,10 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				}
 				fmt.Println("TRACE ID MANIFEST:", resp.GetTraceId())
 				deploySpan := Spans[resp.GetTraceId()]
+				rootSpan := RootSpans[resp.GetTraceId()]
 				fmt.Println("[DEPLOYTRACEID]:", deploySpan.TraceID)
 				fmt.Println("[DEPLOYSPANID]:", deploySpan.SpanID)
-				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromIncomingContext(deploySpan.Context)
+				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
 				err = argocdWebhookSpan.Start(deploySpan.Context)
 				if err != nil {
 					fmt.Println("ARGOCD WEBHOOK SPAN START ERR:", err)
@@ -339,6 +330,10 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				err = deploySpan.Stop()
 				if err != nil {
 					fmt.Println("DEPLOY SPAN STOP ERR:", err)
+				}
+				err = rootSpan.Stop()
+				if err != nil {
+					fmt.Println("ROOT SPAN STOP ERR:", err)
 				}
 			default:
 				fmt.Println("TEST PING WEBHOOK RECEIVED")
@@ -653,6 +648,7 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		vars := mux.Vars(r)
 		traceId := vars["traceId"]
 
@@ -675,7 +671,14 @@ func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 		for _, span := range spans {
 			st, _ := time.Parse("2006-01-02T15:04:05.999Z", span.StartTime)
 			et, _ := time.Parse("2006-01-02T15:04:05.999Z", span.EndTime)
-			d := et.Sub(st)
+
+			var d time.Duration
+			if span.EndTime == "" {
+				d = time.Since(st)
+			} else {
+				d = et.Sub(st)
+			}
+
 			datas = append(datas, struct {
 				TraceID      string `json:"trace_id"`
 				SpanID       string `json:"span_id"`
@@ -696,7 +699,6 @@ func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -801,13 +803,6 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
-
-		// dockerfiles := svc.ClientSet.GitClient.GetDockerFiles(projectName)
-
-		// if len(dockerfiles) == 0 {
-		// 	w.WriteHeader(http.StatusNoContent)
-		// 	return
-		// }
 
 		b, _ := json.Marshal(reply.GetDockerfiles())
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -1091,7 +1086,19 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		reply, err := c.GetPolicies(context.TODO(), nil)
+		if err != nil {
+			fmt.Println("ERR GETTING POLICIES :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		b, _ := json.Marshal(reply.GetPolicies())
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
 	}
 }
 
@@ -1102,11 +1109,9 @@ func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 
 		vars := mux.Vars(r)
 		roleId := vars["roleId"]
-		userId := r.URL.Query().Get("user_id")
 
-		fmt.Println("USER ", userId, " tried to get policies")
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
+		reply, err := c.GetPolicy(context.TODO(), &rbacPb.GetPolicyRequest{
 			RoleId: roleId,
 		})
 		if err != nil {
@@ -1127,7 +1132,6 @@ func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -1137,7 +1141,7 @@ func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		username := r.URL.Query().Get("username")
-		err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
+		_, err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
 		fmt.Println(err)
 		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.Header().Set("Access-Control-Allow-Origin", "*")

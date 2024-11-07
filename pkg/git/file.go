@@ -61,23 +61,6 @@ func (f *GitDockerFile) getFilename() string {
 	return "Dockerfile." + f.Image
 }
 
-// func (c *GitClient) isFileExist(filePath string) (bool, error) {
-// 	opts := &github.RepositoryContentGetOptions{
-// 		Ref: "main",
-// 	}
-
-// 	_, _, resp, _ := c.Client.Repositories.GetContents(context.TODO(), c.Owner, *c.Repository.Name, filePath, opts)
-// 	switch resp.StatusCode {
-// 	case 200:
-// 		return true, nil
-// 	case 404:
-// 		return false, nil
-// 	default:
-// 		fmt.Println("TEST GET GIT CONTENT FAIL WITH STATUSCODE: ", resp.StatusCode)
-// 		return false, fmt.Errorf("ERROR")
-// 	}
-// }
-
 func (c *GitClient) getFilesByFiletype(filetype GitFileType) (f []*github.RepositoryContent, found bool, err error) {
 	opts := &github.RepositoryContentGetOptions{
 		Ref: "main",
@@ -117,7 +100,7 @@ func (c *GitClient) GetFilesByPath(path string) []string {
 	return f
 }
 
-func (c *GitClient) CreateFilesByFiletype(username, email, namespace, filename string, content []byte, filetype GitFileType) error {
+func (c *GitClient) CreateFilesByFiletype(username, email, namespace, filename string, content []byte, filetype GitFileType) (*github.Response, error) {
 	t := github.Timestamp{}
 	t.Time = time.Now()
 
@@ -126,7 +109,7 @@ func (c *GitClient) CreateFilesByFiletype(username, email, namespace, filename s
 		f = "/" + filename
 	}
 
-	c.Client.Repositories.CreateFile(
+	_, resp, err := c.Client.Repositories.CreateFile(
 		context.TODO(),
 		c.Owner,
 		*c.Repository.Name,
@@ -142,7 +125,12 @@ func (c *GitClient) CreateFilesByFiletype(username, email, namespace, filename s
 			},
 		},
 	)
-	return nil
+	if err != nil {
+		fmt.Println("ERR CREATE FILE IN GITHUB: ", err)
+		return resp, err
+	}
+	return resp, nil
+
 }
 
 func defaultFilePathByFiletype(username string, filetype GitFileType) string {
