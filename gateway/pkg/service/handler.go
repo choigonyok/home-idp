@@ -674,6 +674,68 @@ func (svc *Gateway) apiPostPolicyHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiGetDockerTraceHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		vars := mux.Vars(r)
+		dockerfileId := vars["dockerfileId"]
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		resp, err := c.GetTraceIdByDockerfileId(context.TODO(), &rbacPb.GetTraceIdByDockerfileIdRequest{
+			DockerfileId: dockerfileId,
+		})
+		if err != nil {
+			fmt.Println("ERR GET TRACE ID BY DOCKERFILE ID:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		req, _ := http.NewRequest("GET", "http://home-idp-trace-manager:5103/api/traces/"+resp.GetTraceId(), nil)
+
+		httpResp, _ := http.DefaultClient.Do(req)
+		bytes, _ := io.ReadAll(httpResp.Body)
+		spans := []*model.Trace{}
+		json.Unmarshal(bytes, &spans)
+
+		datas := []struct {
+			TraceID      string `json:"trace_id"`
+			SpanID       string `json:"span_id"`
+			Duration     string `json:"duration"`
+			Status       string `json:"status"`
+			StartTime    string `json:"start_time"`
+			EndTime      string `json:"end_time"`
+			ParentSpanID string `json:"parent_span_id"`
+		}{}
+
+		for _, span := range spans {
+			st, _ := time.Parse("2006-01-02T15:04:05.999Z", span.StartTime)
+			et, _ := time.Parse("2006-01-02T15:04:05.999Z", span.EndTime)
+			d := et.Sub(st)
+			datas = append(datas, struct {
+				TraceID      string `json:"trace_id"`
+				SpanID       string `json:"span_id"`
+				Duration     string `json:"duration"`
+				Status       string `json:"status"`
+				StartTime    string `json:"start_time"`
+				EndTime      string `json:"end_time"`
+				ParentSpanID string `json:"parent_span_id"`
+			}{
+				TraceID:      span.TraceID,
+				Status:       span.Status,
+				SpanID:       span.SpanID,
+				Duration:     d.String(),
+				StartTime:    span.StartTime,
+				EndTime:      span.EndTime,
+				ParentSpanID: span.ParentSpanID,
+			})
+		}
+
+		b, _ := json.Marshal(datas)
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
 func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

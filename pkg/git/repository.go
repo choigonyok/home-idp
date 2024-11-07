@@ -61,8 +61,5 @@ func DisonnectRepository(gc *GitClient) {
 }
 
 func checkRepository(gc *GitClient) bool {
-	if gc.Repository != nil {
-		return true
-	}
-	return false
+	return gc.Repository != nil
 }

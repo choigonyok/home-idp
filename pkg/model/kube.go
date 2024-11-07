@@ -21,9 +21,11 @@ type ConfigMap struct {
 }
 
 type File struct {
+	MountPath     string   `json:"mount_path"`
 	Name          string   `json:"name"`
 	MountServices []string `json:"mount_services"`
 	Content       string   `json:"content"`
+	ConfigMap     string   `json:"configmap"`
 }
 
 type Pod struct {
@@ -60,4 +62,11 @@ type ConnectResources struct {
 	Configmaps []string `json:"conntect_configmaps"`
 	Secrets    []string `json:"conntect_secrets"`
 	Ingresses  []string `json:"conntect_ingresses"`
+}
+
+type EnvVar struct {
+	Key     string `json:"key"`
+	Value   string `json:"value"`
+	Creator string `json:"creator"`
+	Secret  string `json:"secret"`
 }
