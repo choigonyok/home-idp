@@ -21,6 +21,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/go-github/v63/github"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"golang.org/x/oauth2"
 	oauthGit "golang.org/x/oauth2/github"
@@ -638,6 +639,33 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 		})
 		if err != nil {
 			fmt.Println("ERR POSTTING NEW POD :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiPostPolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		b, _ := io.ReadAll(r.Body)
+
+		role := rbacPb.Policy{}
+
+		json.Unmarshal(b, &role)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.PostPolicy(context.TODO(), &rbacPb.PostPolicyRequest{
+			Policy: &rbacPb.Policy{
+				Id:   uuid.NewString(),
+				Name: role.Name,
+				Json: role.Json,
+			},
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}

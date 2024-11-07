@@ -111,10 +111,30 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPoliciesRequest) (*pb.GetPoliciesReply, error) {
-	r, err := svr.StorageClient.DB().Query(`SELECT policy_id FROM rolepolicymapping WHERE role_id = ` + in.RoleId)
+func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *emptypb.Empty) (*pb.GetPoliciesReply, error) {
+	r, err := svr.StorageClient.DB().Query(`SELECT id, name, policy FROM policies ORDER BY create_time ASC`)
 	if err != nil {
 		fmt.Println("TEST GETPOLICIES FROM MAPPING QUERY ERR:", err)
+		return nil, err
+	}
+	defer r.Close()
+
+	ps := []*pb.Policy{}
+	for r.Next() {
+		p := pb.Policy{}
+		r.Scan(&p.Id, &p.Name, &p.Json)
+		ps = append(ps, &p)
+	}
+
+	return &pb.GetPoliciesReply{
+		Policies: ps,
+	}, nil
+}
+
+func (svr *RbacServiceServer) GetPolicy(ctx context.Context, in *pb.GetPolicyRequest) (*pb.GetPolicyReply, error) {
+	r, err := svr.StorageClient.DB().Query(`SELECT policy_id FROM rolepolicymapping WHERE role_id = '` + in.RoleId + `'`)
+	if err != nil {
+		fmt.Println("TEST GETPOLICY FROM MAPPING QUERY ERR:", err)
 		return nil, err
 	}
 	defer r.Close()
@@ -130,7 +150,7 @@ func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPolicie
 	p := pb.Policy{}
 	ps := []*pb.Policy{}
 
-	row, err := svr.StorageClient.DB().Query(`SELECT id, name, policy FROM policies WHERE id IN (` + strings.Join(ids, ", ") + `) ORDER BY create_time DESC`)
+	row, err := svr.StorageClient.DB().Query(`SELECT id, name, policy FROM policies WHERE id IN ('` + strings.Join(ids, "', '") + `') ORDER BY create_time DESC`)
 	if err != nil {
 		fmt.Println("TEST GETPOLICIES QUERY ERR:", err)
 		return nil, err
@@ -142,7 +162,7 @@ func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPolicie
 		ps = append(ps, &p)
 	}
 
-	return &pb.GetPoliciesReply{
+	return &pb.GetPolicyReply{
 		Policies: ps,
 	}, nil
 }
@@ -170,7 +190,7 @@ func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *emptypb.Empty
 
 func (svr *RbacServiceServer) GetDockerfiles(ctx context.Context, in *pb.GetDockerfilesRequest) (*pb.GetDockerfilesReply, error) {
 	userName := in.GetUserName()
-	r, err := svr.StorageClient.DB().Query(`SELECT dockerfiles.id, dockerfiles.image_name, dockerfiles.image_version, dockerfiles.repository, dockerfiles.creator_id, dockerfiles.content FROM dockerfiles JOIN users ON dockerfiles.creator_id = users.id WHERE users.name = '` + userName + `'`)
+	r, err := svr.StorageClient.DB().Query(`SELECT dockerfiles.id, dockerfiles.image_name, dockerfiles.image_version, dockerfiles.repository, dockerfiles.creator_id, dockerfiles.content, dockerfiles.trace_id FROM dockerfiles JOIN users ON dockerfiles.creator_id = users.id WHERE users.name = '` + userName + `'`)
 	if err != nil {
 		fmt.Println("ERR GETTING DOCKERFILES QUERY :", err)
 		return nil, err
@@ -181,7 +201,7 @@ func (svr *RbacServiceServer) GetDockerfiles(ctx context.Context, in *pb.GetDock
 
 	for r.Next() {
 		d := pb.Dockerfile{}
-		r.Scan(&d.Id, &d.ImageName, &d.ImageVersion, &d.Repository, &d.CreatorId, &d.Content)
+		r.Scan(&d.Id, &d.ImageName, &d.ImageVersion, &d.Repository, &d.CreatorId, &d.Content, &d.TraceId)
 		ds = append(ds, &d)
 	}
 
@@ -214,6 +234,13 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	return &pb.GetUsersReply{
 		Users: usrs,
 	}, nil
+}
+
+func (svr *RbacServiceServer) PostPolicy(ctx context.Context, in *pb.PostPolicyRequest) (*emptypb.Empty, error) {
+	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + uuid.NewString() + `', '` + in.Policy.GetName() + `', '` + in.Policy.GetJson() + `')`); err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjectRequest) (*pb.PostProjectReply, error) {
@@ -324,5 +351,17 @@ func (svr *RbacServiceServer) GetTraceId(ctx context.Context, in *pb.GetTraceIdR
 	return &pb.GetTraceIdReply{
 		TraceId:    traceId,
 		Repository: repository,
+	}, nil
+}
+
+func (svr *RbacServiceServer) GetTraceIdByDockerfileId(ctx context.Context, in *pb.GetTraceIdByDockerfileIdRequest) (*pb.GetTraceIdByDockerfileIdReply, error) {
+	dId := in.GetDockerfileId()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT trace_id FROM dockerfiles WHERE id = '` + dId + `'`)
+	traceId := ""
+	r.Scan(&traceId)
+
+	return &pb.GetTraceIdByDockerfileIdReply{
+		TraceId: traceId,
 	}, nil
 }

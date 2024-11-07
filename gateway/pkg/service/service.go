@@ -39,6 +39,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.apiGetProjectListHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/user", svc.apiPostUserHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.apiPostPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRoleListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/users", svc.apiGetUsersInProjectHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/role", svc.apiGetRoleHandler())
@@ -47,13 +48,15 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/dockerfiles/{dockerfileId}/trace", svc.apiGetDockerTraceHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/configmap", svc.apiPostConfigmapHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetPoliciesHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetRolePoliciesHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.apiGetPoliciesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources", svc.apiGetResourcesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources/configmaps/{configmapName}", svc.apiGetConfigmapHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/projects/{projectName}/resources/{resourceName}", svc.apiDeleteResourcesHandler())

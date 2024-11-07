@@ -27,7 +27,9 @@ type RbacServiceClient interface {
 	GetRoles(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetRolesReply, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
+	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error)
+	GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error)
 	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -36,6 +38,7 @@ type RbacServiceClient interface {
 	GetDockerfiles(ctx context.Context, in *GetDockerfilesRequest, opts ...grpc.CallOption) (*GetDockerfilesReply, error)
 	PostDockerfile(ctx context.Context, in *PostDockerfileRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetTraceId(ctx context.Context, in *GetTraceIdRequest, opts ...grpc.CallOption) (*GetTraceIdReply, error)
+	GetTraceIdByDockerfileId(ctx context.Context, in *GetTraceIdByDockerfileIdRequest, opts ...grpc.CallOption) (*GetTraceIdByDockerfileIdReply, error)
 }
 
 type rbacServiceClient struct {
@@ -82,7 +85,25 @@ func (c *rbacServiceClient) PostRole(ctx context.Context, in *PostRoleRequest, o
 	return out, nil
 }
 
-func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
+func (c *rbacServiceClient) PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
+	out := new(emptypb.Empty)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/PostPolicy", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error) {
+	out := new(GetPolicyReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicy", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
 	out := new(GetPoliciesReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicies", in, out, opts...)
 	if err != nil {
@@ -163,6 +184,15 @@ func (c *rbacServiceClient) GetTraceId(ctx context.Context, in *GetTraceIdReques
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetTraceIdByDockerfileId(ctx context.Context, in *GetTraceIdByDockerfileIdRequest, opts ...grpc.CallOption) (*GetTraceIdByDockerfileIdReply, error) {
+	out := new(GetTraceIdByDockerfileIdReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetTraceIdByDockerfileId", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RbacServiceServer is the server API for RbacService service.
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
@@ -171,7 +201,9 @@ type RbacServiceServer interface {
 	GetRoles(context.Context, *emptypb.Empty) (*GetRolesReply, error)
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	PostRole(context.Context, *PostRoleRequest) (*emptypb.Empty, error)
-	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
+	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
+	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error)
+	GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error)
 	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
@@ -180,6 +212,7 @@ type RbacServiceServer interface {
 	GetDockerfiles(context.Context, *GetDockerfilesRequest) (*GetDockerfilesReply, error)
 	PostDockerfile(context.Context, *PostDockerfileRequest) (*emptypb.Empty, error)
 	GetTraceId(context.Context, *GetTraceIdRequest) (*GetTraceIdReply, error)
+	GetTraceIdByDockerfileId(context.Context, *GetTraceIdByDockerfileIdRequest) (*GetTraceIdByDockerfileIdReply, error)
 	mustEmbedUnimplementedRbacServiceServer()
 }
 
@@ -199,7 +232,13 @@ func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) 
 func (UnimplementedRbacServiceServer) PostRole(context.Context, *PostRoleRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostRole not implemented")
 }
-func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error) {
+func (UnimplementedRbacServiceServer) PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PostPolicy not implemented")
+}
+func (UnimplementedRbacServiceServer) GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPolicy not implemented")
+}
+func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicies not implemented")
 }
 func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error) {
@@ -225,6 +264,9 @@ func (UnimplementedRbacServiceServer) PostDockerfile(context.Context, *PostDocke
 }
 func (UnimplementedRbacServiceServer) GetTraceId(context.Context, *GetTraceIdRequest) (*GetTraceIdReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetTraceId not implemented")
+}
+func (UnimplementedRbacServiceServer) GetTraceIdByDockerfileId(context.Context, *GetTraceIdByDockerfileIdRequest) (*GetTraceIdByDockerfileIdReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetTraceIdByDockerfileId not implemented")
 }
 func (UnimplementedRbacServiceServer) mustEmbedUnimplementedRbacServiceServer() {}
 
@@ -311,8 +353,44 @@ func _RbacService_PostRole_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_PostPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PostPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).PostPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/PostPolicy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).PostPolicy(ctx, req.(*PostPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_GetPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPolicyRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetPolicy(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetPolicy",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetPolicy(ctx, req.(*GetPolicyRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetPoliciesRequest)
+	in := new(emptypb.Empty)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -324,7 +402,7 @@ func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.RbacService/GetPolicies",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*GetPoliciesRequest))
+		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*emptypb.Empty))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -473,6 +551,24 @@ func _RbacService_GetTraceId_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_GetTraceIdByDockerfileId_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetTraceIdByDockerfileIdRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetTraceIdByDockerfileId(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetTraceIdByDockerfileId",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetTraceIdByDockerfileId(ctx, req.(*GetTraceIdByDockerfileIdRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RbacService_ServiceDesc is the grpc.ServiceDesc for RbacService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -495,6 +591,14 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostRole",
 			Handler:    _RbacService_PostRole_Handler,
+		},
+		{
+			MethodName: "PostPolicy",
+			Handler:    _RbacService_PostPolicy_Handler,
+		},
+		{
+			MethodName: "GetPolicy",
+			Handler:    _RbacService_GetPolicy_Handler,
 		},
 		{
 			MethodName: "GetPolicies",
@@ -531,6 +635,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetTraceId",
 			Handler:    _RbacService_GetTraceId_Handler,
+		},
+		{
+			MethodName: "GetTraceIdByDockerfileId",
+			Handler:    _RbacService_GetTraceIdByDockerfileId_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
