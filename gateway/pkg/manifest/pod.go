@@ -55,6 +55,23 @@ func GetPodManifest(name, image string, port int, e []*model.EnvVar, f []*model.
 
 	}
 
+	envVars := []corev1.EnvVar{}
+
+	for _, envvar := range e {
+		tmp := corev1.EnvVar{
+			Name: envvar.Key,
+			ValueFrom: &corev1.EnvVarSource{
+				SecretKeyRef: &corev1.SecretKeySelector{
+					Key: envvar.Key,
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: envvar.Secret,
+					},
+				},
+			},
+		}
+		envVars = append(envVars, tmp)
+	}
+
 	pod := &corev1.Pod{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Pod",
@@ -74,6 +91,7 @@ func GetPodManifest(name, image string, port int, e []*model.EnvVar, f []*model.
 							ContainerPort: int32(port),
 						},
 					},
+					Env:          envVars,
 					VolumeMounts: mnts,
 				},
 			},
