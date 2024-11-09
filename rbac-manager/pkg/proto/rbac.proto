@@ -19,6 +19,7 @@ service RbacService {
   rpc GetPolicyJson (GetPolicyJsonRequest) returns (GetPolicyJsonReply) {}
 
   rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
+  rpc GetUsersInProject (GetUsersInProjectRequest) returns (GetUsersInProjectReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
   rpc IsUserExist (IsUserExistRequest) returns (IsUserExistReply) {}
 
@@ -142,17 +143,27 @@ message User {
   string id = 1;
   string name = 2;
   string role_id = 3;
-  string create_time = 4;
+  string role_name = 4;
+  int64 github_id = 5;
+  string create_time = 7;
+  string project_name = 8;
 }
 
+
+message GetUsersInProjectRequest {
+  string projectName = 1;
+}
+message GetUsersInProjectReply {
+  repeated User users = 1;
+}
 
 message GetUsersRequest {
-  string projectName = 2;
+  int64 github_id = 1;
 }
-
 message GetUsersReply {
   repeated User users = 1;
 }
+
 
 message PostUserRequest {
   User user = 1;

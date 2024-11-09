@@ -960,7 +960,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 		proj := vars["projectName"]
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
+		reply, err := c.GetUsersInProject(context.TODO(), &rbacPb.GetUsersInProjectRequest{
 			ProjectName: proj,
 		})
 
@@ -970,6 +970,37 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 
 		b, _ := json.Marshal(reply.GetUsers())
 		w.Header().Set("Access-Control-Allow-Headers", "*")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.WriteHeader(http.StatusOK)
+		w.Write(b)
+	}
+}
+
+func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
+			GithubId: uid,
+		})
+
+		if err != nil {
+			fmt.Println("GET USERS GRPC ERR:", err)
+		}
+
+		b, _ := json.Marshal(reply.GetUsers())
+
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
@@ -1384,7 +1415,7 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 		fmt.Println("[TEST]10")
 
 		claims := jwt.MapClaims{
-			"github_id": uid,
+			"github_id": num,
 			"exp":       time.Now().Add(24 * time.Hour).Unix(),
 		}
 		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -1421,4 +1452,28 @@ func withJWTAuth(r *http.Request) int {
 		return http.StatusUnauthorized
 	}
 	return http.StatusOK
+}
+
+func getToken(r *http.Request) (uid int64, statusCode int) {
+	tokenString := r.Header.Get("Authorization")
+	tokenString = tokenString[len("Bearer "):]
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return 0, http.StatusUnauthorized
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		githubID := claims["github_id"]
+		fmt.Println("GITHUB ID FROM JWT HEADER:", githubID)
+		return int64(githubID.(float64)), http.StatusOK
+	} else {
+		return 0, http.StatusUnauthorized
+	}
 }

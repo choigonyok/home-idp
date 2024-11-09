@@ -212,7 +212,7 @@ func (svr *RbacServiceServer) GetDockerfiles(ctx context.Context, in *pb.GetDock
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
+func (svr *RbacServiceServer) GetUsersInProject(ctx context.Context, in *pb.GetUsersInProjectRequest) (*pb.GetUsersInProjectReply, error) {
 	pid := ""
 	row := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + in.ProjectName + `'`)
 	row.Scan(&pid)
@@ -233,8 +233,28 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 		usrs = append(usrs, &usr)
 	}
 
-	return &pb.GetUsersReply{
+	return &pb.GetUsersInProjectReply{
 		Users: usrs,
+	}, nil
+}
+
+func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
+	r, err := svr.StorageClient.DB().Query(`SELECT users.github_id AS user_id, users.name AS username, roles.name AS role_name, users.create_time, projects.name AS project_name FROM users JOIN roles ON users.role_id = roles.id JOIN userprojectmapping ON userprojectmapping.user_id = users.id JOIN projects ON userprojectmapping.project_id = projects.id`)
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+
+	users := []*pb.User{}
+
+	for r.Next() {
+		user := pb.User{}
+		r.Scan(&user.Id, &user.Name, &user.RoleName, &user.CreateTime, &user.ProjectName)
+		users = append(users, &user)
+	}
+
+	return &pb.GetUsersReply{
+		Users: users,
 	}, nil
 }
 

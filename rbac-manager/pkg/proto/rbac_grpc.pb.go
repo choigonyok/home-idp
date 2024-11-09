@@ -32,6 +32,7 @@ type RbacServiceClient interface {
 	GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error)
 	GetPolicyJson(ctx context.Context, in *GetPolicyJsonRequest, opts ...grpc.CallOption) (*GetPolicyJsonReply, error)
 	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
+	GetUsersInProject(ctx context.Context, in *GetUsersInProjectRequest, opts ...grpc.CallOption) (*GetUsersInProjectReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	IsUserExist(ctx context.Context, in *IsUserExistRequest, opts ...grpc.CallOption) (*IsUserExistReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -132,6 +133,15 @@ func (c *rbacServiceClient) GetProjects(ctx context.Context, in *emptypb.Empty, 
 	return out, nil
 }
 
+func (c *rbacServiceClient) GetUsersInProject(ctx context.Context, in *GetUsersInProjectRequest, opts ...grpc.CallOption) (*GetUsersInProjectReply, error) {
+	out := new(GetUsersInProjectReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/GetUsersInProject", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rbacServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error) {
 	out := new(GetUsersReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetUsers", in, out, opts...)
@@ -226,6 +236,7 @@ type RbacServiceServer interface {
 	GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error)
 	GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error)
 	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
+	GetUsersInProject(context.Context, *GetUsersInProjectRequest) (*GetUsersInProjectReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	IsUserExist(context.Context, *IsUserExistRequest) (*IsUserExistReply, error)
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
@@ -268,6 +279,9 @@ func (UnimplementedRbacServiceServer) GetPolicyJson(context.Context, *GetPolicyJ
 }
 func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjects not implemented")
+}
+func (UnimplementedRbacServiceServer) GetUsersInProject(context.Context, *GetUsersInProjectRequest) (*GetUsersInProjectReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUsersInProject not implemented")
 }
 func (UnimplementedRbacServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
@@ -467,6 +481,24 @@ func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RbacServiceServer).GetProjects(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_GetUsersInProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUsersInProjectRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).GetUsersInProject(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/GetUsersInProject",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).GetUsersInProject(ctx, req.(*GetUsersInProjectRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -675,6 +707,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetProjects",
 			Handler:    _RbacService_GetProjects_Handler,
+		},
+		{
+			MethodName: "GetUsersInProject",
+			Handler:    _RbacService_GetUsersInProject_Handler,
 		},
 		{
 			MethodName: "GetUsers",
