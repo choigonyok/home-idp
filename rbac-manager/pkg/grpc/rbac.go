@@ -239,7 +239,7 @@ func (svr *RbacServiceServer) GetUsersInProject(ctx context.Context, in *pb.GetU
 }
 
 func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
-	r, err := svr.StorageClient.DB().Query(`SELECT users.github_id AS user_id, users.name AS username, roles.name AS role_name, users.create_time, projects.name AS project_name FROM users JOIN roles ON users.role_id = roles.id JOIN userprojectmapping ON userprojectmapping.user_id = users.id JOIN projects ON userprojectmapping.project_id = projects.id`)
+	r, err := svr.StorageClient.DB().Query(`SELECT users.id AS user_id, users.name AS username, roles.name AS role_name, users.create_time, projects.name AS project_name FROM users JOIN roles ON users.role_id = roles.id LEFT JOIN userprojectmapping ON userprojectmapping.user_id = users.id LEFT JOIN projects ON userprojectmapping.project_id = projects.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -266,15 +266,15 @@ func (svr *RbacServiceServer) PostPolicy(ctx context.Context, in *pb.PostPolicyR
 }
 
 func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjectRequest) (*pb.PostProjectReply, error) {
-	creatorId := in.GetCreatorId()
 	projectName := in.GetProjectName()
+	uid := strconv.FormatFloat(in.GetCreatorId(), 'e', -1, 64)
 
-	r := svr.StorageClient.DB().QueryRow(`INSERT INTO projects (id, name, creator_id) VALUES ('` + uuid.NewString() + `', '` + projectName + `', '` + creatorId + `') RETURNING id`)
+	r := svr.StorageClient.DB().QueryRow(`INSERT INTO projects (id, name, creator_id) VALUES ('` + uuid.NewString() + `', '` + projectName + `', ` + uid + `) RETURNING id`)
 
 	projectId := ""
 	r.Scan(&projectId)
 
-	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES ('` + creatorId + `', '` + projectId + `')`); err != nil {
+	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES (` + uid + `, '` + projectId + `')`); err != nil {
 		fmt.Println("ERR POSTING NEW PROJECT QUERY :", err)
 		return nil, err
 	}
@@ -296,30 +296,13 @@ func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleReque
 }
 
 func (svr *RbacServiceServer) PostUser(ctx context.Context, in *pb.PostUserRequest) (*emptypb.Empty, error) {
-	usr := in.GetUser()
-	userName := usr.GetName()
-	roleId := usr.GetRoleId()
-	projectName := in.GetProjectName()
+	uid := strconv.FormatFloat(in.GetUser().GetId(), 'e', -1, 64)
+	username := in.GetUser().GetName()
+	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM roles WHERE name = 'applicant'`)
+	roleId := ""
+	r.Scan(&roleId)
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM projects WHERE name = '` + projectName + `'`)
-	projectId := ""
-	r.Scan(&projectId)
-
-	fmt.Println("username:", userName)
-	fmt.Println("roleid:", roleId)
-	fmt.Println("project name:", projectName)
-
-	id := ""
-	rr := svr.StorageClient.DB().QueryRow(`SELECT id FROM users WHERE name = '` + userName + `'`)
-
-	if rr.Scan(&id) == sql.ErrNoRows {
-		id = uuid.NewString()
-		if _, err := svr.StorageClient.DB().Exec(`INSERT INTO users  (id, name, role_id) VALUES ('` + id + `', '` + userName + `', '` + roleId + `')`); err != nil {
-			return nil, err
-		}
-	}
-
-	_, err := svr.StorageClient.DB().Exec(`INSERT INTO userprojectmapping (user_id, project_id) VALUES ('` + id + `', '` + projectId + `' )`)
+	_, err := svr.StorageClient.DB().Exec(`INSERT INTO users  (id, name, role_id) VALUES (` + uid + `, '` + username + `', '` + roleId + `')`)
 
 	return nil, err
 }
@@ -333,12 +316,12 @@ func (svr *RbacServiceServer) PostDockerfile(ctx context.Context, in *pb.PostDoc
 
 	imgName := in.GetDockerfile().GetImageName()
 	imgVersion := in.GetDockerfile().GetImageVersion()
-	creatorId := in.GetDockerfile().GetCreatorId()
 	repo := in.GetDockerfile().GetRepository()
 	content := in.GetDockerfile().GetContent()
 	traceId := in.GetDockerfile().GetTraceId()
+	uid := strconv.FormatFloat(in.Dockerfile.GetCreatorId(), 'e', -1, 64)
 
-	if _, err = svr.StorageClient.DB().Exec(`INSERT INTO dockerfiles (id, image_name, image_version, creator_id, repository, content, trace_id) VALUES ('` + uuid.NewString() + `', '` + imgName + `', '` + imgVersion + `', '` + creatorId + `', '` + repo + `', '` + content + `', '` + traceId + `')`); err != nil {
+	if _, err = svr.StorageClient.DB().Exec(`INSERT INTO dockerfiles (id, image_name, image_version, creator_id, repository, content, trace_id) VALUES ('` + uuid.NewString() + `', '` + imgName + `', '` + imgVersion + `', ` + uid + `, '` + repo + `', '` + content + `', '` + traceId + `')`); err != nil {
 		fmt.Println(err)
 	}
 
@@ -401,13 +384,12 @@ func (svr *RbacServiceServer) GetPolicyJson(ctx context.Context, in *pb.GetPolic
 }
 
 func (svr *RbacServiceServer) IsUserExist(ctx context.Context, in *pb.IsUserExistRequest) (*pb.IsUserExistReply, error) {
-	gid := in.GetGithubId()
-	fmt.Println("[GID]:", strconv.FormatInt(gid, 10))
+	uid := strconv.FormatFloat(in.GetUserId(), 'e', -1, 64)
 
-	r := svr.StorageClient.DB().QueryRow(`SELECT id, name, role_id, create_time FROM users WHERE github_id = ` + strconv.FormatInt(gid, 10) + ``)
+	r := svr.StorageClient.DB().QueryRow(`SELECT name, role_id, create_time FROM users WHERE id = ` + uid + ``)
 	p := pb.User{}
 
-	err := r.Scan(&p.Id, &p.Name, &p.RoleId, &p.CreateTime)
+	err := r.Scan(&p.Name, &p.RoleId, &p.CreateTime)
 	if err == sql.ErrNoRows {
 		return &pb.IsUserExistReply{
 			Found: false,

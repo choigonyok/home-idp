@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
 )
@@ -69,29 +70,39 @@ func NewPostgresClient(username, password, database string) StorageClient {
 	}
 }
 
-func (c *PostgresClient) CreateAdminUser(username string, githubId int64) error {
-	roleId := uuid.NewString()
-	policyId := uuid.NewString()
-	// userId := uuid.NewString() // for prod
-	userId := "37e54287-af53-42a1-80a6-ac95361d3005" // for test
+func (c *PostgresClient) CreateAdminUser(uid float64) error {
+	adminRoleId := uuid.NewString()
+	applicantRoleId := uuid.NewString()
+	adminPolicyId := uuid.NewString()
+	applicantPolicyId := uuid.NewString()
 
-	if _, err := c.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + roleId + `', 'admin')`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + adminRoleId + `', 'admin')`); err != nil {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + policyId + `', 'admin', '` + getAdminPolicy() + `')`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + applicantRoleId + `', 'applicant')`); err != nil {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + roleId + `', '` + policyId + `')`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + adminPolicyId + `', 'admin', '` + getAdminPolicy() + `')`); err != nil {
 		return err
 	}
 
-	fmt.Println(strconv.FormatInt(githubId, 10))
-	fmt.Println(strconv.FormatInt(githubId, 10))
-	fmt.Println(strconv.FormatInt(githubId, 10))
+	if _, err := c.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + applicantPolicyId + `', 'applicant', '` + getApplicantPolicy() + `')`); err != nil {
+		return err
+	}
 
-	if _, err := c.DB().Exec(`INSERT INTO users (id, name, role_id, github_id) VALUES ('` + userId + `', '` + username + `', '` + roleId + `', ` + strconv.FormatInt(githubId, 10) + `)`); err != nil {
+	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + adminRoleId + `', '` + adminPolicyId + `')`); err != nil {
+		return err
+	}
+
+	if _, err := c.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + applicantRoleId + `', '` + applicantPolicyId + `')`); err != nil {
+		return err
+	}
+
+	fmt.Println("INT64 TO FLOAT64:", uid)
+
+	if _, err := c.DB().Exec(`INSERT INTO users (id, name, role_id) VALUES ('` + strconv.FormatFloat(uid, 'e', -1, 64) + `', '` + env.Get("HOME_IDP_ADMIN_GIT_USERNAME") + `', '` + adminRoleId + `')`); err != nil {
 		return err
 	}
 
@@ -100,39 +111,20 @@ func (c *PostgresClient) CreateAdminUser(username string, githubId int64) error 
 
 func getAdminPolicy() string {
 	return `{
+		"policy": {
+			"effect": "Allow",
+			"target": "*",
+			"action": "*"
+		}
+	}`
+}
+
+func getApplicantPolicy() string {
+	return `{
 	"policy": {
-		"name": "example-policy",
-		"effect": "Ask/Allow/Deny",
-		"target": {
-			"deploy": {
-				"namespace": [
-					"default",
-					"test"
-				],
-				"resource": {
-					"cpu": "500m",
-					"memory": "1024Mi",
-					"disk": "200Gi"
-        },
-				"gvk": [
-					"apps/v1/Deployments",
-					"networking.k8s.io/v1/Ingress",
-					"/vi/Pod"
-				]
-			},
-			"secret": {
-				"path": [
-					"/path1/to/secret/*",
-					"/path2/to/secret/*"
-				]
-			}			
-		},
-		"action": [
-			"Get",
-      "Put",
-      "Delete",
-      "List"
-		]
+		"effect": "Deny",
+		"target": "*",
+		"action": "*"
 	}
 }`
 }

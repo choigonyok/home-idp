@@ -9,7 +9,8 @@ type StorageClient interface {
 	DB() *sql.DB
 	IsHealthy() bool
 	Set(interface{})
-	CreateAdminUser(string, int64) error
+	CreateAdminUser(float64) error
+
 	// GetQueryFromProjects(cols ...string) (*sql.Rows, error)
 	// GetQueryFromUsers(cols ...string) (*sql.Rows, error)
 }

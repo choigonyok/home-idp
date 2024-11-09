@@ -28,16 +28,15 @@ data:
     );
 
     CREATE TABLE users (
-      id VARCHAR(100) PRIMARY KEY,
+      id FLOAT PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       role_id VARCHAR(100) NOT NULL,
-      github_id INT NOT NULL,
       create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (role_id) REFERENCES roles(id)
     );
 
     CREATE TABLE userprojectmapping (
-      user_id VARCHAR(100) NOT NULL,
+      user_id FLOAT NOT NULL,
       project_id VARCHAR(100) NOT NULL,
       PRIMARY KEY (user_id, project_id),
       FOREIGN KEY (user_id) REFERENCES users(id),
@@ -56,7 +55,7 @@ data:
       id VARCHAR(100) PRIMARY KEY,
       image_name VARCHAR(100) NOT NULL,
       image_version VARCHAR(100) NOT NULL,
-      creator_id VARCHAR(100) NOT NULL,
+      creator_id FLOAT NOT NULL,
       trace_id VARCHAR(100) NOT NULL,
       repository VARCHAR(100) NOT NULL,
       content TEXT NOT NULL,

@@ -33,7 +33,6 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 )
 
-var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
 var testUserName = "choigonyok"
 var testUserEmail = "achoistic98@naver.com"
 
@@ -204,24 +203,6 @@ func (svc *Gateway) LoginCallbackHandler() http.HandlerFunc {
 		default:
 			fmt.Println("DEFAULT RETURN")
 		}
-	}
-}
-
-func (svc *Gateway) SignUpHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		b, _ := io.ReadAll(r.Body)
-
-		tmp := struct {
-			Username string `json:"username"`
-			Password string `json:"password"`
-		}{}
-
-		json.Unmarshal(b, &tmp)
-
-		// svc.requestLogin(tmp.Username, tmp.Password)
-
-		fmt.Println(tmp)
 	}
 }
 
@@ -560,7 +541,17 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
 
 		b, _ := io.ReadAll(r.Body)
 
@@ -571,7 +562,7 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
 			ProjectName: p.GetName(),
-			CreatorId:   testUserId,
+			CreatorId:   float64(uid),
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING PROJECT :", err)
@@ -598,35 +589,6 @@ func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING NEW ROLE :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func (svc *Gateway) apiPostUserHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		vars := mux.Vars(r)
-		projectName := vars["projectName"]
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		b, _ := io.ReadAll(r.Body)
-
-		usr := rbacPb.User{}
-
-		json.Unmarshal(b, &usr)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
-			User: &rbacPb.User{
-				RoleId: usr.RoleId,
-				Name:   usr.Name,
-			},
-			ProjectName: projectName,
-		})
-		if err != nil {
-			fmt.Println("POST USER GRPC ERR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -845,12 +807,14 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 			fmt.Println("POST DOCKERFILE SPAN START ERR:", err)
 		}
 
+		uid, _ := getToken(r)
+
 		c := rbacPb.NewRbacServiceClient(conn)
 		_, err = c.PostDockerfile(postDockerfileSpan.Context, &rbacPb.PostDockerfileRequest{
 			Dockerfile: &rbacPb.Dockerfile{
 				ImageName:    d.ImageName,
 				ImageVersion: d.ImageVersion,
-				CreatorId:    testUserId,
+				CreatorId:    float64(uid),
 				Repository:   d.Repository,
 				Content:      d.Content,
 				TraceId:      d.TraceId,
@@ -992,7 +956,7 @@ func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
-			GithubId: uid,
+			Uid: float64(uid),
 		})
 
 		if err != nil {
@@ -1317,7 +1281,7 @@ func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) LoginHandler() http.HandlerFunc {
+func (svc *Gateway) SignHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -1339,12 +1303,12 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		uischeme := "http"
-		uiport := env.Get("HOME_IDP_UI_PORT")
-		uihost := env.Get("HOME_IDP_UI_HOST")
-		if env.Get("HOME_IDP_UI_TLS_ENABLED") == "true" {
-			uischeme = "https"
-		}
+		// uischeme := "http"
+		// uiport := env.Get("HOME_IDP_UI_PORT")
+		// uihost := env.Get("HOME_IDP_UI_HOST")
+		// if env.Get("HOME_IDP_UI_TLS_ENABLED") == "true" {
+		// 	uischeme = "https"
+		// }
 
 		fmt.Println("[TEST]2")
 		oauthConf := &oauth2.Config{
@@ -1394,34 +1358,37 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 		fmt.Println("[TEST]8")
 		uid := userInfo["id"].(float64)
 		fmt.Println("UID:", uid)
-		num := int64(uid)
-		fmt.Println("UID:", num)
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.IsUserExist(context.TODO(), &rbacPb.IsUserExistRequest{
-			GithubId: num,
+			UserId: uid,
 		})
 		if err != nil {
 			fmt.Println("IS USER EXIST ERR:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		fmt.Println("[TEST]9")
+		fmt.Println("[TEST]9:", userInfo)
 
 		if found := reply.GetFound(); !found {
-			http.Redirect(w, r, fmt.Sprintf("%s://%s:%s/login", uischeme, uihost, uiport), http.StatusSeeOther)
-			w.WriteHeader(http.StatusUnauthorized)
+			c.PostUser(context.TODO(), &rbacPb.PostUserRequest{
+				User: &rbacPb.User{
+					Id:   uid,
+					Name: userInfo["login"].(string),
+				},
+			})
 			return
 		}
 		fmt.Println("[TEST]10")
 
 		claims := jwt.MapClaims{
-			"github_id": num,
+			"github_id": uid,
 			"exp":       time.Now().Add(24 * time.Hour).Unix(),
 		}
 		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		t, _ := jwtToken.SignedString(jwtSecret)
 
 		json.NewEncoder(w).Encode(map[string]string{"token": t})
+
 		w.WriteHeader(http.StatusOK)
 	}
 }

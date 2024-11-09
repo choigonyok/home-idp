@@ -2,7 +2,6 @@ package service
 
 import (
 	pkgclient "github.com/choigonyok/home-idp/pkg/client"
-	"github.com/choigonyok/home-idp/pkg/env"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/client"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/grpc"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
@@ -40,8 +39,9 @@ func (svc *RbacManager) Start() {
 	}
 
 	pb.RegisterRbacServiceServer(svc.Server.Grpc, rbacPbServer)
+	uid := svc.ClientSet.GitClient.GetAdminGithubId()
 
-	svc.ClientSet.StorageClient.CreateAdminUser(env.Get("HOME_IDP_ADMIN_GIT_USERNAME"), svc.ClientSet.GitClient.GetAdminGithubId())
+	svc.ClientSet.StorageClient.CreateAdminUser(float64(uid))
 
 	svc.Server.Run()
 }
