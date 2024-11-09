@@ -942,6 +942,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
 		case 401:
 			w.WriteHeader(http.StatusUnauthorized)
@@ -963,9 +964,13 @@ func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 			fmt.Println("GET USERS GRPC ERR:", err)
 		}
 
+		if reply.GetStatusCode() == 403 {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
 		b, _ := json.Marshal(reply.GetUsers())
 
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}

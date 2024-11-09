@@ -133,3 +133,11 @@ func (c *PostgresClient) GetQueryFromProjects(cols ...string) (*sql.Row, error) 
 
 	return nil, nil
 }
+
+// {
+// 	"policy": {
+// 		"effect": "Deny",
+// 		"target": ["projects"],
+// 		"action": ["CREATE"]
+// 	}
+// }

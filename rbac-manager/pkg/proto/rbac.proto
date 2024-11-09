@@ -161,6 +161,7 @@ message GetUsersRequest {
 }
 message GetUsersReply {
   repeated User users = 1;
+  int32 status_code = 2;
 }
 
 

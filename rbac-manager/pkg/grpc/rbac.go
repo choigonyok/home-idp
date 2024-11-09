@@ -3,6 +3,7 @@ package grpc
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -238,7 +239,45 @@ func (svr *RbacServiceServer) GetUsersInProject(ctx context.Context, in *pb.GetU
 	}, nil
 }
 
+func (svr *RbacServiceServer) CheckPolicy(uid float64, target, action string) bool {
+	userId := strconv.FormatFloat(uid, 'e', -1, 64)
+	r, err := svr.StorageClient.DB().Query(`SELECT policy FROM policies LEFT JOIN rolepolicymapping ON rolepolicymapping.policy_id = policies.id LEFT JOIN roles ON roles.id = rolepolicymapping.role_id JOIN users ON users.role_id = roles.id WHERE users.id = ` + userId)
+	if err != nil {
+		return false
+	}
+
+	policies := []map[string]interface{}{}
+
+	for r.Next() {
+		policy := make(map[string]interface{})
+		j := ""
+		r.Scan(&j)
+		json.Unmarshal([]byte(j), &policy)
+		fmt.Println(policy)
+		policies = append(policies, policy)
+	}
+
+	for _, p := range policies {
+		if p["policy"].(map[string]interface{})["effect"].(string) == "Deny" {
+			if p["policy"].(map[string]interface{})["target"].(string) == "*" || p["policy"].(map[string]interface{})["target"].(string) == target {
+				if p["policy"].(map[string]interface{})["action"].(string) == "*" || p["policy"].(map[string]interface{})["action"].(string) == action {
+					return false
+				}
+			}
+		}
+	}
+
+	return true
+}
+
 func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
+	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
+		return &pb.GetUsersReply{
+			Users:      nil,
+			StatusCode: 403,
+		}, nil
+	}
+
 	r, err := svr.StorageClient.DB().Query(`SELECT users.id AS user_id, users.name AS username, roles.name AS role_name, users.create_time, projects.name AS project_name FROM users JOIN roles ON users.role_id = roles.id LEFT JOIN userprojectmapping ON userprojectmapping.user_id = users.id LEFT JOIN projects ON userprojectmapping.project_id = projects.id`)
 	if err != nil {
 		return nil, err
@@ -254,7 +293,8 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	}
 
 	return &pb.GetUsersReply{
-		Users: users,
+		Users:      users,
+		StatusCode: 200,
 	}, nil
 }
 
