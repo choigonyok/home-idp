@@ -20,6 +20,7 @@ service RbacService {
 
   rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
+  rpc IsUserExist (IsUserExistRequest) returns (IsUserExistReply) {}
 
   rpc PostUser (PostUserRequest) returns (google.protobuf.Empty) {}
   rpc PostProject (PostProjectRequest) returns (PostProjectReply) {}
@@ -206,4 +207,11 @@ message GetPolicyJsonRequest {
 }
 message GetPolicyJsonReply {
   Policy policy = 1;
+}
+
+message IsUserExistRequest {
+  int64 github_id = 1;
+}
+message IsUserExistReply {
+  bool found = 1;
 }

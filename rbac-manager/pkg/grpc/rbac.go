@@ -9,6 +9,7 @@ import (
 
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/trace"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/git"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -18,6 +19,7 @@ type RbacServiceServer struct {
 	pb.UnimplementedRbacServiceServer
 	StorageClient storage.StorageClient
 	TraceClient   *trace.TraceClient
+	GitClient     *git.RbacGitClient
 }
 
 func (svr *RbacServiceServer) Check(ctx context.Context, in *pb.RbacRequest) (*pb.RbacReply, error) {
@@ -375,5 +377,29 @@ func (svr *RbacServiceServer) GetPolicyJson(ctx context.Context, in *pb.GetPolic
 
 	return &pb.GetPolicyJsonReply{
 		Policy: &p,
+	}, nil
+}
+
+func (svr *RbacServiceServer) IsUserExist(ctx context.Context, in *pb.IsUserExistRequest) (*pb.IsUserExistReply, error) {
+	gid := in.GetGithubId()
+	fmt.Println("[GID]:", strconv.FormatInt(gid, 10))
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id, name, role_id, create_time FROM users WHERE github_id = ` + strconv.FormatInt(gid, 10) + ``)
+	p := pb.User{}
+
+	err := r.Scan(&p.Id, &p.Name, &p.RoleId, &p.CreateTime)
+	if err == sql.ErrNoRows {
+		return &pb.IsUserExistReply{
+			Found: false,
+		}, nil
+	}
+	if err != nil {
+		return &pb.IsUserExistReply{
+			Found: false,
+		}, err
+	}
+
+	return &pb.IsUserExistReply{
+		Found: true,
 	}, nil
 }

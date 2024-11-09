@@ -33,6 +33,7 @@ type RbacServiceClient interface {
 	GetPolicyJson(ctx context.Context, in *GetPolicyJsonRequest, opts ...grpc.CallOption) (*GetPolicyJsonReply, error)
 	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
+	IsUserExist(ctx context.Context, in *IsUserExistRequest, opts ...grpc.CallOption) (*IsUserExistReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error)
 	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
@@ -140,6 +141,15 @@ func (c *rbacServiceClient) GetUsers(ctx context.Context, in *GetUsersRequest, o
 	return out, nil
 }
 
+func (c *rbacServiceClient) IsUserExist(ctx context.Context, in *IsUserExistRequest, opts ...grpc.CallOption) (*IsUserExistReply, error) {
+	out := new(IsUserExistReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/IsUserExist", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rbacServiceClient) PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/PostUser", in, out, opts...)
@@ -217,6 +227,7 @@ type RbacServiceServer interface {
 	GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error)
 	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
+	IsUserExist(context.Context, *IsUserExistRequest) (*IsUserExistReply, error)
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
 	PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error)
 	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
@@ -260,6 +271,9 @@ func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empt
 }
 func (UnimplementedRbacServiceServer) GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetUsers not implemented")
+}
+func (UnimplementedRbacServiceServer) IsUserExist(context.Context, *IsUserExistRequest) (*IsUserExistReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method IsUserExist not implemented")
 }
 func (UnimplementedRbacServiceServer) PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostUser not implemented")
@@ -475,6 +489,24 @@ func _RbacService_GetUsers_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_IsUserExist_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IsUserExistRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).IsUserExist(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/IsUserExist",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).IsUserExist(ctx, req.(*IsUserExistRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RbacService_PostUser_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PostUserRequest)
 	if err := dec(in); err != nil {
@@ -647,6 +679,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUsers",
 			Handler:    _RbacService_GetUsers_Handler,
+		},
+		{
+			MethodName: "IsUserExist",
+			Handler:    _RbacService_IsUserExist_Handler,
 		},
 		{
 			MethodName: "PostUser",

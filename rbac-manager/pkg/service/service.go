@@ -36,11 +36,12 @@ func (svc *RbacManager) Start() {
 	rbacPbServer := &grpc.RbacServiceServer{
 		StorageClient: svc.ClientSet.StorageClient,
 		TraceClient:   svc.ClientSet.TraceClient,
+		GitClient:     svc.ClientSet.GitClient,
 	}
 
 	pb.RegisterRbacServiceServer(svc.Server.Grpc, rbacPbServer)
 
-	svc.ClientSet.StorageClient.CreateAdminUser(env.Get("HOME_IDP_ADMIN_GIT_USERNAME"))
+	svc.ClientSet.StorageClient.CreateAdminUser(env.Get("HOME_IDP_ADMIN_GIT_USERNAME"), svc.ClientSet.GitClient.GetAdminGithubId())
 
 	svc.Server.Run()
 }

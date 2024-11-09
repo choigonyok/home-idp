@@ -3,6 +3,7 @@ package storage
 import (
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -68,7 +69,7 @@ func NewPostgresClient(username, password, database string) StorageClient {
 	}
 }
 
-func (c *PostgresClient) CreateAdminUser(username string) error {
+func (c *PostgresClient) CreateAdminUser(username string, githubId int64) error {
 	roleId := uuid.NewString()
 	policyId := uuid.NewString()
 	// userId := uuid.NewString() // for prod
@@ -86,7 +87,11 @@ func (c *PostgresClient) CreateAdminUser(username string) error {
 		return err
 	}
 
-	if _, err := c.DB().Exec(`INSERT INTO users (id, name, role_id) VALUES ('` + userId + `', '` + username + `', '` + roleId + `')`); err != nil {
+	fmt.Println(strconv.FormatInt(githubId, 10))
+	fmt.Println(strconv.FormatInt(githubId, 10))
+	fmt.Println(strconv.FormatInt(githubId, 10))
+
+	if _, err := c.DB().Exec(`INSERT INTO users (id, name, role_id, github_id) VALUES ('` + userId + `', '` + username + `', '` + roleId + `', ` + strconv.FormatInt(githubId, 10) + `)`); err != nil {
 		return err
 	}
 

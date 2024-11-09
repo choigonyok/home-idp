@@ -44,6 +44,8 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("HOME_IDP_ADMIN_GIT_USERNAME", cfg.Global.Git.Username)
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_GIT_EMAIL", cfg.Global.Git.Email)
+	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
+	env.Set("HOME_IDP_GIT_TOKEN", cfg.Global.Git.Token)
 	env.Set("HOME_IDP_STORAGE_USERNAME", cfg.Global.Storage.Username)
 	env.Set("HOME_IDP_STORAGE_PASSWORD", cfg.Global.Storage.Password)
 	env.Set("HOME_IDP_STORAGE_DATABASE", cfg.Global.Storage.Database)

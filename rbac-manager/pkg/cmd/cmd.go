@@ -47,6 +47,7 @@ func getServerStartCmd() *cobra.Command {
 			svc := service.New(
 				port,
 				client.WithTraceClient(5103),
+				client.WithGitClient(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_GIT_TOKEN")),
 				client.WithStorageClient(
 					"postgres",
 					env.Get("HOME_IDP_STORAGE_USERNAME"),

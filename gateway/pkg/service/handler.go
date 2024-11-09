@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/trace"
 	"github.com/choigonyok/home-idp/pkg/util"
 	rbacPb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-github/v63/github"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
@@ -35,6 +37,7 @@ var testUserId = "37e54287-af53-42a1-80a6-ac95361d3005"
 var testUserName = "choigonyok"
 var testUserEmail = "achoistic98@naver.com"
 
+var jwtSecret = []byte(os.Getenv("18df91ad-af53-42a1-80a6-adsgasdd3005"))
 var Spans = make(map[string]*trace.Span1)
 var RootSpans = make(map[string]*trace.Span1)
 var FileMap = make(map[string][]*model.File)
@@ -975,6 +978,16 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
 		if err != nil {
@@ -1275,19 +1288,15 @@ func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
 
 func (svc *Gateway) LoginHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		scheme := "http"
-		port := env.Get("HOME_IDP_API_PORT")
-		host := env.Get("HOME_IDP_API_HOST")
-		if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
-			scheme = "https"
-		}
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 
 		oauthConf := &oauth2.Config{
 			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
 			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
-			RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
-			Scopes:       []string{"user:email"},
-			Endpoint:     oauthGit.Endpoint,
+			// RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
+			RedirectURL: fmt.Sprintf("http://127.0.0.1:3000/github/callback"),
+			Scopes:      []string{"user:email"},
+			Endpoint:    oauthGit.Endpoint,
 		}
 
 		url := oauthConf.AuthCodeURL("randomstring", oauth2.AccessTypeOffline)
@@ -1297,35 +1306,42 @@ func (svc *Gateway) LoginHandler() http.HandlerFunc {
 
 func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		scheme := "http"
-		port := env.Get("HOME_IDP_API_PORT")
-		host := env.Get("HOME_IDP_API_HOST")
-		if env.Get("HOME_IDP_API_TLS_ENABLED") == "true" {
-			scheme = "https"
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		uischeme := "http"
+		uiport := env.Get("HOME_IDP_UI_PORT")
+		uihost := env.Get("HOME_IDP_UI_HOST")
+		if env.Get("HOME_IDP_UI_TLS_ENABLED") == "true" {
+			uischeme = "https"
 		}
 
+		fmt.Println("[TEST]2")
 		oauthConf := &oauth2.Config{
 			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
 			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
-			RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
-			Scopes:       []string{"user:email"},
-			Endpoint:     oauthGit.Endpoint,
+			// RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
+			RedirectURL: fmt.Sprintf("http://127.0.0.1:3000/github/callback"),
+			Scopes:      []string{"user:email"},
+			Endpoint:    oauthGit.Endpoint,
 		}
-
-		state := r.FormValue("state")
+		fmt.Println("[TEST]3")
+		state := r.URL.Query().Get("state")
 		if state != "randomstring" {
 			log.Printf("invalid oauth state, expected '%s', got '%s'\n", "randomstring", state)
 			http.Error(w, "Invalid OAuth state", http.StatusBadRequest)
 			return
 		}
 
-		code := r.FormValue("code")
+		fmt.Println("[TEST]4", state)
+		code := r.URL.Query().Get("code")
+		fmt.Println("[TEST]5", code)
 		token, err := oauthConf.Exchange(context.Background(), code)
 		if err != nil {
 			log.Printf("Code exchange failed with '%s'\n", err)
 			http.Error(w, "Code exchange failed", http.StatusBadRequest)
 			return
 		}
+		fmt.Println("[TEST]6")
 
 		client := oauthConf.Client(context.Background(), token)
 		resp, err := client.Get("https://api.github.com/user")
@@ -1336,6 +1352,7 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 		}
 		defer resp.Body.Close()
 
+		fmt.Println("[TEST]7")
 		var userInfo map[string]interface{}
 		if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
 			log.Printf("Failed to parse user info: '%s'\n", err)
@@ -1343,10 +1360,65 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 			return
 		}
 
-		// db에 저장되어있는 사용자인지 체크
-		// - 있으면 homepage로 리다이렉트
-		// - 없으면 등록되지 않은 사용자 알림
+		fmt.Println("[TEST]8")
+		uid := userInfo["id"].(float64)
+		fmt.Println("UID:", uid)
+		num := int64(uid)
+		fmt.Println("UID:", num)
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		reply, err := c.IsUserExist(context.TODO(), &rbacPb.IsUserExistRequest{
+			GithubId: num,
+		})
+		if err != nil {
+			fmt.Println("IS USER EXIST ERR:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		fmt.Println("[TEST]9")
 
-		fmt.Fprintf(w, "User Info: %v\n", userInfo)
+		if found := reply.GetFound(); !found {
+			http.Redirect(w, r, fmt.Sprintf("%s://%s:%s/login", uischeme, uihost, uiport), http.StatusSeeOther)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		fmt.Println("[TEST]10")
+
+		claims := jwt.MapClaims{
+			"github_id": uid,
+			"exp":       time.Now().Add(24 * time.Hour).Unix(),
+		}
+		jwtToken := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		t, _ := jwtToken.SignedString(jwtSecret)
+
+		json.NewEncoder(w).Encode(map[string]string{"token": t})
+		w.WriteHeader(http.StatusOK)
 	}
+}
+
+func withJWTAuth(r *http.Request) int {
+	tokenString := r.Header.Get("Authorization")
+	if tokenString == "" {
+		return http.StatusUnauthorized
+	}
+
+	tokenString = tokenString[len("Bearer "):]
+
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return jwtSecret, nil
+	})
+
+	if err != nil || !token.Valid {
+		return http.StatusUnauthorized
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		githubID := claims["github_id"]
+		fmt.Println("GITHUB ID FROM JWT HEADER:", githubID)
+	} else {
+		return http.StatusUnauthorized
+	}
+	return http.StatusOK
 }

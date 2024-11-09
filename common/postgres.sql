@@ -31,6 +31,7 @@ data:
       id VARCHAR(100) PRIMARY KEY,
       name VARCHAR(100) NOT NULL,
       role_id VARCHAR(100) NOT NULL,
+      github_id INT NOT NULL,
       create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (role_id) REFERENCES roles(id)
     );
