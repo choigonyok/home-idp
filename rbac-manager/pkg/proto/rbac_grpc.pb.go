@@ -36,6 +36,7 @@ type RbacServiceClient interface {
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	IsUserExist(ctx context.Context, in *IsUserExistRequest, opts ...grpc.CallOption) (*IsUserExistReply, error)
 	PostUser(ctx context.Context, in *PostUserRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	UpdateUserRole(ctx context.Context, in *UpdateUserRoleRequest, opts ...grpc.CallOption) (*UpdateUserRoleReply, error)
 	PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error)
 	PutUser(ctx context.Context, in *PutUserRequest, opts ...grpc.CallOption) (*PutUserReply, error)
 	GetDockerfiles(ctx context.Context, in *GetDockerfilesRequest, opts ...grpc.CallOption) (*GetDockerfilesReply, error)
@@ -169,6 +170,15 @@ func (c *rbacServiceClient) PostUser(ctx context.Context, in *PostUserRequest, o
 	return out, nil
 }
 
+func (c *rbacServiceClient) UpdateUserRole(ctx context.Context, in *UpdateUserRoleRequest, opts ...grpc.CallOption) (*UpdateUserRoleReply, error) {
+	out := new(UpdateUserRoleReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/UpdateUserRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rbacServiceClient) PostProject(ctx context.Context, in *PostProjectRequest, opts ...grpc.CallOption) (*PostProjectReply, error) {
 	out := new(PostProjectReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/PostProject", in, out, opts...)
@@ -240,6 +250,7 @@ type RbacServiceServer interface {
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	IsUserExist(context.Context, *IsUserExistRequest) (*IsUserExistReply, error)
 	PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error)
+	UpdateUserRole(context.Context, *UpdateUserRoleRequest) (*UpdateUserRoleReply, error)
 	PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error)
 	PutUser(context.Context, *PutUserRequest) (*PutUserReply, error)
 	GetDockerfiles(context.Context, *GetDockerfilesRequest) (*GetDockerfilesReply, error)
@@ -291,6 +302,9 @@ func (UnimplementedRbacServiceServer) IsUserExist(context.Context, *IsUserExistR
 }
 func (UnimplementedRbacServiceServer) PostUser(context.Context, *PostUserRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostUser not implemented")
+}
+func (UnimplementedRbacServiceServer) UpdateUserRole(context.Context, *UpdateUserRoleRequest) (*UpdateUserRoleReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateUserRole not implemented")
 }
 func (UnimplementedRbacServiceServer) PostProject(context.Context, *PostProjectRequest) (*PostProjectReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostProject not implemented")
@@ -557,6 +571,24 @@ func _RbacService_PostUser_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_UpdateUserRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUserRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).UpdateUserRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/UpdateUserRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).UpdateUserRole(ctx, req.(*UpdateUserRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RbacService_PostProject_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PostProjectRequest)
 	if err := dec(in); err != nil {
@@ -723,6 +755,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "PostUser",
 			Handler:    _RbacService_PostUser_Handler,
+		},
+		{
+			MethodName: "UpdateUserRole",
+			Handler:    _RbacService_UpdateUserRole_Handler,
 		},
 		{
 			MethodName: "PostProject",

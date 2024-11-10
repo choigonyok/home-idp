@@ -24,6 +24,8 @@ service RbacService {
   rpc IsUserExist (IsUserExistRequest) returns (IsUserExistReply) {}
 
   rpc PostUser (PostUserRequest) returns (google.protobuf.Empty) {}
+  rpc UpdateUserRole (UpdateUserRoleRequest) returns (UpdateUserRoleReply) {}
+  
   rpc PostProject (PostProjectRequest) returns (PostProjectReply) {}
   rpc PutUser (PutUserRequest) returns (PutUserReply) {}
 
@@ -107,7 +109,7 @@ message Error {
 
 message RolePolicy {
   Role role = 1;
-  repeated Policy policy = 2;
+  repeated Policy policies = 2;
 }
 
 
@@ -162,7 +164,8 @@ message User {
   string role_id = 3;
   string role_name = 4;
   string create_time = 7;
-  string project_name = 8;
+  string project_id = 8;
+  string project_name = 9;
 }
 
 
@@ -197,7 +200,7 @@ message PutUserReply {
 }
 
 message PostRoleRequest {
-  string role_name = 1;
+  Role role = 1;
   repeated Policy policies = 2;
   double uid = 3;
 }
@@ -244,4 +247,13 @@ message IsUserExistRequest {
 }
 message IsUserExistReply {
   bool found = 1;
+}
+
+message UpdateUserRoleRequest {
+  double uid = 1;
+  User user = 2;
+  Role role = 3;
+}
+message UpdateUserRoleReply {
+  Error error = 1;
 }

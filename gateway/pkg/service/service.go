@@ -41,6 +41,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.apiPostPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.apiPostProjectHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
+	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}/role", svc.apiUpdateUserRoleHandler())
 
 	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
 

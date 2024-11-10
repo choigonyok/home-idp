@@ -123,7 +123,7 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesReque
 			ps = append(ps, &p)
 		}
 
-		tmp.Policy = ps
+		tmp.Policies = ps
 		rps = append(rps, &tmp)
 	}
 
@@ -360,7 +360,7 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 		}, nil
 	}
 
-	r, err := svr.StorageClient.DB().Query(`SELECT users.id AS user_id, users.name AS username, roles.name AS role_name, users.create_time, projects.name AS project_name FROM users JOIN roles ON users.role_id = roles.id LEFT JOIN userprojectmapping ON userprojectmapping.user_id = users.id LEFT JOIN projects ON userprojectmapping.project_id = projects.id`)
+	r, err := svr.StorageClient.DB().Query(`SELECT users.id AS user_id, users.name AS username, roles.id AS role_id, roles.name AS role_name, users.create_time, projects.name AS project_name, projects.id AS project_id FROM users JOIN roles ON users.role_id = roles.id LEFT JOIN userprojectmapping ON userprojectmapping.user_id = users.id LEFT JOIN projects ON userprojectmapping.project_id = projects.id`)
 	if err != nil {
 		return nil, err
 	}
@@ -370,7 +370,7 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 
 	for r.Next() {
 		user := pb.User{}
-		r.Scan(&user.Id, &user.Name, &user.RoleName, &user.CreateTime, &user.ProjectName)
+		r.Scan(&user.Id, &user.Name, &user.RoleId, &user.RoleName, &user.CreateTime, &user.ProjectName, &user.ProjectId)
 		users = append(users, &user)
 	}
 
@@ -403,6 +403,47 @@ func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjec
 	return nil, nil
 }
 
+func (svr *RbacServiceServer) UpdateUserRole(ctx context.Context, in *pb.UpdateUserRoleRequest) (*pb.UpdateUserRoleReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.UpdateUserRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
+		return &pb.UpdateUserRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	userId := in.GetUser().GetId()
+	username := in.GetUser().GetName()
+	roleId := in.GetRole().GetId()
+
+	if _, err := svr.StorageClient.DB().Exec(`UPDATE users SET name = '` + username + `', role_id = '` + roleId + `' WHERE id = ` + strconv.FormatFloat(userId, 'e', -1, 64)); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.UpdateUserRoleReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.UpdateUserRoleReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
 func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*pb.PostRoleReply, error) {
 	if svr.CheckApplicant(in.GetUid()) {
 		return &pb.PostRoleReply{
@@ -422,7 +463,7 @@ func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleReque
 		}, nil
 	}
 
-	roleName := in.GetRoleName()
+	roleName := in.GetRole().GetName()
 	id := uuid.NewString()
 
 	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + id + `', '` + roleName + `')`); err != nil {

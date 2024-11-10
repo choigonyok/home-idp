@@ -573,6 +573,48 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiUpdateUserRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		data := struct {
+			UserID   float64 `json:"user_id"`
+			RoleID   string  `json:"role_id"`
+			Username string  `json:"username"`
+		}{}
+
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &data)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		reply, _ := c.UpdateUserRole(context.TODO(), &rbacPb.UpdateUserRoleRequest{
+			Uid: float64(uid),
+			User: &rbacPb.User{
+				Id:   data.UserID,
+				Name: data.Username,
+			},
+			Role: &rbacPb.Role{
+				Id: data.RoleID,
+			},
+		})
+		w.WriteHeader(int(reply.GetError().GetStatusCode()))
+		w.Write([]byte(reply.GetError().GetMessage()))
+		return
+	}
+}
+
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -588,16 +630,16 @@ func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 
 		uid, _ := getToken(r)
 
-		b, _ := io.ReadAll(r.Body)
-
 		role := rbacPb.RolePolicy{}
-
+		b, _ := io.ReadAll(r.Body)
 		json.Unmarshal(b, &role)
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
-			RoleName: role.Role.GetId(),
-			Policies: role.GetPolicy(),
+			Role: &rbacPb.Role{
+				Name: role.Role.Name,
+			},
+			Policies: role.GetPolicies(),
 			Uid:      float64(uid),
 		})
 		if err != nil {
