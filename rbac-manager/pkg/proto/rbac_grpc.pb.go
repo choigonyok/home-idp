@@ -24,14 +24,14 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RbacServiceClient interface {
 	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
-	GetRoles(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetRolesReply, error)
+	GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error)
-	GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error)
+	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
 	GetPolicyJson(ctx context.Context, in *GetPolicyJsonRequest, opts ...grpc.CallOption) (*GetPolicyJsonReply, error)
-	GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error)
+	GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error)
 	GetUsersInProject(ctx context.Context, in *GetUsersInProjectRequest, opts ...grpc.CallOption) (*GetUsersInProjectReply, error)
 	GetUsers(ctx context.Context, in *GetUsersRequest, opts ...grpc.CallOption) (*GetUsersReply, error)
 	IsUserExist(ctx context.Context, in *IsUserExistRequest, opts ...grpc.CallOption) (*IsUserExistReply, error)
@@ -61,7 +61,7 @@ func (c *rbacServiceClient) Check(ctx context.Context, in *RbacRequest, opts ...
 	return out, nil
 }
 
-func (c *rbacServiceClient) GetRoles(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetRolesReply, error) {
+func (c *rbacServiceClient) GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error) {
 	out := new(GetRolesReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetRoles", in, out, opts...)
 	if err != nil {
@@ -106,7 +106,7 @@ func (c *rbacServiceClient) GetPolicy(ctx context.Context, in *GetPolicyRequest,
 	return out, nil
 }
 
-func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
+func (c *rbacServiceClient) GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error) {
 	out := new(GetPoliciesReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetPolicies", in, out, opts...)
 	if err != nil {
@@ -124,7 +124,7 @@ func (c *rbacServiceClient) GetPolicyJson(ctx context.Context, in *GetPolicyJson
 	return out, nil
 }
 
-func (c *rbacServiceClient) GetProjects(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*GetProjectsReply, error) {
+func (c *rbacServiceClient) GetProjects(ctx context.Context, in *GetProjectsRequest, opts ...grpc.CallOption) (*GetProjectsReply, error) {
 	out := new(GetProjectsReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/GetProjects", in, out, opts...)
 	if err != nil {
@@ -228,14 +228,14 @@ func (c *rbacServiceClient) GetTraceIdByDockerfileId(ctx context.Context, in *Ge
 // for forward compatibility
 type RbacServiceServer interface {
 	Check(context.Context, *RbacRequest) (*RbacReply, error)
-	GetRoles(context.Context, *emptypb.Empty) (*GetRolesReply, error)
+	GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error)
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	PostRole(context.Context, *PostRoleRequest) (*emptypb.Empty, error)
 	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
 	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error)
-	GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error)
+	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
 	GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error)
-	GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error)
+	GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error)
 	GetUsersInProject(context.Context, *GetUsersInProjectRequest) (*GetUsersInProjectReply, error)
 	GetUsers(context.Context, *GetUsersRequest) (*GetUsersReply, error)
 	IsUserExist(context.Context, *IsUserExistRequest) (*IsUserExistReply, error)
@@ -256,7 +256,7 @@ type UnimplementedRbacServiceServer struct {
 func (UnimplementedRbacServiceServer) Check(context.Context, *RbacRequest) (*RbacReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
 }
-func (UnimplementedRbacServiceServer) GetRoles(context.Context, *emptypb.Empty) (*GetRolesReply, error) {
+func (UnimplementedRbacServiceServer) GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoles not implemented")
 }
 func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error) {
@@ -271,13 +271,13 @@ func (UnimplementedRbacServiceServer) PostPolicy(context.Context, *PostPolicyReq
 func (UnimplementedRbacServiceServer) GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicy not implemented")
 }
-func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *emptypb.Empty) (*GetPoliciesReply, error) {
+func (UnimplementedRbacServiceServer) GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicies not implemented")
 }
 func (UnimplementedRbacServiceServer) GetPolicyJson(context.Context, *GetPolicyJsonRequest) (*GetPolicyJsonReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPolicyJson not implemented")
 }
-func (UnimplementedRbacServiceServer) GetProjects(context.Context, *emptypb.Empty) (*GetProjectsReply, error) {
+func (UnimplementedRbacServiceServer) GetProjects(context.Context, *GetProjectsRequest) (*GetProjectsReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetProjects not implemented")
 }
 func (UnimplementedRbacServiceServer) GetUsersInProject(context.Context, *GetUsersInProjectRequest) (*GetUsersInProjectReply, error) {
@@ -342,7 +342,7 @@ func _RbacService_Check_Handler(srv interface{}, ctx context.Context, dec func(i
 }
 
 func _RbacService_GetRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(GetRolesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -354,7 +354,7 @@ func _RbacService_GetRoles_Handler(srv interface{}, ctx context.Context, dec fun
 		FullMethod: "/proto.RbacService/GetRoles",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).GetRoles(ctx, req.(*emptypb.Empty))
+		return srv.(RbacServiceServer).GetRoles(ctx, req.(*GetRolesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -432,7 +432,7 @@ func _RbacService_GetPolicy_Handler(srv interface{}, ctx context.Context, dec fu
 }
 
 func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(GetPoliciesRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -444,7 +444,7 @@ func _RbacService_GetPolicies_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.RbacService/GetPolicies",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*emptypb.Empty))
+		return srv.(RbacServiceServer).GetPolicies(ctx, req.(*GetPoliciesRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -468,7 +468,7 @@ func _RbacService_GetPolicyJson_Handler(srv interface{}, ctx context.Context, de
 }
 
 func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(emptypb.Empty)
+	in := new(GetProjectsRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
@@ -480,7 +480,7 @@ func _RbacService_GetProjects_Handler(srv interface{}, ctx context.Context, dec 
 		FullMethod: "/proto.RbacService/GetProjects",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).GetProjects(ctx, req.(*emptypb.Empty))
+		return srv.(RbacServiceServer).GetProjects(ctx, req.(*GetProjectsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }

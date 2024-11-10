@@ -27,7 +27,6 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/oauth2"
 	oauthGit "golang.org/x/oauth2/github"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -886,8 +885,18 @@ func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
 
+		uid, _ := getToken(r)
+
 		c := rbacPb.NewRbacServiceClient(conn)
-		reply, _ := c.GetRoles(context.TODO(), nil)
+		reply, _ := c.GetRoles(context.TODO(), &rbacPb.GetRolesRequest{
+			Uid: float64(uid),
+		})
+
+		if reply.GetError().GetStatusCode() == 403 {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(reply.GetError().GetMessage()))
+			return
+		}
 
 		rps := reply.GetRolePolicies()
 		b, _ := json.Marshal(rps)
@@ -964,8 +973,9 @@ func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 			fmt.Println("GET USERS GRPC ERR:", err)
 		}
 
-		if reply.GetStatusCode() == 403 {
+		if reply.GetError().GetStatusCode() == 403 {
 			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(reply.GetError().GetMessage()))
 			return
 		}
 
@@ -978,6 +988,7 @@ func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
 		case 401:
 			w.WriteHeader(http.StatusUnauthorized)
@@ -988,16 +999,24 @@ func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
 			return
 		}
 
+		uid, _ := getToken(r)
+
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
+		reply, err := c.GetProjects(context.TODO(), &rbacPb.GetProjectsRequest{
+			Uid: float64(uid),
+		})
 		if err != nil {
 			fmt.Println("ERR GET PROJECT LIST :", err)
 		}
 
+		if reply.GetError().GetStatusCode() == 403 {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(reply.GetError().GetMessage()))
+			return
+		}
+
 		b, _ := json.Marshal(reply.GetProjects())
 
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1200,15 +1219,25 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetPoliciesHandler() http.HandlerFunc {
+func (svc *Gateway) apiGetPoliciyListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
+		uid, _ := getToken(r)
+
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetPolicies(context.TODO(), nil)
+		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
+			Uid: float64(uid),
+		})
 		if err != nil {
 			fmt.Println("ERR GETTING POLICIES :", err)
 			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if reply.GetError().GetStatusCode() == 403 {
+			w.WriteHeader(http.StatusForbidden)
+			w.Write([]byte(reply.GetError().GetMessage()))
 			return
 		}
 

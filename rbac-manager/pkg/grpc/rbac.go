@@ -70,7 +70,25 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 	return &pb.GetRoleReply{Role: &role}, nil
 }
 
-func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
+func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesRequest) (*pb.GetRolesReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.GetRolesReply{
+			Error: &pb.Error{
+				Message:    "Your signing up request still waiting administrator's approval",
+				StatusCode: 403,
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "roles", "GET") {
+		return &pb.GetRolesReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
 		return nil, err
@@ -114,7 +132,25 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *emptypb.Empty) (*pb.GetPoliciesReply, error) {
+func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPoliciesRequest) (*pb.GetPoliciesReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.GetPoliciesReply{
+			Error: &pb.Error{
+				Message:    "Your signing up request still waiting administrator's approval",
+				StatusCode: 403,
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "policies", "GET") {
+		return &pb.GetPoliciesReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, policy FROM policies ORDER BY create_time ASC`)
 	if err != nil {
 		fmt.Println("TEST GETPOLICIES FROM MAPPING QUERY ERR:", err)
@@ -170,7 +206,25 @@ func (svr *RbacServiceServer) GetPolicy(ctx context.Context, in *pb.GetPolicyReq
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *emptypb.Empty) (*pb.GetProjectsReply, error) {
+func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProjectsRequest) (*pb.GetProjectsReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.GetProjectsReply{
+			Error: &pb.Error{
+				Message:    "Your signing up request still waiting administrator's approval",
+				StatusCode: 403,
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "projects", "GET") {
+		return &pb.GetProjectsReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator_id FROM projects`)
 	if err != nil {
 		fmt.Println("ERR GETTING PROJECT QUERY :", err)
@@ -245,6 +299,7 @@ func (svr *RbacServiceServer) CheckPolicy(uid float64, target, action string) bo
 	if err != nil {
 		return false
 	}
+	defer r.Close()
 
 	policies := []map[string]interface{}{}
 
@@ -258,23 +313,50 @@ func (svr *RbacServiceServer) CheckPolicy(uid float64, target, action string) bo
 	}
 
 	for _, p := range policies {
-		if p["policy"].(map[string]interface{})["effect"].(string) == "Deny" {
+		if p["policy"].(map[string]interface{})["effect"].(string) == "Allow" {
 			if p["policy"].(map[string]interface{})["target"].(string) == "*" || p["policy"].(map[string]interface{})["target"].(string) == target {
 				if p["policy"].(map[string]interface{})["action"].(string) == "*" || p["policy"].(map[string]interface{})["action"].(string) == action {
-					return false
+					return true
 				}
 			}
 		}
 	}
 
-	return true
+	return false
+}
+
+func (svr *RbacServiceServer) CheckApplicant(uid float64) bool {
+	userId := strconv.FormatFloat(uid, 'e', -1, 64)
+	roleName := ""
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT roles.name FROM roles JOIN users ON users.role_id = roles.id WHERE users.id = ` + userId)
+
+	r.Scan(&roleName)
+
+	if roleName == "applicant" {
+		return true
+	}
+	return false
 }
 
 func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.GetUsersReply{
+			Users: nil,
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
 	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
 		return &pb.GetUsersReply{
-			Users:      nil,
-			StatusCode: 403,
+			Users: nil,
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
 		}, nil
 	}
 
@@ -293,8 +375,7 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	}
 
 	return &pb.GetUsersReply{
-		Users:      users,
-		StatusCode: 200,
+		Users: users,
 	}, nil
 }
 

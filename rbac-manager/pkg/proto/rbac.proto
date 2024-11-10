@@ -9,16 +9,16 @@ option go_package = "./";
 
 service RbacService {
   rpc Check (RbacRequest) returns (RbacReply) {}
-  rpc GetRoles (google.protobuf.Empty) returns (GetRolesReply) {}
+  rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc PostRole (PostRoleRequest) returns (google.protobuf.Empty) {}
   rpc PostPolicy (PostPolicyRequest) returns (google.protobuf.Empty) {}
 
   rpc GetPolicy (GetPolicyRequest) returns (GetPolicyReply) {}
-  rpc GetPolicies (google.protobuf.Empty) returns (GetPoliciesReply) {}
+  rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
   rpc GetPolicyJson (GetPolicyJsonRequest) returns (GetPolicyJsonReply) {}
 
-  rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
+  rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
   rpc GetUsersInProject (GetUsersInProjectRequest) returns (GetUsersInProjectReply) {}
   rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
   rpc IsUserExist (IsUserExistRequest) returns (IsUserExistReply) {}
@@ -92,16 +92,24 @@ message PostProjectRequest {
 
 message PostProjectReply {}
 
-message GetRolesRequest {}
+message GetRolesRequest {
+  double uid = 1;
+}
+message GetRolesReply {
+  repeated RolePolicy rolePolicies = 1;
+  Error error = 2;
+}
+
+message Error {
+  int32 status_code = 1;
+  string message = 2;
+}
 
 message RolePolicy {
   Role role = 1;
   repeated Policy policy = 2;
 }
 
-message GetRolesReply {
-  repeated RolePolicy rolePolicies = 1;
-}
 
 message GetRoleRequest {
   string user_name = 1;
@@ -125,9 +133,14 @@ message GetPolicyReply {
   repeated Policy policies = 1;
 }
 
+message GetPoliciesRequest {
+  double uid = 1;
+}
 message GetPoliciesReply {
   repeated Policy policies = 1;
+  Error error = 2;
 }
+
 
 message Project {
   string id = 1;
@@ -135,8 +148,12 @@ message Project {
   string creator_id = 3;
 }
 
+message GetProjectsRequest {
+  double uid = 1 ;
+}
 message GetProjectsReply {
   repeated Project projects = 1;
+  Error error = 2;
 }
 
 message User {
@@ -161,17 +178,13 @@ message GetUsersRequest {
 }
 message GetUsersReply {
   repeated User users = 1;
-  int32 status_code = 2;
+  Error error = 2;
 }
 
 
 message PostUserRequest {
   User user = 1;
   string projectName = 2;
-}
-
-message Error {
-  string error = 1;
 }
 
 message PutUserRequest {

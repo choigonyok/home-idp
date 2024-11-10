@@ -28,26 +28,27 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 		Server:    svr,
 		ClientSet: cs,
 	}
-
-	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/test2/", svc.TestHandler2())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/harbor", svc.HarborWebhookHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
-
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/", svc.ApiOptionsHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.apiPostProjectHandler())
+
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.apiGetProjectListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRoleListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.apiGetPoliciyListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.apiGetUserListHandler())
+
+	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
+
+	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.apiPostProjectHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRoleListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetRolePoliciesHandler())
 
-	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.apiGetPoliciesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/policies/{policyId}", svc.apiGetPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.apiPostPolicyHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/users", svc.apiGetUsersInProjectHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.apiGetUserListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/role", svc.apiGetRoleHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/dockerfiles", svc.apiGetDockerfilesHandler())
 
