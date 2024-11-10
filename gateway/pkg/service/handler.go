@@ -576,15 +576,29 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
 		b, _ := io.ReadAll(r.Body)
 
-		role := rbacPb.Role{}
+		role := rbacPb.RolePolicy{}
 
 		json.Unmarshal(b, &role)
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
-			RoleName: role.Name,
+			RoleName: role.Role.GetId(),
+			Policies: role.GetPolicy(),
+			Uid:      float64(uid),
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING NEW ROLE :", err)
@@ -599,7 +613,6 @@ func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 
 		b, _ := io.ReadAll(r.Body)
 		pod := deployPb.Pod{}

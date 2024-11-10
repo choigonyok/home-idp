@@ -26,7 +26,7 @@ type RbacServiceClient interface {
 	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
 	GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
-	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*PostRoleReply, error)
 	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error)
 	GetPolicies(ctx context.Context, in *GetPoliciesRequest, opts ...grpc.CallOption) (*GetPoliciesReply, error)
@@ -79,8 +79,8 @@ func (c *rbacServiceClient) GetRole(ctx context.Context, in *GetRoleRequest, opt
 	return out, nil
 }
 
-func (c *rbacServiceClient) PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
+func (c *rbacServiceClient) PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*PostRoleReply, error) {
+	out := new(PostRoleReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/PostRole", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ type RbacServiceServer interface {
 	Check(context.Context, *RbacRequest) (*RbacReply, error)
 	GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error)
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
-	PostRole(context.Context, *PostRoleRequest) (*emptypb.Empty, error)
+	PostRole(context.Context, *PostRoleRequest) (*PostRoleReply, error)
 	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
 	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error)
 	GetPolicies(context.Context, *GetPoliciesRequest) (*GetPoliciesReply, error)
@@ -262,7 +262,7 @@ func (UnimplementedRbacServiceServer) GetRoles(context.Context, *GetRolesRequest
 func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRole not implemented")
 }
-func (UnimplementedRbacServiceServer) PostRole(context.Context, *PostRoleRequest) (*emptypb.Empty, error) {
+func (UnimplementedRbacServiceServer) PostRole(context.Context, *PostRoleRequest) (*PostRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostRole not implemented")
 }
 func (UnimplementedRbacServiceServer) PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error) {

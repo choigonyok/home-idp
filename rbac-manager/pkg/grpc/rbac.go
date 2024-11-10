@@ -403,14 +403,38 @@ func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjec
 	return nil, nil
 }
 
-func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*emptypb.Empty, error) {
-	roleName := in.GetRoleName()
+func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*pb.PostRoleReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.PostRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
 
+	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
+		return &pb.PostRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	roleName := in.GetRoleName()
 	id := uuid.NewString()
 
 	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + id + `', '` + roleName + `')`); err != nil {
 		fmt.Println("ERR CREATING NEW ROLE :", err)
 		return nil, err
+	}
+
+	for _, p := range in.GetPolicies() {
+		if _, err := svr.StorageClient.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + id + `', '` + p.GetId() + `')`); err != nil {
+			fmt.Println("ERR CREATING NEW ROLE POLICY MAPPING :", err)
+			return nil, err
+		}
 	}
 
 	return nil, nil
