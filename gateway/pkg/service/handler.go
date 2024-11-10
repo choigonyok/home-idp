@@ -706,6 +706,186 @@ func (svc *Gateway) apiPostPolicyHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiDeletePolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		vars := mux.Vars(r)
+		policyId := vars["policyId"]
+
+		uid, _ := getToken(r)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.DeletePolicy(context.TODO(), &rbacPb.DeletePolicyRequest{
+			Uid:      float64(uid),
+			PolicyId: policyId,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiUpdatePolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		vars := mux.Vars(r)
+		policyId := vars["policyId"]
+
+		uid, _ := getToken(r)
+		b, _ := io.ReadAll(r.Body)
+
+		data := struct {
+			Name string `json:"name"`
+			Json string `json:"json"`
+		}{}
+
+		json.Unmarshal(b, &data)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.UpdatePolicy(context.TODO(), &rbacPb.UpdatePolicyRequest{
+			Uid: float64(uid),
+			Policy: &rbacPb.Policy{
+				Id:   policyId,
+				Name: data.Name,
+				Json: data.Json,
+			},
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiDeleteRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		id := ""
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &id)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.DeleteRole(context.TODO(), &rbacPb.DeleteRoleRequest{
+			Uid:    float64(uid),
+			RoleId: id,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiDeleteUserHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		var id float64
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &id)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.DeleteUser(context.TODO(), &rbacPb.DeleteUserRequest{
+			Uid:    float64(uid),
+			UserId: id,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiDeleteProjectHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		id := ""
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &id)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.DeleteProject(context.TODO(), &rbacPb.DeleteProjectRequest{
+			Uid:       float64(uid),
+			ProjectId: id,
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (svc *Gateway) apiGetDockerTraceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

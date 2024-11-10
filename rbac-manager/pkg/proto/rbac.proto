@@ -12,9 +12,17 @@ service RbacService {
   rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc PostRole (PostRoleRequest) returns (PostRoleReply) {}
+  
   rpc PostPolicy (PostPolicyRequest) returns (google.protobuf.Empty) {}
+  
+  rpc DeletePolicy (DeletePolicyRequest) returns (DeletePolicyReply) {}
+  rpc DeleteRole (DeleteRoleRequest) returns (DeleteRoleReply) {}
+  rpc DeleteProject (DeleteProjectRequest) returns (DeleteProjectReply) {}
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserReply) {}
 
   rpc GetPolicy (GetPolicyRequest) returns (GetPolicyReply) {}
+  rpc UpdatePolicy (UpdatePolicyRequest) returns (UpdatePolicyReply) {}
+
   rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
   rpc GetPolicyJson (GetPolicyJsonRequest) returns (GetPolicyJsonReply) {}
 
@@ -257,3 +265,44 @@ message UpdateUserRoleRequest {
 message UpdateUserRoleReply {
   Error error = 1;
 }
+
+message DeletePolicyRequest {
+  double uid = 1;
+  string policy_id = 2;
+}
+message DeletePolicyReply {
+  Error error = 1;
+}
+
+message DeleteRoleRequest {
+  double uid = 1;
+  string role_id = 2;
+}
+message DeleteRoleReply {
+  Error error = 1;
+}
+
+message DeleteProjectRequest {
+  double uid = 1;
+  string project_id = 2;
+}
+message DeleteProjectReply {
+  Error error = 1;
+}
+
+message DeleteUserRequest {
+  double uid = 1;
+  double user_id = 2;
+}
+message DeleteUserReply {
+  Error error = 1;
+}
+
+message UpdatePolicyRequest {
+  double uid = 1;
+  Policy policy = 2;
+}
+message UpdatePolicyReply {
+  Error error = 1;
+}
+

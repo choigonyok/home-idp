@@ -43,6 +43,13 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
 	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}/role", svc.apiUpdateUserRoleHandler())
 
+	svr.Router.RegisterRoute(http.MethodDelete, "/api/policies/{policyId}", svc.apiDeletePolicyHandler())
+	svr.Router.RegisterRoute(http.MethodPut, "/api/policies/{policyId}", svc.apiUpdatePolicyHandler())
+
+	svr.Router.RegisterRoute(http.MethodDelete, "/api/role", svc.apiDeleteRoleHandler())
+	svr.Router.RegisterRoute(http.MethodDelete, "/api/user", svc.apiDeleteUserHandler())
+	svr.Router.RegisterRoute(http.MethodDelete, "/api/project", svc.apiDeleteProjectHandler())
+
 	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetRolePoliciesHandler())
@@ -103,3 +110,11 @@ func (svc *Gateway) waitGatewayRunning() {
 		fmt.Println("TEST WAIT GATEWAY RUNNING")
 	}
 }
+
+// {
+// 	"policy": {
+// 		"effect": "Allow",
+// 		"target": "roles",
+// 		"action": "CREATE"
+// 	}
+// }

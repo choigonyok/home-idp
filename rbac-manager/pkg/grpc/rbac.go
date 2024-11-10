@@ -413,7 +413,7 @@ func (svr *RbacServiceServer) UpdateUserRole(ctx context.Context, in *pb.UpdateU
 		}, nil
 	}
 
-	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
+	if !svr.CheckPolicy(in.GetUid(), "users", "UPDATE") {
 		return &pb.UpdateUserRoleReply{
 			Error: &pb.Error{
 				StatusCode: 403,
@@ -444,6 +444,252 @@ func (svr *RbacServiceServer) UpdateUserRole(ctx context.Context, in *pb.UpdateU
 	}, nil
 }
 
+func (svr *RbacServiceServer) DeletePolicy(ctx context.Context, in *pb.DeletePolicyRequest) (*pb.DeletePolicyReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.DeletePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "policies", "DELETE") {
+		return &pb.DeletePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	policyId := in.GetPolicyId()
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM policies WHERE id = '` + policyId + `'`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeletePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.DeletePolicyReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
+func (svr *RbacServiceServer) DeleteRole(ctx context.Context, in *pb.DeleteRoleRequest) (*pb.DeleteRoleReply, error) {
+	uid := in.GetUid()
+	if svr.CheckApplicant(uid) {
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(uid, "roles", "DELETE") {
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	roleId := in.GetRoleId()
+
+	r := svr.StorageClient.DB().QueryRow(`SELECT id FROM roles WHERE name = 'applicant'`)
+	applicantRoleId := ""
+	r.Scan(&applicantRoleId)
+
+	if _, err := svr.StorageClient.DB().Exec(`UPDATE users SET role_id = '` + applicantRoleId + `' WHERE id = ` + strconv.FormatFloat(uid, 'e', -1, 64)); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM rolepolicymapping WHERE role_id = '` + roleId + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM roles WHERE id = '` + roleId + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.DeleteRoleReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
+func (svr *RbacServiceServer) DeleteProject(ctx context.Context, in *pb.DeleteProjectRequest) (*pb.DeleteProjectReply, error) {
+	uid := in.GetUid()
+	if svr.CheckApplicant(uid) {
+		return &pb.DeleteProjectReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(uid, "projects", "DELETE") {
+		return &pb.DeleteProjectReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	projectId := in.GetProjectId()
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM userprojectmapping WHERE project_id = '` + projectId + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteProjectReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM projects WHERE id = '` + projectId + `')`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteProjectReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.DeleteProjectReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
+func (svr *RbacServiceServer) DeleteUser(ctx context.Context, in *pb.DeleteUserRequest) (*pb.DeleteUserReply, error) {
+	uid := in.GetUid()
+	if svr.CheckApplicant(uid) {
+		return &pb.DeleteUserReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(uid, "users", "DELETE") {
+		return &pb.DeleteUserReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	userId := in.GetUserId()
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM userprojectmapping WHERE user_id = ` + strconv.FormatFloat(userId, 'e', -1, 64) + `)`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteUserReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM users WHERE id = ` + strconv.FormatFloat(userId, 'e', -1, 64) + `)`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.DeleteUserReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.DeleteUserReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
+func (svr *RbacServiceServer) UpdatePolicy(ctx context.Context, in *pb.UpdatePolicyRequest) (*pb.UpdatePolicyReply, error) {
+	uid := in.GetUid()
+	if svr.CheckApplicant(uid) {
+
+		return &pb.UpdatePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "Your signing up request still waiting administrator's approval",
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(uid, "policies", "UPDATE") {
+		return &pb.UpdatePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	id := in.GetPolicy().GetId()
+	name := in.GetPolicy().GetName()
+	json := in.GetPolicy().GetJson()
+
+	if _, err := svr.StorageClient.DB().Exec(`UPDATE policies SET name = '` + name + `', policy = '` + json + `' WHERE id = '` + id + `'`); err != nil {
+		fmt.Println("ERR CREATING NEW ROLE :", err)
+		return &pb.UpdatePolicyReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	return &pb.UpdatePolicyReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
 func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*pb.PostRoleReply, error) {
 	if svr.CheckApplicant(in.GetUid()) {
 		return &pb.PostRoleReply{
@@ -454,7 +700,7 @@ func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleReque
 		}, nil
 	}
 
-	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
+	if !svr.CheckPolicy(in.GetUid(), "role", "CREATE") {
 		return &pb.PostRoleReply{
 			Error: &pb.Error{
 				StatusCode: 403,
