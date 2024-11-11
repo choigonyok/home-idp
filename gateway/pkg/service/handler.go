@@ -66,8 +66,9 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 
 		fmt.Println("harbor webhook: ", string(b))
 
-		project := util.ParseInterfaceMap(m, []string{"event_data", "repository", "name"}).(string)
-		if strings.Contains(project, "cache") {
+		fullname := util.ParseInterfaceMap(m, []string{"event_data", "repository", "repo_full_name"}).(string)
+		project, afterProject, _ := strings.Cut(fullname, "/")
+		if strings.Contains(afterProject, "cache") {
 			return
 		}
 

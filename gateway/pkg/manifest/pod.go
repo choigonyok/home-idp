@@ -85,7 +85,7 @@ func GetPodManifest(name, namespace, image string, port int, e []*model.EnvVar, 
 			Containers: []corev1.Container{
 				{
 					Name:  name,
-					Image: harborHost + "/library/" + image,
+					Image: harborHost + "/" + namespace + "/" + image,
 					Ports: []corev1.ContainerPort{
 						{
 							ContainerPort: int32(port),
