@@ -635,12 +635,9 @@ func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
 		json.Unmarshal(b, &role)
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
-			Role: &rbacPb.Role{
-				Name: role.Role.Name,
-			},
-			Policies: role.GetPolicies(),
-			Uid:      float64(uid),
+		_, err := c.UpdateRole(context.TODO(), &rbacPb.UpdateRoleRequest{
+			Uid:  float64(uid),
+			Role: &role,
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING NEW ROLE :", err)

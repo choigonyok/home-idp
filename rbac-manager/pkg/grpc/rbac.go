@@ -158,7 +158,7 @@ func (svr *RbacServiceServer) UpdateRole(ctx context.Context, in *pb.UpdateRoleR
 	}
 
 	for index, _ := range in.GetRole().GetPolicies() {
-		_, err = svr.StorageClient.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + in.GetRole().GetRole().GetId() + `', '` + in.GetRole().GetPolicies()[index].Id + `') WHERE role_id = '` + in.GetRole().GetRole().GetId() + `'`)
+		_, err = svr.StorageClient.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + in.GetRole().GetRole().GetId() + `', '` + in.GetRole().GetPolicies()[index].Id + `')`)
 		if err != nil {
 			fmt.Println("TEST 2 ERR:", err)
 			return nil, err
@@ -556,7 +556,38 @@ func (svr *RbacServiceServer) DeleteRole(ctx context.Context, in *pb.DeleteRoleR
 	applicantRoleId := ""
 	r.Scan(&applicantRoleId)
 
-	if _, err := svr.StorageClient.DB().Exec(`UPDATE users SET role_id = '` + applicantRoleId + `' WHERE id = ` + strconv.FormatFloat(uid, 'e', -1, 64)); err != nil {
+	row, err := svr.StorageClient.DB().Query(`SELECT id FROM users WHERE role_id = '` + in.GetRoleId() + `'`)
+	if err != nil {
+		return &pb.DeleteRoleReply{
+			Error: &pb.Error{
+				StatusCode: 500,
+				Message:    err.Error(),
+			},
+		}, err
+	}
+
+	ids := []string{}
+	for row.Next() {
+		id := ""
+		row.Scan(&id)
+		ids = append(ids, id)
+	}
+
+	if len(ids) != 0 {
+		query := fmt.Sprintf(`UPDATE users SET role_id = '`+applicantRoleId+`' WHERE id IN (%s)`+strconv.FormatFloat(uid, 'e', -1, 64), strings.Join(ids, ","))
+
+		if _, err := svr.StorageClient.DB().Exec(query); err != nil {
+			fmt.Println("ERR CREATING NEW ROLE :", err)
+			return &pb.DeleteRoleReply{
+				Error: &pb.Error{
+					StatusCode: 500,
+					Message:    err.Error(),
+				},
+			}, err
+		}
+	}
+
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM rolepolicymapping WHERE role_id = '` + roleId + `'`); err != nil {
 		fmt.Println("ERR CREATING NEW ROLE :", err)
 		return &pb.DeleteRoleReply{
 			Error: &pb.Error{
@@ -566,17 +597,7 @@ func (svr *RbacServiceServer) DeleteRole(ctx context.Context, in *pb.DeleteRoleR
 		}, err
 	}
 
-	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM rolepolicymapping WHERE role_id = '` + roleId + `')`); err != nil {
-		fmt.Println("ERR CREATING NEW ROLE :", err)
-		return &pb.DeleteRoleReply{
-			Error: &pb.Error{
-				StatusCode: 500,
-				Message:    err.Error(),
-			},
-		}, err
-	}
-
-	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM roles WHERE id = '` + roleId + `')`); err != nil {
+	if _, err := svr.StorageClient.DB().Exec(`DELETE FROM roles WHERE id = '` + roleId + `'`); err != nil {
 		fmt.Println("ERR CREATING NEW ROLE :", err)
 		return &pb.DeleteRoleReply{
 			Error: &pb.Error{

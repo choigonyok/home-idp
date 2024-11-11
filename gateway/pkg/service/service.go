@@ -60,6 +60,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/users", svc.apiGetUsersInProjectHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/role", svc.apiGetRoleHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/dockerfiles", svc.apiGetDockerfilesHandler())
+	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}", svc.apiPutUserHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/dockerfile", svc.apiPostDockerfileHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
