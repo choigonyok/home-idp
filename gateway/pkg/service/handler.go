@@ -615,6 +615,43 @@ func (svc *Gateway) apiUpdateUserRoleHandler() http.HandlerFunc {
 	}
 }
 
+func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		switch withJWTAuth(r) {
+		case 401:
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		case 200:
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		uid, _ := getToken(r)
+
+		role := rbacPb.RolePolicy{}
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &role)
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
+			Role: &rbacPb.Role{
+				Name: role.Role.Name,
+			},
+			Policies: role.GetPolicies(),
+			Uid:      float64(uid),
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
 func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -799,14 +836,13 @@ func (svc *Gateway) apiDeleteRoleHandler() http.HandlerFunc {
 
 		uid, _ := getToken(r)
 
-		id := ""
-		b, _ := io.ReadAll(r.Body)
-		json.Unmarshal(b, &id)
+		vars := mux.Vars(r)
+		roleId := vars["roleId"]
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.DeleteRole(context.TODO(), &rbacPb.DeleteRoleRequest{
 			Uid:    float64(uid),
-			RoleId: id,
+			RoleId: roleId,
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING NEW ROLE :", err)

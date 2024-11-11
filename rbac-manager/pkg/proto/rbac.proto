@@ -8,15 +8,18 @@ import "google/protobuf/empty.proto";
 option go_package = "./";
 
 service RbacService {
-  rpc Check (RbacRequest) returns (RbacReply) {}
+  rpc DeleteRole (DeleteRoleRequest) returns (DeleteRoleReply) {}
   rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc PostRole (PostRoleRequest) returns (PostRoleReply) {}
+  rpc UpdateRole (UpdateRoleRequest) returns (UpdateRoleReply) {}
+  
+  
+  rpc Check (RbacRequest) returns (RbacReply) {}
   
   rpc PostPolicy (PostPolicyRequest) returns (google.protobuf.Empty) {}
   
   rpc DeletePolicy (DeletePolicyRequest) returns (DeletePolicyReply) {}
-  rpc DeleteRole (DeleteRoleRequest) returns (DeleteRoleReply) {}
   rpc DeleteProject (DeleteProjectRequest) returns (DeleteProjectReply) {}
   rpc DeleteUser (DeleteUserRequest) returns (DeleteUserReply) {}
 
@@ -306,3 +309,21 @@ message UpdatePolicyReply {
   Error error = 1;
 }
 
+message UpdateRoleRequest {
+  double uid = 1;
+  RolePolicy role = 2;
+}
+message UpdateRoleReply {
+  Error error = 1;
+}
+
+
+
+
+// {
+//   "policy": {
+//     "effect": "Allow",
+//     "target": "roles",
+//     "action": "CREATE",
+//   }
+// }

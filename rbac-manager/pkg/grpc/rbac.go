@@ -132,6 +132,53 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesReque
 	}, nil
 }
 
+func (svr *RbacServiceServer) UpdateRole(ctx context.Context, in *pb.UpdateRoleRequest) (*pb.UpdateRoleReply, error) {
+	if svr.CheckApplicant(in.GetUid()) {
+		return &pb.UpdateRoleReply{
+			Error: &pb.Error{
+				Message:    "Your signing up request still waiting administrator's approval",
+				StatusCode: 403,
+			},
+		}, nil
+	}
+
+	if !svr.CheckPolicy(in.GetUid(), "roles", "UPDATE") {
+		return &pb.UpdateRoleReply{
+			Error: &pb.Error{
+				StatusCode: 403,
+				Message:    "You do not have permission to access this page. Please contact to your administrator.",
+			},
+		}, nil
+	}
+
+	_, err := svr.StorageClient.DB().Exec(`DELETE FROM rolepolicymapping WHERE role_id = '` + in.GetRole().GetRole().GetId() + `'`)
+	if err != nil {
+		fmt.Println("TEST 1 ERR:", err)
+		return nil, err
+	}
+
+	for index, _ := range in.GetRole().GetPolicies() {
+		_, err = svr.StorageClient.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + in.GetRole().GetRole().GetId() + `', '` + in.GetRole().GetPolicies()[index].Id + `') WHERE role_id = '` + in.GetRole().GetRole().GetId() + `'`)
+		if err != nil {
+			fmt.Println("TEST 2 ERR:", err)
+			return nil, err
+		}
+	}
+
+	_, err = svr.StorageClient.DB().Exec(`UPDATE roles SET name = '` + in.GetRole().GetRole().GetName() + `' WHERE id = '` + in.GetRole().GetRole().GetId() + `'`)
+	if err != nil {
+		fmt.Println("TEST 3 ERR:", err)
+		return nil, err
+	}
+
+	return &pb.UpdateRoleReply{
+		Error: &pb.Error{
+			StatusCode: 200,
+			Message:    "",
+		},
+	}, nil
+}
+
 func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPoliciesRequest) (*pb.GetPoliciesReply, error) {
 	if svr.CheckApplicant(in.GetUid()) {
 		return &pb.GetPoliciesReply{

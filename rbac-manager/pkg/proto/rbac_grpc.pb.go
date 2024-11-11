@@ -23,13 +23,14 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RbacServiceClient interface {
-	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
+	DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*DeleteRoleReply, error)
 	GetRoles(ctx context.Context, in *GetRolesRequest, opts ...grpc.CallOption) (*GetRolesReply, error)
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*PostRoleReply, error)
+	UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleReply, error)
+	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
 	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeletePolicy(ctx context.Context, in *DeletePolicyRequest, opts ...grpc.CallOption) (*DeletePolicyReply, error)
-	DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*DeleteRoleReply, error)
 	DeleteProject(ctx context.Context, in *DeleteProjectRequest, opts ...grpc.CallOption) (*DeleteProjectReply, error)
 	DeleteUser(ctx context.Context, in *DeleteUserRequest, opts ...grpc.CallOption) (*DeleteUserReply, error)
 	GetPolicy(ctx context.Context, in *GetPolicyRequest, opts ...grpc.CallOption) (*GetPolicyReply, error)
@@ -58,9 +59,9 @@ func NewRbacServiceClient(cc grpc.ClientConnInterface) RbacServiceClient {
 	return &rbacServiceClient{cc}
 }
 
-func (c *rbacServiceClient) Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error) {
-	out := new(RbacReply)
-	err := c.cc.Invoke(ctx, "/proto.RbacService/Check", in, out, opts...)
+func (c *rbacServiceClient) DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*DeleteRoleReply, error) {
+	out := new(DeleteRoleReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/DeleteRole", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -94,6 +95,24 @@ func (c *rbacServiceClient) PostRole(ctx context.Context, in *PostRoleRequest, o
 	return out, nil
 }
 
+func (c *rbacServiceClient) UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleReply, error) {
+	out := new(UpdateRoleReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/UpdateRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error) {
+	out := new(RbacReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/Check", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *rbacServiceClient) PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
 	out := new(emptypb.Empty)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/PostPolicy", in, out, opts...)
@@ -106,15 +125,6 @@ func (c *rbacServiceClient) PostPolicy(ctx context.Context, in *PostPolicyReques
 func (c *rbacServiceClient) DeletePolicy(ctx context.Context, in *DeletePolicyRequest, opts ...grpc.CallOption) (*DeletePolicyReply, error) {
 	out := new(DeletePolicyReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/DeletePolicy", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *rbacServiceClient) DeleteRole(ctx context.Context, in *DeleteRoleRequest, opts ...grpc.CallOption) (*DeleteRoleReply, error) {
-	out := new(DeleteRoleReply)
-	err := c.cc.Invoke(ctx, "/proto.RbacService/DeleteRole", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -287,13 +297,14 @@ func (c *rbacServiceClient) GetTraceIdByDockerfileId(ctx context.Context, in *Ge
 // All implementations must embed UnimplementedRbacServiceServer
 // for forward compatibility
 type RbacServiceServer interface {
-	Check(context.Context, *RbacRequest) (*RbacReply, error)
+	DeleteRole(context.Context, *DeleteRoleRequest) (*DeleteRoleReply, error)
 	GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error)
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	PostRole(context.Context, *PostRoleRequest) (*PostRoleReply, error)
+	UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleReply, error)
+	Check(context.Context, *RbacRequest) (*RbacReply, error)
 	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
 	DeletePolicy(context.Context, *DeletePolicyRequest) (*DeletePolicyReply, error)
-	DeleteRole(context.Context, *DeleteRoleRequest) (*DeleteRoleReply, error)
 	DeleteProject(context.Context, *DeleteProjectRequest) (*DeleteProjectReply, error)
 	DeleteUser(context.Context, *DeleteUserRequest) (*DeleteUserReply, error)
 	GetPolicy(context.Context, *GetPolicyRequest) (*GetPolicyReply, error)
@@ -319,8 +330,8 @@ type RbacServiceServer interface {
 type UnimplementedRbacServiceServer struct {
 }
 
-func (UnimplementedRbacServiceServer) Check(context.Context, *RbacRequest) (*RbacReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+func (UnimplementedRbacServiceServer) DeleteRole(context.Context, *DeleteRoleRequest) (*DeleteRoleReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeleteRole not implemented")
 }
 func (UnimplementedRbacServiceServer) GetRoles(context.Context, *GetRolesRequest) (*GetRolesReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetRoles not implemented")
@@ -331,14 +342,17 @@ func (UnimplementedRbacServiceServer) GetRole(context.Context, *GetRoleRequest) 
 func (UnimplementedRbacServiceServer) PostRole(context.Context, *PostRoleRequest) (*PostRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostRole not implemented")
 }
+func (UnimplementedRbacServiceServer) UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateRole not implemented")
+}
+func (UnimplementedRbacServiceServer) Check(context.Context, *RbacRequest) (*RbacReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
+}
 func (UnimplementedRbacServiceServer) PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PostPolicy not implemented")
 }
 func (UnimplementedRbacServiceServer) DeletePolicy(context.Context, *DeletePolicyRequest) (*DeletePolicyReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeletePolicy not implemented")
-}
-func (UnimplementedRbacServiceServer) DeleteRole(context.Context, *DeleteRoleRequest) (*DeleteRoleReply, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DeleteRole not implemented")
 }
 func (UnimplementedRbacServiceServer) DeleteProject(context.Context, *DeleteProjectRequest) (*DeleteProjectReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteProject not implemented")
@@ -407,20 +421,20 @@ func RegisterRbacServiceServer(s grpc.ServiceRegistrar, srv RbacServiceServer) {
 	s.RegisterService(&RbacService_ServiceDesc, srv)
 }
 
-func _RbacService_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(RbacRequest)
+func _RbacService_DeleteRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRoleRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(RbacServiceServer).Check(ctx, in)
+		return srv.(RbacServiceServer).DeleteRole(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/proto.RbacService/Check",
+		FullMethod: "/proto.RbacService/DeleteRole",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).Check(ctx, req.(*RbacRequest))
+		return srv.(RbacServiceServer).DeleteRole(ctx, req.(*DeleteRoleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -479,6 +493,42 @@ func _RbacService_PostRole_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RbacService_UpdateRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).UpdateRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/UpdateRole",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).UpdateRole(ctx, req.(*UpdateRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_Check_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RbacRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).Check(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/Check",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).Check(ctx, req.(*RbacRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _RbacService_PostPolicy_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PostPolicyRequest)
 	if err := dec(in); err != nil {
@@ -511,24 +561,6 @@ func _RbacService_DeletePolicy_Handler(srv interface{}, ctx context.Context, dec
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RbacServiceServer).DeletePolicy(ctx, req.(*DeletePolicyRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _RbacService_DeleteRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(DeleteRoleRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(RbacServiceServer).DeleteRole(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/proto.RbacService/DeleteRole",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(RbacServiceServer).DeleteRole(ctx, req.(*DeleteRoleRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -865,8 +897,8 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*RbacServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Check",
-			Handler:    _RbacService_Check_Handler,
+			MethodName: "DeleteRole",
+			Handler:    _RbacService_DeleteRole_Handler,
 		},
 		{
 			MethodName: "GetRoles",
@@ -881,16 +913,20 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _RbacService_PostRole_Handler,
 		},
 		{
+			MethodName: "UpdateRole",
+			Handler:    _RbacService_UpdateRole_Handler,
+		},
+		{
+			MethodName: "Check",
+			Handler:    _RbacService_Check_Handler,
+		},
+		{
 			MethodName: "PostPolicy",
 			Handler:    _RbacService_PostPolicy_Handler,
 		},
 		{
 			MethodName: "DeletePolicy",
 			Handler:    _RbacService_DeletePolicy_Handler,
-		},
-		{
-			MethodName: "DeleteRole",
-			Handler:    _RbacService_DeleteRole_Handler,
 		},
 		{
 			MethodName: "DeleteProject",
