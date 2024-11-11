@@ -66,8 +66,8 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 
 		fmt.Println("harbor webhook: ", string(b))
 
-		repoName := util.ParseInterfaceMap(m, []string{"event_data", "repository", "name"}).(string)
-		if strings.Contains(repoName, "cache") {
+		project := util.ParseInterfaceMap(m, []string{"event_data", "repository", "name"}).(string)
+		if strings.Contains(project, "cache") {
 			return
 		}
 
@@ -104,7 +104,7 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		envVars := EnvMap[resp.GetTraceId()]
 		files := FileMap[resp.GetTraceId()]
 
-		gitResp, err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, testUserEmail, name, version, 80, envVars, files)
+		gitResp, err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, project, testUserEmail, name, version, 80, envVars, files)
 		if gitResp.StatusCode == 422 {
 
 		}
@@ -221,8 +221,13 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 			fmt.Println("TEST WEBHOOK TYPE:", t)
 			switch t {
 			case "docker":
-				name, version := getImageNameAndVersionFromCommit(event)
+				name, version, project := getImageNameAndVersionFromCommit(event)
 				c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+
+				fmt.Println("[NAME]", name)
+				fmt.Println("[VERSION]", version)
+				fmt.Println("[PROJECT]", project)
+
 				resp, err := c.GetTraceId(context.TODO(), &rbacPb.GetTraceIdRequest{
 					ImageName:    name,
 					ImageVersion: version,
@@ -232,18 +237,25 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
-				RootSpan := RootSpans[resp.GetTraceId()]
+				fmt.Println(resp.GetTraceId())
+				fmt.Println(resp.GetTraceId())
+				fmt.Println(resp.GetTraceId())
+				rootSpan := RootSpans[resp.GetTraceId()]
 				repo := resp.GetRepository()
 
-				imageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
+				fmt.Println("[TEST ROOT SPAN TRACE ID]:", rootSpan.TraceID)
+				fmt.Println("[TEST ROOT SPAN SPAN ID]:", rootSpan.SpanID)
 
-				err = imageSpan.Start(RootSpan.Context)
+				imageSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(rootSpan.Context)
+
+				fmt.Println("[IMAGE SPAN ID]", imageSpan.SpanID)
+				err = imageSpan.Start(rootSpan.Context)
 				if err != nil {
 					fmt.Println("IMAGE SPAN START ERR:", err)
 				}
 				username := getUserFromCommit(event)
 				Spans[imageSpan.TraceID] = imageSpan
-				svc.requestBuildDockerfile(imageSpan, name, version, username, repo)
+				svc.requestBuildDockerfile(imageSpan, name, version, username, repo, project)
 
 			case "cd":
 				path := getFilepathFromCommit(event)
@@ -370,14 +382,20 @@ func getFilename(e *github.PushEvent) string {
 	}
 }
 
-func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string) {
+func getImageNameAndVersionFromCommit(e *github.PushEvent) (string, string, string) {
 	pushPath := e.Commits[0].Added[0]
 	fmt.Println("TEST PUSH PATH:", pushPath)
-	re := regexp.MustCompile(`^docker/[^/]+/Dockerfile.`)
-	img := re.ReplaceAllString(pushPath, "")
-	fmt.Println("TEST IMG:", img)
+	re := regexp.MustCompile(`^docker/`)
+	path := re.ReplaceAllString(pushPath, "")
+	fmt.Println("[test path]:", path)
+	s := strings.Split(path, "/")
+	project := s[0]
+	fmt.Println("[test project]:", project)
+	username := s[1]
+	fmt.Println("[test username]:", username)
+	img, _ := strings.CutPrefix(s[2], "Dockerfile.")
 	name, version, _ := strings.Cut(img, ":")
-	return name, version
+	return name, version, project
 }
 
 func getUserFromCommit(e *github.PushEvent) string {
@@ -385,6 +403,7 @@ func getUserFromCommit(e *github.PushEvent) string {
 	fmt.Println("TEST PUSH PATH:", pushPath)
 
 	_, pathWithoutType, _ := strings.Cut(pushPath, "/")
+	_, pathWithoutType, _ = strings.Cut(pathWithoutType, "/")
 
 	username, _, _ := strings.Cut(pathWithoutType, "/")
 	return username
@@ -429,7 +448,7 @@ func (svc *Gateway) requestDeploy(filepath string) {
 // 	}
 // }
 
-func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, username, repo string) {
+func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, username, repo, project string) {
 	c := deployPb.NewBuildClient(svc.ClientSet.DeployGrpcClient.GetConnection())
 	reply, err := c.BuildDockerfile(span.Context, &deployPb.BuildDockerfileRequest{
 		Img: &deployPb.Image{
@@ -438,6 +457,7 @@ func (svc *Gateway) requestBuildDockerfile(span *trace.Span1, name, version, use
 			Version:    version,
 			Repository: repo,
 		},
+		Project: project,
 	})
 	if err != nil {
 		fmt.Println("TEST BUILD DOCKERFILE REQUEST ERR:", err)
@@ -537,7 +557,7 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
+func (svc *Gateway) createProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
@@ -551,12 +571,21 @@ func (svc *Gateway) apiPostProjectHandler() http.HandlerFunc {
 		}
 
 		uid, _ := getToken(r)
-
 		b, _ := io.ReadAll(r.Body)
-
 		p := rbacPb.Project{}
-
 		json.Unmarshal(b, &p)
+
+		if err := svc.ClientSet.HttpClient.CreateHarborProject(p.Name); err != nil {
+			fmt.Println("[ERROR] CREATE HARBOR PROJECT:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err := svc.ClientSet.HttpClient.CreateHarborWebhook(p.Name); err != nil {
+			fmt.Println("[ERROR] CREATE HARBOR WEBHOOK:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
@@ -649,7 +678,7 @@ func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostRoleHandler() http.HandlerFunc {
+func (svc *Gateway) createRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
@@ -713,7 +742,7 @@ func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostPolicyHandler() http.HandlerFunc {
+func (svc *Gateway) createPolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		b, _ := io.ReadAll(r.Body)
@@ -1043,6 +1072,8 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
+		vars := mux.Vars(r)
+		projectName := vars["projectName"]
 
 		b, _ := io.ReadAll(r.Body)
 		d := struct {
@@ -1061,15 +1092,15 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 
 		EnvMap[d.TraceId] = d.EnvVars
 		FileMap[d.TraceId] = d.Files
-		RootSpan := svc.ClientSet.TraceClient.NewTrace(d.TraceId)
+		rootSpan := svc.ClientSet.TraceClient.NewTrace(d.TraceId)
 
-		err := RootSpan.Start(context.Background())
+		err := rootSpan.Start(context.Background())
 		if err != nil {
 			fmt.Println("ROOT SPAN START ERR:", err)
 		}
 
-		postDockerfileSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(RootSpan.Context)
-		err = postDockerfileSpan.Start(RootSpan.Context)
+		postDockerfileSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(rootSpan.Context)
+		err = postDockerfileSpan.Start(rootSpan.Context)
 		if err != nil {
 			fmt.Println("POST DOCKERFILE SPAN START ERR:", err)
 		}
@@ -1101,13 +1132,13 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 			return
 		}
 
-		RootSpans[RootSpan.TraceID] = RootSpan
+		RootSpans[rootSpan.TraceID] = rootSpan
 
 		if svc.ClientSet.GitClient.IsDockerfileExist(d.ImageName) {
-			svc.ClientSet.GitClient.UpdateDockerFile(testUserName, d.ImageName+":"+d.ImageVersion, d.Content)
+			svc.ClientSet.GitClient.UpdateDockerFile(testUserName, projectName, d.ImageName+":"+d.ImageVersion, d.Content)
 			return
 		} else {
-			svc.ClientSet.GitClient.CreateDockerFile(testUserName, d.ImageName+":"+d.ImageVersion, d.Content)
+			svc.ClientSet.GitClient.CreateDockerFile(testUserName, projectName, d.ImageName+":"+d.ImageVersion, d.Content)
 		}
 
 		err = gitPushSpan.Stop()
@@ -1148,7 +1179,7 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetRoleListHandler() http.HandlerFunc {
+func (svc *Gateway) getRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
@@ -1217,7 +1248,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
+func (svc *Gateway) getUserListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
@@ -1254,7 +1285,7 @@ func (svc *Gateway) apiGetUserListHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetProjectListHandler() http.HandlerFunc {
+func (svc *Gateway) getProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		switch withJWTAuth(r) {
@@ -1487,7 +1518,7 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetPoliciyListHandler() http.HandlerFunc {
+func (svc *Gateway) getPoliciyListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
@@ -1573,15 +1604,15 @@ func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		username := r.URL.Query().Get("username")
-		_, err := svc.ClientSet.GitClient.CreatePodManifestFile(username, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
-		fmt.Println(err)
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-	}
-}
+// func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
+// 	return func(w http.ResponseWriter, r *http.Request) {
+// 		username := r.URL.Query().Get("username")
+// 		_, err := svc.ClientSet.GitClient.CreatePodManifestFile(username, namespace, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
+// 		fmt.Println(err)
+// 		w.Header().Set("Access-Control-Allow-Headers", "*")
+// 		w.Header().Set("Access-Control-Allow-Origin", "*")
+// 	}
+// }
 
 func (svc *Gateway) SignHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

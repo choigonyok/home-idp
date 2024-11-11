@@ -123,8 +123,4 @@ func (svc *InstallManager) installHarbor() {
 		}
 		time.Sleep(time.Second * 1)
 	}
-
-	if err := svc.ClientSet.HttpClient.CreateHarborWebhook(); err != nil {
-		fmt.Println("TEST HARBOR WEBHOOK CREATE ERR:", err)
-	}
 }

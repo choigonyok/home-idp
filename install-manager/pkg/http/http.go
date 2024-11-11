@@ -23,45 +23,6 @@ func parseHttpClientFromInterface(i interface{}) *http.HttpClient {
 	return client
 }
 
-func (c *InstallManagerHttpClient) CreateHarborWebhook() error {
-	host := env.Get("HOME_IDP_API_HOST") + ":" + env.Get("HOME_IDP_API_PORT")
-	data := map[string]interface{}{
-		"name": "HARBOR_WEBHOOK",
-		"targets": []map[string]interface{}{
-			{
-				"type":             "http",
-				"address":          "http://" + host + "/webhooks/harbor",
-				"skip_cert_verify": true,
-			},
-		},
-		"event_types": []string{
-			"PUSH_ARTIFACT",
-		},
-		"enabled": true,
-	}
-
-	r := http.NewRequest(http.Post, "http://"+env.Get("HOME_IDP_HARBOR_HOST")+":8080/api/v2.0/projects/library/webhook/policies", data)
-	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
-	r.SetHeader("Content-Type", "application/json")
-
-	resp, err := c.Client.Request(r)
-	if err != nil {
-		fmt.Println("TEST HTTP REQUEST ERR:", err)
-		return err
-	}
-	defer resp.Body.Close()
-
-	body, err := io.ReadAll(resp.Body)
-
-	if err != nil {
-		fmt.Println("TEST READ HARBOR WEBHOOK ERR:", err)
-		return err
-	}
-	fmt.Println("TEST HARBOR WEBHOOK CREATE RESPONSE:", string(body))
-
-	return nil
-}
-
 func (c *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
 	r := http.NewRequest(http.Get, "http://"+env.Get("HOME_IDP_HARBOR_HOST")+":8080/api/v2.0/health", nil)
 	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))

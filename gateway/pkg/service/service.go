@@ -33,14 +33,15 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/webhooks/github", svc.GithubWebhookHandler())
 	svr.Router.RegisterRoutePrefix(http.MethodOptions, "/", svc.ApiOptionsHandler())
 
-	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.apiGetProjectListHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.apiGetRoleListHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.apiGetPoliciyListHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.apiGetUserListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.getProjectListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.getRoleListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.getPoliciyListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.getUserListHandler())
 
-	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.apiPostPolicyHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.apiPostProjectHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.apiPostRoleHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.createPolicyHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.createProjectHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.createRoleHandler())
+
 	svr.Router.RegisterRoute(http.MethodPut, "/api/roles/{roleId}", svc.apiUpdateRoleHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/roles/{roleId}", svc.apiDeleteRoleHandler())
 	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}/role", svc.apiUpdateUserRoleHandler())
@@ -62,7 +63,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users/{userName}/dockerfiles", svc.apiGetDockerfilesHandler())
 	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}", svc.apiPutUserHandler())
 
-	svr.Router.RegisterRoute(http.MethodPost, "/api/dockerfile", svc.apiPostDockerfileHandler())
+	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/dockerfile", svc.apiPostDockerfileHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
@@ -72,7 +73,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/configmap", svc.apiPostConfigmapHandler())
 
-	svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
+	// svr.Router.RegisterRoute(http.MethodPost, "/api/manifest", svc.apiPostManifestHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources", svc.apiGetResourcesHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/resources/configmaps/{configmapName}", svc.apiGetConfigmapHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/projects/{projectName}/resources/{resourceName}", svc.apiDeleteResourcesHandler())
