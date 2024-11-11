@@ -18,6 +18,7 @@ message Image {
 
 message BuildDockerfileRequest {
   Image img = 1;
+  string project = 2;
 }
 
 message BuildDockerfileReply {

@@ -53,11 +53,11 @@ func (c *GitClient) CreateGitWebhook(url string) error {
 	return nil
 }
 
-func (c *GitClient) CreateFile(file GitFile) error {
+func (c *GitClient) CreateFile(file GitFile, project string) error {
 	fmt.Println("TEST START CREATE FILE!")
 	fmt.Println("TEST START CREATE FILE!")
 	fmt.Println("TEST START CREATE FILE!")
-	_, resp, err := c.Client.Repositories.CreateFile(context.TODO(), env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_REPO"), file.getType()+"/"+file.getUsername()+"/"+file.getFilename(), &github.RepositoryContentFileOptions{
+	_, resp, err := c.Client.Repositories.CreateFile(context.TODO(), env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_REPO"), file.getType()+"/"+project+"/"+file.getUsername()+"/"+file.getFilename(), &github.RepositoryContentFileOptions{
 		Message: github.String("create(" + file.getType() + "): " + file.getFilename() + " by " + file.getUsername()),
 		Content: []byte(file.getContent()),
 	})

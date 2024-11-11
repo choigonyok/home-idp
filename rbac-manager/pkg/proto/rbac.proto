@@ -240,6 +240,7 @@ message GetDockerfilesReply {
 
 message PostDockerfileRequest {
   Dockerfile dockerfile = 1;
+  string project_id = 2; 
 }
 
 message PostPolicyRequest {

@@ -12,7 +12,7 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
+func GetKanikoJobManifest(img *docker.Image, repo, project string) *batchv1.Job {
 	i := strings.LastIndex(repo, "/")
 	repoName := repo[i+1:]
 	repoNameWithoutDotGit, _, _ := strings.Cut(repoName, ".")
@@ -128,7 +128,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 							Command: []string{
 								"/bin/sh",
 								"-c",
-								"mv /tmp/git/dockerfile/" + env.Get("HOME_IDP_GIT_REPO") + ".git/docker/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version + " /workspace/" + repoNameWithoutDotGit + "/source/Dockerfile." + img.Name + ":" + img.Version,
+								"mv /tmp/git/dockerfile/" + env.Get("HOME_IDP_GIT_REPO") + ".git/docker/" + project + "/" + img.Pusher + "/Dockerfile." + img.Name + ":" + img.Version + " /workspace/" + repoNameWithoutDotGit + "/source/Dockerfile." + img.Name + ":" + img.Version,
 							},
 							VolumeMounts: []corev1.VolumeMount{
 								{
@@ -151,7 +151,7 @@ func GetKanikoJobManifest(img *docker.Image, repo string) *batchv1.Job {
 								"--skip-tls-verify",
 								"--context=dir:///workspace/" + repoNameWithoutDotGit + "/source",
 								"--dockerfile=Dockerfile." + img.Name + ":" + img.Version,
-								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT") + "/library/" + img.Name + ":" + img.Version,
+								"--destination=" + env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT") + "/" + project + "/" + img.Name + ":" + img.Version,
 								"--cache=true",
 							},
 

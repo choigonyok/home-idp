@@ -825,6 +825,11 @@ func (svr *RbacServiceServer) PostDockerfile(ctx context.Context, in *pb.PostDoc
 		fmt.Println(err)
 	}
 
+	r := svr.StorageClient.DB().QueryRow(`SELECT name FROM projects WHERE id = '` + in.GetProjectId() + `'`)
+
+	projectName := ""
+	r.Scan(&projectName)
+
 	err = storeDockerfileSpan.Stop()
 	if err != nil {
 		fmt.Println("TRACE STOP ERR:", err)

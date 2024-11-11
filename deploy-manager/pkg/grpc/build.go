@@ -17,12 +17,13 @@ type BuildServer struct {
 
 func (svr *BuildServer) BuildDockerfile(ctx context.Context, in *pb.BuildDockerfileRequest) (*pb.BuildDockerfileReply, error) {
 	deployKanikoSpan := svr.TraceClient.NewSpanFromIncomingContext(ctx)
+	fmt.Println("[deployKanikoSpan ID]", deployKanikoSpan.SpanID)
 	err := deployKanikoSpan.Start(ctx)
 	if err != nil {
 		fmt.Println("DEPLOY KANIKO SPAN START ERR:", err)
 	}
 
-	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName()+":"+in.Img.GetVersion(), in.Img.GetPusher(), in.Img.GetRepository()); err != nil {
+	if err := svr.KubeClient.ApplyKanikoBuildJob(in.Img.GetName()+":"+in.Img.GetVersion(), in.Img.GetPusher(), in.Img.GetRepository(), in.GetProject()); err != nil {
 		fmt.Println("TEST APPLY KANIKO BUILD MANIFEST ERR:", err)
 		return &pb.BuildDockerfileReply{
 			Succeed: false,

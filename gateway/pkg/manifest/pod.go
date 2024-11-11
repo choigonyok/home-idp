@@ -11,7 +11,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
-func GetPodManifest(name, image string, port int, e []*model.EnvVar, f []*model.File) string {
+func GetPodManifest(name, namespace, image string, port int, e []*model.EnvVar, f []*model.File) string {
 	harborHost := env.Get("HOME_IDP_HARBOR_HOST") + ":" + env.Get("HOME_IDP_HARBOR_PORT")
 	volumes := []corev1.Volume{}
 	mnts := []corev1.VolumeMount{}
@@ -79,7 +79,7 @@ func GetPodManifest(name, image string, port int, e []*model.EnvVar, f []*model.
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
-			Namespace: env.Get("HOME_IDP_NAMESPACE"),
+			Namespace: namespace,
 		},
 		Spec: corev1.PodSpec{
 			Containers: []corev1.Container{

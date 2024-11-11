@@ -53,13 +53,14 @@ func (c *GatewayGitClient) GetRepositoryCloneURL() string {
 	return c.Client.GetRepositoryCloneURL()
 }
 
-func (c *GatewayGitClient) CreateDockerFile(username, image, content string) error {
+func (c *GatewayGitClient) CreateDockerFile(username, project, image, content string) error {
 	return c.Client.CreateFile(
 		&git.GitDockerFile{
 			Username: username,
 			Content:  content,
 			Image:    image,
 		},
+		project,
 	)
 }
 
@@ -120,8 +121,8 @@ func (c *GatewayGitClient) GetDockerFiles(projectName string) []byte {
 	return b
 }
 
-func (c *GatewayGitClient) UpdateDockerFile(username, image, content string) error {
-	files := c.Client.GetFilesByPath("docker/" + username)
+func (c *GatewayGitClient) UpdateDockerFile(username, project, image, content string) error {
+	files := c.Client.GetFilesByPath("docker/" + project + "/" + username)
 	imageName, _, _ := strings.Cut(image, ":")
 
 	m := make(map[git.GitFile]git.GitFile)
@@ -189,22 +190,25 @@ func (c *GatewayGitClient) UpdateManifest(image string) error {
 	return nil
 }
 
-func (c *GatewayGitClient) CreatePodManifestFile(username, email, imageName, imageVersion string, port int, e []*model.EnvVar, f []*model.File) (*github.Response, error) {
-	manifest := manifest.GetPodManifest(imageName+"-"+username, imageName+":"+imageVersion, port, e, f)
+func (c *GatewayGitClient) CreatePodManifestFile(username, namespace, email, imageName, imageVersion string, port int, e []*model.EnvVar, f []*model.File) (*github.Response, error) {
+	manifest := manifest.GetPodManifest(imageName+"-"+username, namespace, imageName+":"+imageVersion, port, e, f)
 	return c.Client.CreateFilesByFiletype(username, email, env.Get("HOME_IDP_NAMESPACE"), "pod-"+imageName+".yaml", []byte(manifest), git.Manifest)
 }
 
 func (c *GatewayGitClient) IsDockerfileExist(imagename string) bool {
-	users := c.Client.GetFilesByPath("docker")
+	projects := c.Client.GetFilesByPath("docker")
 
-	for _, u := range users {
-		files := c.Client.GetFilesByPath("docker/" + u)
-		for _, f := range files {
-			img, _ := strings.CutPrefix(f, "Dockerfile.")
-			imgname, _, _ := strings.Cut(img, ":")
-			fmt.Println("IMGNAMES:", imgname)
-			if imgname == imagename {
-				return true
+	for _, p := range projects {
+		users := c.Client.GetFilesByPath("docker/" + p)
+		for _, u := range users {
+			files := c.Client.GetFilesByPath("docker/" + p + "/" + u)
+			for _, f := range files {
+				img, _ := strings.CutPrefix(f, "Dockerfile.")
+				imgname, _, _ := strings.Cut(img, ":")
+				fmt.Println("IMGNAMES:", imgname)
+				if imgname == imagename {
+					return true
+				}
 			}
 		}
 	}
