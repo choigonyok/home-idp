@@ -9,11 +9,11 @@
 
 | Title         | Content                                 |
 |--------------|--------------------------------------|
-| [Features](##Features) | Main features of Home-IDP                    |
-| [Architecture](##Architecture) | Flow chart of Home-IDP                      |
-| [Installation](##Installation)  | How to install Home-IDP               |
-| [Demo](##Demo) | Demo videos of Home-IDP              |
-| [License](##License) | License of Home-IDP              |
+| [Features](#Features) | Main features of Home-IDP                    |
+| [Architecture](#Architecture) | Flow chart of Home-IDP                      |
+| [Installation](#Installation)  | How to install Home-IDP               |
+| [Demo](#Demo) | Demo videos of Home-IDP              |
+| [License](#License) | License of Home-IDP              |
 
 ## Features
 
