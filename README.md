@@ -18,22 +18,21 @@
 
 ## Installation
 
-You can install home-idp with helm chart or idpctl.
-
-https://github.com/choigonyok/home-idp/releases/latest/download/idpctl-1.0-linux-amd64.tar.gz
-
-```
-tar xzvf idpctl-1.0-linux-amd64.tar.gz
-./idpctl install -f config.yaml
-```
+You can install home-idp with [idpctl](https://github.com/choigonyok/home-idp?tab=readme-ov-file#install-with-idpctl) or [helm chart](https://github.com/choigonyok/home-idp?tab=readme-ov-file#install-with-idpctl).
 
 ### Install with idpctl
 
 idpctl is CLI to install hoem-idp.
 
 1. make kubernetes client to access API server
-2. set CLI root/sub command to install/uninstall/monitor/update idp in cluster
+2. set CLI root/sub commanstall/uninstall/monitor/update idp in cd to inluster
 3. build makefile to make home-idp container image and helm chart
+
+```bash
+wget https://github.com/choigonyok/home-idp/releases/latest/download/idpctl-1.0-linux-amd64.tar.gz
+tar xzvf idpctl-1.0-linux-amd64.tar.gz
+./idpctl install -f config.yaml
+```
 
 ### Install with Helm chart
 
@@ -45,3 +44,4 @@ helm install home-idp -n idp-system choigonyok/home-idp -f values.yaml
 
 ## Demo
 
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/wHIg_MWo9h0/0.jpg)](https://www.youtube.com/watch?v=wHIg_MWo9h0)
