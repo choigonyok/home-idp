@@ -32,6 +32,6 @@ home-idp has 6 services, `ui`, `gateway`, `rbac-manager`, `install-manager`, `de
 
 Each services have plugins to implement their funciton. And plugins are reusable.
 
-![image](https://res.craft.do/user/full/6deb5b3a-d995-5f97-e85b-e7c3c5f9702a/doc/84D7EE07-A44B-40CC-8665-922232CB5FB4/50DE376D-9C8E-43AD-9EFD-E331B9D87ED8_2/0DNN5Mp7RKukLZB6KdQhSdqZFv81FV9nUpBgTvgR2Coz/Image.png)
+![image](https://github.com/user-attachments/assets/fae64e40-054d-4292-b2ce-d9aa0d1f89a0)
 
-![image](https://res.craft.do/user/full/6deb5b3a-d995-5f97-e85b-e7c3c5f9702a/doc/84D7EE07-A44B-40CC-8665-922232CB5FB4/019F1A5E-3F5A-47FE-A6B2-FFF25E06B15D_2/DeCxeirv9MoZvyPm5DEBzUVECf0vNxqS5eNb9VMKjBMz/Image.png)
+![image](https://github.com/user-attachments/assets/20129215-0127-41e0-a3d8-a3a4c5214581)

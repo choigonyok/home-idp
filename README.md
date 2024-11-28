@@ -27,7 +27,7 @@
 
 ## Architecture
 
-You can see about home-idp architecture in [documentation](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-helm-chart.md)
+You can see about home-idp architecture in [documentation](https://github.com/choigonyok/home-idp/tree/main/docs/architecture.md)
 
 ## Getting Start
 
