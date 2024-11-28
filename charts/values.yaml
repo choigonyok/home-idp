@@ -1,0 +1,60 @@
+global:
+  # prefix of every home-idp k8s resource names
+  prefix: home-idp
+  # namespace where home-idp components deployed
+  namespace: idp-system
+  image:
+      # tag needs to be string
+      tag: "1.0"
+
+auth:
+  # home-idp system admin user password
+  adminPassword:
+
+git:
+  # Github username
+  username:
+  email:
+  repository:
+    # Name of centralized repository will be created by home-idp
+    name: test-for-home-idp
+    token:
+  oauth:
+    clientId:
+    clientSecret:
+
+ingress:
+  ui:
+    host: 
+    port: 443
+    tls: true
+    annotations: {}
+  gateway:
+    host: 
+    port: 443
+    tls: true
+    annotations: {}
+  harbor:
+    host: 
+    port: 80
+    tls: false
+    adminPassword:
+
+storage:
+  database: 
+    type: postgresql
+    port: 5432
+    name: home-idp
+    username: tester
+    password: tester1234
+  persistence:
+    storageClass: ceph-block
+    size: 8Gi
+
+replicas:
+  ui: 1
+  deployManager: 1
+  installManager: 1
+  traceManager: 1
+  rbacManager: 1
+  gateway: 1

@@ -1,0 +1,49 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: idp-ingress
+  namespace: {{ .Values.global.namespace }}
+  {{- with .Values.ingress.ui.annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ tpl $value $ | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.ui.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .Values.global.prefix }}-ui
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: idp-api-ingress
+  namespace: {{ .Values.global.namespace }}
+  {{- with .Values.ingress.gateway.annotations }}
+  annotations:
+    {{- range $key, $value := . }}
+    {{ $key }}: {{ tpl $value $ | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: {{ .Values.ingress.gateway.host }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: {{ .Values.global.prefix }}-gateway
+            port:
+              number: 80
+        path: /
+        pathType: Prefix
