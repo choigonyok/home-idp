@@ -24,11 +24,11 @@ Copy token value.
 
 ## Deploy Helm chart
 
-You need to write `override-valeus.yaml` to configure your home-idp. you can find `values.yaml` in [here](https://github.com/choigonyok/home-idp/tree/main/charts/home-idp).
+You need to write `override-valeus.yaml` to configure your home-idp. you can find `values.yaml` in [here](https://github.com/choigonyok/home-idp/tree/main/charts).
 
 ```bash
 kubectl create ns $RELEASE_NAMESPACE
-helm install $RELEASE_NAME -n $RELEASE_NAMESPACE oci://registry.choigonyok.com/library/home-idp --version=1 -f override-values.yaml
+helm install $RELEASE_NAME -n $RELEASE_NAMESPACE oci://registry.choigonyok.com/library/home-idp --version=1.0 -f override-values.yaml
 ```
 
 ## values.yaml

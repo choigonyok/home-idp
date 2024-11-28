@@ -27,11 +27,11 @@
 
 ## Architecture
 
-![FlowChart](https://home-idp-choigonyok.s3.ap-northeast-2.amazonaws.com/1+(1).png)
+You can see about home-idp architecture in [documentation](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-helm-chart.md)
 
 ## Getting Start
 
-You can install home-idp with [idpctl](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-idpctl-cli.md) or [helm chart](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-helm-chart.md).
+You can install home-idp with [helm chart](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-helm-chart.md) or ~~[idpctl](https://github.com/choigonyok/home-idp/tree/main/docs/install-with-idpctl-cli.md)~~.
 
 ## Demo
 
