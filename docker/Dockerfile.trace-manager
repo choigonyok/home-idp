@@ -1,4 +1,4 @@
-FROM achoistic98/base:1.22.5
+FROM --platform=amd64 achoistic98/base:1.22.5
 
 WORKDIR /app
 
