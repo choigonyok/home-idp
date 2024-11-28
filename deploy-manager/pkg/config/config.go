@@ -28,7 +28,14 @@ type DeployManagerServiceConfig struct {
 
 func New() *Config {
 	cfg := &Config{
-		Global: &config.GlobalConfig{},
+		Global: &config.GlobalConfig{
+			Ingress: &config.GlobalConfigIngress{},
+			Git: &config.GlobalConfigGit{
+				Oauth: &config.GlobalConfigGitOauth{},
+			},
+			Harbor: &config.GlobalConfigHarbor{},
+			UI:     &config.GlobalConfigUI{},
+		},
 		Service: &DeployManagerConfig{
 			Service: &DeployManagerServiceConfig{},
 		},

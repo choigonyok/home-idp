@@ -17,7 +17,9 @@ type BuildServer struct {
 
 func (svr *BuildServer) BuildDockerfile(ctx context.Context, in *pb.BuildDockerfileRequest) (*pb.BuildDockerfileReply, error) {
 	deployKanikoSpan := svr.TraceClient.NewSpanFromIncomingContext(ctx)
-	fmt.Println("[deployKanikoSpan ID]", deployKanikoSpan.SpanID)
+	fmt.Println("[deploySpan trace id]:", deployKanikoSpan.TraceID)
+	fmt.Println("[deploySpan span id]:", deployKanikoSpan.SpanID)
+
 	err := deployKanikoSpan.Start(ctx)
 	if err != nil {
 		fmt.Println("DEPLOY KANIKO SPAN START ERR:", err)

@@ -21,22 +21,26 @@ type Config interface {
 	SetEnvVars()
 }
 
+type Storage struct {
+	Persistence *Persistence `yaml:"persistence"`
+	Username    string       `yaml:"username"`
+	Password    string       `yaml:"password"`
+	Database    string       `yaml:"database"`
+}
+
+type Persistence struct {
+	StorageClass string `yaml:"storageClass"`
+	Size         string `yaml:"size"`
+}
+
 type GlobalConfig struct {
 	Namespace     string               `yaml:"namespace,omitempty"`
-	StorageClass  string               `yaml:"storageClass,omitempty"`
-	Git           *GlobalConfigGit     `yaml:"git,omitempty"`
+	Port          int                  `yaml:"port,omitempty"`
 	Ingress       *GlobalConfigIngress `yaml:"ingress,omitempty"`
+	Git           *GlobalConfigGit     `yaml:"git,omitempty"`
 	AdminPassword string               `yaml:"adminPassword,omitempty"`
 	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
 	UI            *GlobalConfigUI      `yaml:"ui,omitempty"`
-	Storage       *GlobalConfigStorage `yaml:"storage,omitempty"`
-	Port          int                  `yaml:"port,omitempty"`
-}
-
-type GlobalConfigStorage struct {
-	Username string `yaml:"username,omitempty"`
-	Password string `yaml:"password,omitempty"`
-	Database string `yaml:"database,omitempty"`
 }
 
 type GlobalConfigUI struct {
@@ -71,7 +75,7 @@ type GlobalConfigGitOauth struct {
 }
 
 const (
-	DefaultConfigFilePath = "./.idpctl/config.yaml"
+	DefaultConfigFilePath = "/etc/home-idp/config.yaml"
 )
 
 func Enabled(component util.Components, client string) bool {

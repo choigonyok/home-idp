@@ -55,17 +55,8 @@ func (svc *InstallManager) Start() {
 
 func (svc *InstallManager) installDefaultServices() {
 	svc.installPostgresql()
-
-	if env.Get("DEFAULT_REGISTRY_ENABLED") == "true" {
-		svc.installHarbor()
-	}
-	// if env.Get("DEFAULT_CI_ENABLED") == "true" {
-	// 	cli := helm.NewJenkinsClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-ci")
-	// 	cli.Install(*svc.ClientSet.HelmClient)
-	// }
-	if env.Get("DEFAULT_CD_ENABLED") == "true" {
-		svc.installArgoCD()
-	}
+	svc.installHarbor()
+	svc.installArgoCD()
 }
 
 func (svc *InstallManager) installPostgresql() {

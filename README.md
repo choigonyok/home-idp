@@ -1,7 +1,7 @@
 # home-idp
 
 
-<img src="https://img.shields.io/badge/15182-FFFFFF?style=flat&label=lines of code"/>
+<img src="https://img.shields.io/badge/15212-FFFFFF?style=flat&label=lines of code"/>
 
 <img src="https://img.shields.io/badge/Go-00ADD8?style=flat&logo=go&logoColor=white"/> <img src="https://img.shields.io/badge/React-61DAFB?style=flat&logo=react&logoColor=black"/> <img src="https://img.shields.io/badge/Kubernetes-326CE5?style=flat&logo=kubernetes&logoColor=white"/> <img src="https://img.shields.io/badge/ArgoCD-EF7B4D?style=flat&logo=argo&logoColor=white"/> <img src="https://img.shields.io/badge/Harbor-60B932?style=flat&logo=harbor&logoColor=white"/> <img src="https://img.shields.io/badge/Kaniko-FFA600?style=flat&logo=kaniko&logoColor=white"/> <img src="https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white"/> <img src="https://img.shields.io/badge/ProtoBuf-4285F4?style=flat&logo=google&logoColor=white"/> <img src="https://img.shields.io/badge/Gitops-181717?style=flat&logo=github&logoColor=white"/>
 

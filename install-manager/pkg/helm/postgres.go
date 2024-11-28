@@ -33,6 +33,10 @@ func (c *Postgres) Uninstall(h helm.HelmClient) error {
 
 func postgresOverrideValues() map[string]interface{} {
 	return map[string]interface{}{
+		"global": map[string]interface{}{
+			"defaultStorageClass": env.Get("POSTGRES_STORAGECLASS"),
+			"volumeName":          "pg",
+		},
 		"auth": map[string]interface{}{
 			"enablePostgresUser": false,
 			"username":           env.Get("HOME_IDP_STORAGE_USERNAME"),
@@ -44,6 +48,9 @@ func postgresOverrideValues() map[string]interface{} {
 				"scriptsConfigMap": "home-idp-postgres-initdb",
 				"user":             env.Get("HOME_IDP_STORAGE_USERNAME"),
 				"password":         env.Get("HOME_IDP_STORAGE_PASSWORD"),
+			},
+			"persistence": map[string]interface{}{
+				"size": env.Get("POSTGRES_SIZE"),
 			},
 		},
 	}

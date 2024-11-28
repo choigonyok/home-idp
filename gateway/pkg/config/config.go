@@ -28,8 +28,17 @@ type GatewayServiceConfig struct {
 
 func New() *Config {
 	cfg := &Config{
-		Global:  &config.GlobalConfig{},
-		Service: &GatewayConfig{},
+		Global: &config.GlobalConfig{
+			Ingress: &config.GlobalConfigIngress{},
+			Git: &config.GlobalConfigGit{
+				Oauth: &config.GlobalConfigGitOauth{},
+			},
+			Harbor: &config.GlobalConfigHarbor{},
+			UI:     &config.GlobalConfigUI{},
+		},
+		Service: &GatewayConfig{
+			Service: &GatewayServiceConfig{},
+		},
 	}
 	parseFromFile(cfg, config.DefaultConfigFilePath)
 	return cfg

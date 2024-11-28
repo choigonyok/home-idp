@@ -93,11 +93,16 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 		rootSpan := RootSpans[resp.GetTraceId()]
 		deploySpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(rootSpan.Context)
 		err = deploySpan.Start(rootSpan.Context)
+		Spans[deploySpan.TraceID] = deploySpan
+		fmt.Println("[deploySpan 1 SPAN ID]", deploySpan.SpanID)
+		fmt.Println("[deploySpan 1 TRACE ID]", deploySpan.TraceID)
 		if err != nil {
 			fmt.Println("DEPLOY SPAN START ERR:", err)
 		}
 		manifestSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
 		err = manifestSpan.Start(deploySpan.Context)
+		fmt.Println("[manifestSpan 1 SPAN ID]", manifestSpan.SpanID)
+		fmt.Println("[manifestSpan 1 TRACE ID]", manifestSpan.TraceID)
 		if err != nil {
 			fmt.Println("UPDATE MANIFEST SPAN START ERR:", err)
 		}
@@ -107,22 +112,16 @@ func (svc *Gateway) HarborWebhookHandler() http.HandlerFunc {
 
 		gitResp, err := svc.ClientSet.GitClient.CreatePodManifestFile(testUserName, project, testUserEmail, name, version, 80, envVars, files)
 		if gitResp.StatusCode == 422 {
+			if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
+				fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
+				return
+			}
+		}
 
-		}
-		if gitResp.StatusCode != 422 && err != nil {
-			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
-			return
-		}
-		if err := svc.ClientSet.GitClient.UpdateManifest(name + ":" + version); err != nil {
-			fmt.Println("TEST UPDATE IMAGE FROM MANIFEST ERR:", err)
-			return
-		}
 		err = manifestSpan.Stop()
 		if err != nil {
 			fmt.Println("UPDATE MANIFEST SPAN STOP ERR:", err)
 		}
-
-		Spans[deploySpan.TraceID] = deploySpan
 	}
 }
 
@@ -271,6 +270,10 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 					w.WriteHeader(http.StatusNoContent)
 					return
 				}
+				if strings.Contains(path, ".gitkeep") {
+					return
+				}
+
 				file := svc.ClientSet.GitClient.Client.GetFilesByPath(path)
 				tmp := struct {
 					Spec struct {
@@ -315,10 +318,12 @@ func (svc *Gateway) GithubWebhookHandler() http.HandlerFunc {
 				fmt.Println("TRACE ID MANIFEST:", resp.GetTraceId())
 				deploySpan := Spans[resp.GetTraceId()]
 				rootSpan := RootSpans[resp.GetTraceId()]
-				fmt.Println("[DEPLOYTRACEID]:", deploySpan.TraceID)
-				fmt.Println("[DEPLOYSPANID]:", deploySpan.SpanID)
+				fmt.Println("[deploySpan 2 TRACE ID]:", deploySpan.TraceID)
+				fmt.Println("[deploySpan 2 SPAN ID]:", deploySpan.SpanID)
 				argocdWebhookSpan := svc.ClientSet.TraceClient.NewSpanFromOutgoingContext(deploySpan.Context)
 				err = argocdWebhookSpan.Start(deploySpan.Context)
+				fmt.Println("[argocdWebhookSpan trace id]:", argocdWebhookSpan.TraceID)
+				fmt.Println("[argocdWebhookSpan span id]:", argocdWebhookSpan.SpanID)
 				if err != nil {
 					fmt.Println("ARGOCD WEBHOOK SPAN START ERR:", err)
 				}
@@ -1605,16 +1610,6 @@ func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 	}
 }
 
-// func (svc *Gateway) apiPostManifestHandler() http.HandlerFunc {
-// 	return func(w http.ResponseWriter, r *http.Request) {
-// 		username := r.URL.Query().Get("username")
-// 		_, err := svc.ClientSet.GitClient.CreatePodManifestFile(username, namespace, env.Get("HOME_IDP_GIT_EMAIL"), "test", "v1.0", 8080, nil, nil)
-// 		fmt.Println(err)
-// 		w.Header().Set("Access-Control-Allow-Headers", "*")
-// 		w.Header().Set("Access-Control-Allow-Origin", "*")
-// 	}
-// }
-
 func (svc *Gateway) SignHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -1623,7 +1618,7 @@ func (svc *Gateway) SignHandler() http.HandlerFunc {
 			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
 			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
 			// RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
-			RedirectURL: fmt.Sprintf("http://127.0.0.1:3000/github/callback"),
+			RedirectURL: fmt.Sprintf(getClientURL() + "/github/callback"),
 			Scopes:      []string{"user:email"},
 			Endpoint:    oauthGit.Endpoint,
 		}
@@ -1637,21 +1632,13 @@ func (svc *Gateway) CallbackHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 
-		// uischeme := "http"
-		// uiport := env.Get("HOME_IDP_UI_PORT")
-		// uihost := env.Get("HOME_IDP_UI_HOST")
-		// if env.Get("HOME_IDP_UI_TLS_ENABLED") == "true" {
-		// 	uischeme = "https"
-		// }
-
 		fmt.Println("[TEST]2")
 		oauthConf := &oauth2.Config{
 			ClientID:     env.Get("HOME_IDP_GIT_OAUTH_CLIENT_ID"),
 			ClientSecret: env.Get("HOME_IDP_GIT_OAUTH_CLIENT_SECRET"),
-			// RedirectURL:  fmt.Sprintf("%s://%s:%s/github/callback", scheme, host, port),
-			RedirectURL: fmt.Sprintf("http://127.0.0.1:3000/github/callback"),
-			Scopes:      []string{"user:email"},
-			Endpoint:    oauthGit.Endpoint,
+			RedirectURL:  fmt.Sprintf(getClientURL() + "/github/callback"),
+			Scopes:       []string{"user:email"},
+			Endpoint:     oauthGit.Endpoint,
 		}
 		fmt.Println("[TEST]3")
 		state := r.URL.Query().Get("state")
@@ -1777,4 +1764,24 @@ func getToken(r *http.Request) (uid int64, statusCode int) {
 	} else {
 		return 0, http.StatusUnauthorized
 	}
+}
+
+func getClientURL() string {
+	schema := "http"
+	ok, _ := strconv.ParseBool(env.Get("HOME_IDP_UI_TLS_ENABLED"))
+	if ok {
+		schema = "https"
+	}
+
+	return fmt.Sprintf("%s://%s:%s", schema, env.Get("HOME_IDP_UI_HOST"), env.Get("HOME_IDP_UI_PORT"))
+}
+
+func getGatewayURL() string {
+	schema := "http"
+	ok, _ := strconv.ParseBool(env.Get("HOME_IDP_API_TLS_ENABLED"))
+	if ok {
+		schema = "https"
+	}
+
+	return fmt.Sprintf("%s://%s:%s", schema, env.Get("HOME_IDP_API_HOST"), env.Get("HOME_IDP_API_PORT"))
 }
