@@ -55,29 +55,29 @@ storage:
 ui:
   replicas: 1
   image:
-    tag: 1.0
+    tag: "1.0"
 
 deployManager:
   replicas: 1
   image:
-    tag: 1.0
+    tag: "1.0"
   
 installManager:
   replicas: 1
   image:
-    tag: 1.0
+    tag: "1.0"
 
 traceManager:
   replicas: 1
   image:
-    tag: 1.0
+    tag: "1.0"
 
 rbacManager:
   replicas: 1
   image:
-    tag: 1.0  
+    tag: "1.0"
 
 gateway:
   replicas: 1
   image:
-    tag: 1.0
+    tag: "1.0"
