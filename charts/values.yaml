@@ -51,10 +51,33 @@ storage:
     storageClass: ceph-block
     size: 8Gi
 
-replicas:
-  ui: 1
-  deployManager: 1
-  installManager: 1
-  traceManager: 1
-  rbacManager: 1
-  gateway: 1
+
+ui:
+  replicas: 1
+  image:
+    tag: 1.0
+
+deployManager:
+  replicas: 1
+  image:
+    tag: 1.0
+  
+installManager:
+  replicas: 1
+  image:
+    tag: 1.0
+
+traceManager:
+  replicas: 1
+  image:
+    tag: 1.0
+
+rbacManager:
+  replicas: 1
+  image:
+    tag: 1.0  
+
+gateway:
+  replicas: 1
+  image:
+    tag: 1.0
