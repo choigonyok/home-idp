@@ -11,6 +11,7 @@ import (
 	"github.com/choigonyok/home-idp/pkg/storage"
 	"github.com/choigonyok/home-idp/pkg/trace"
 	"github.com/choigonyok/home-idp/rbac-manager/pkg/git"
+	"github.com/choigonyok/home-idp/rbac-manager/pkg/model"
 	pb "github.com/choigonyok/home-idp/rbac-manager/pkg/proto"
 	"github.com/google/uuid"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -21,6 +22,45 @@ type RbacServiceServer struct {
 	StorageClient storage.StorageClient
 	TraceClient   *trace.TraceClient
 	GitClient     *git.RbacGitClient
+}
+
+func (svr *RbacServiceServer) CheckPermission(ctx context.Context, in *pb.CheckPermissionRequest) (*pb.CheckPermissionReply, error) {
+	uid := in.GetUid()
+	r, err := svr.StorageClient.DB().Query(`SELECT rolepolicymapping.policy_id FROM users JOIN roles ON roles.id = users.role_id JOIN rolepolicymapping ON rolepolicymapping.role_id = roles.id WHERE users.id = '` + strconv.Itoa(int(uid)) + `'`)
+	if err != nil {
+		return nil, err
+	}
+
+	for r.Next() {
+		p := ""
+		r.Scan(&p)
+		row := svr.StorageClient.DB().QueryRow(`SELECT policy FROM policies WHERE id = '` + p + `'`)
+
+		j := ""
+		row.Scan(&j)
+
+		m := struct {
+			model.PolicyJson `json:"policy"`
+		}{}
+
+		json.Unmarshal([]byte(j), &m)
+
+		for _, a := range m.Action {
+			if a == in.GetAction() || a == "*" {
+				for _, t := range m.Target {
+					if t == in.GetResource() || t == "*" {
+						return &pb.CheckPermissionReply{
+							Ok: true,
+						}, nil
+					}
+				}
+			}
+		}
+	}
+
+	return &pb.CheckPermissionReply{
+		Ok: false,
+	}, nil
 }
 
 func (svr *RbacServiceServer) Check(ctx context.Context, in *pb.RbacRequest) (*pb.RbacReply, error) {
@@ -367,6 +407,10 @@ func (svr *RbacServiceServer) CheckPolicy(uid float64, target, action string) bo
 				}
 			}
 		}
+
+		fmt.Println("TEST1:", p["policy"].(map[string]interface{})["effect"].(string))
+		fmt.Println("TEST2:", p["policy"].(map[string]interface{})["target"].(string))
+		fmt.Println("TEST3:", p["policy"].(map[string]interface{})["action"].(string))
 	}
 
 	return false

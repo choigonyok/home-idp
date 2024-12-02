@@ -28,6 +28,7 @@ type RbacServiceClient interface {
 	GetRole(ctx context.Context, in *GetRoleRequest, opts ...grpc.CallOption) (*GetRoleReply, error)
 	PostRole(ctx context.Context, in *PostRoleRequest, opts ...grpc.CallOption) (*PostRoleReply, error)
 	UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleReply, error)
+	CheckPermission(ctx context.Context, in *CheckPermissionRequest, opts ...grpc.CallOption) (*CheckPermissionReply, error)
 	Check(ctx context.Context, in *RbacRequest, opts ...grpc.CallOption) (*RbacReply, error)
 	PostPolicy(ctx context.Context, in *PostPolicyRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	DeletePolicy(ctx context.Context, in *DeletePolicyRequest, opts ...grpc.CallOption) (*DeletePolicyReply, error)
@@ -98,6 +99,15 @@ func (c *rbacServiceClient) PostRole(ctx context.Context, in *PostRoleRequest, o
 func (c *rbacServiceClient) UpdateRole(ctx context.Context, in *UpdateRoleRequest, opts ...grpc.CallOption) (*UpdateRoleReply, error) {
 	out := new(UpdateRoleReply)
 	err := c.cc.Invoke(ctx, "/proto.RbacService/UpdateRole", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *rbacServiceClient) CheckPermission(ctx context.Context, in *CheckPermissionRequest, opts ...grpc.CallOption) (*CheckPermissionReply, error) {
+	out := new(CheckPermissionReply)
+	err := c.cc.Invoke(ctx, "/proto.RbacService/CheckPermission", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -302,6 +312,7 @@ type RbacServiceServer interface {
 	GetRole(context.Context, *GetRoleRequest) (*GetRoleReply, error)
 	PostRole(context.Context, *PostRoleRequest) (*PostRoleReply, error)
 	UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleReply, error)
+	CheckPermission(context.Context, *CheckPermissionRequest) (*CheckPermissionReply, error)
 	Check(context.Context, *RbacRequest) (*RbacReply, error)
 	PostPolicy(context.Context, *PostPolicyRequest) (*emptypb.Empty, error)
 	DeletePolicy(context.Context, *DeletePolicyRequest) (*DeletePolicyReply, error)
@@ -344,6 +355,9 @@ func (UnimplementedRbacServiceServer) PostRole(context.Context, *PostRoleRequest
 }
 func (UnimplementedRbacServiceServer) UpdateRole(context.Context, *UpdateRoleRequest) (*UpdateRoleReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateRole not implemented")
+}
+func (UnimplementedRbacServiceServer) CheckPermission(context.Context, *CheckPermissionRequest) (*CheckPermissionReply, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CheckPermission not implemented")
 }
 func (UnimplementedRbacServiceServer) Check(context.Context, *RbacRequest) (*RbacReply, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Check not implemented")
@@ -507,6 +521,24 @@ func _RbacService_UpdateRole_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RbacServiceServer).UpdateRole(ctx, req.(*UpdateRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RbacService_CheckPermission_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CheckPermissionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RbacServiceServer).CheckPermission(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/proto.RbacService/CheckPermission",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RbacServiceServer).CheckPermission(ctx, req.(*CheckPermissionRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -915,6 +947,10 @@ var RbacService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateRole",
 			Handler:    _RbacService_UpdateRole_Handler,
+		},
+		{
+			MethodName: "CheckPermission",
+			Handler:    _RbacService_CheckPermission_Handler,
 		},
 		{
 			MethodName: "Check",

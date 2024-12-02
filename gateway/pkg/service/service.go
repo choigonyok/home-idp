@@ -52,8 +52,6 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/user", svc.apiDeleteUserHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/project", svc.apiDeleteProjectHandler())
 
-	svr.Router.RegisterRoute(http.MethodDelete, "/test0", svc.UninstallArgoCDHandler())
-
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles/{roleId}/policies", svc.apiGetRolePoliciesHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/policies/{policyId}", svc.apiGetPolicyHandler())
@@ -64,7 +62,6 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}", svc.apiPutUserHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/dockerfile", svc.apiPostDockerfileHandler())
-	svr.Router.RegisterRoute(http.MethodPost, "/api/pod", svc.apiPostPodHandler())
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/dockerfiles/{dockerfileId}/trace", svc.apiGetDockerTraceHandler())
@@ -113,11 +110,3 @@ func (svc *Gateway) waitGatewayRunning() {
 		fmt.Println("TEST WAIT GATEWAY RUNNING")
 	}
 }
-
-// {
-// 	"policy": {
-// 		"effect": "Allow",
-// 		"target": "roles",
-// 		"action": "CREATE"
-// 	}
-// }

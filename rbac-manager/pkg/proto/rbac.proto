@@ -13,7 +13,7 @@ service RbacService {
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
   rpc PostRole (PostRoleRequest) returns (PostRoleReply) {}
   rpc UpdateRole (UpdateRoleRequest) returns (UpdateRoleReply) {}
-  
+  rpc CheckPermission (CheckPermissionRequest) returns (CheckPermissionReply) {} 
   
   rpc Check (RbacRequest) returns (RbacReply) {}
   
@@ -54,6 +54,11 @@ enum Action {
   RETRIEVE = 1;
   UPDATE = 2;
   DELETE = 3;
+  LIST = 4;
+}
+
+enum Resource {
+  Secrets = 0;
 }
 
 enum Result {
@@ -61,6 +66,16 @@ enum Result {
   ALLOW = 1;
   DENY = 2;
   ERROR = 3;
+}
+
+message CheckPermissionRequest {
+  int64 uid = 1;
+  string action = 2;
+  string resource = 3;
+}
+
+message CheckPermissionReply {
+  bool ok = 1;
 }
 
 message GetTraceIdByDockerfileIdRequest {

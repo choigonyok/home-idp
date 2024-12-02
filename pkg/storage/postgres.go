@@ -48,7 +48,7 @@ func (c *PostgresClient) IsHealthy() bool {
 }
 
 func NewPostgresClient(username, password, database string) StorageClient {
-	host := "home-idp-postgres-postgresql.idp-system.svc.cluster.local"
+	host := "home-idp-postgres-postgresql"
 	port := 5432
 	psqlInfo := fmt.Sprintf("host=%s port=%d user=%s "+"password=%s dbname=%s sslmode=disable", host, port, username, password, database)
 	fmt.Println("TEST POSTGRESQL INFORMATION : ", psqlInfo)

@@ -41,13 +41,6 @@ var RootSpans = make(map[string]*trace.Span1)
 var FileMap = make(map[string][]*model.File)
 var EnvMap = make(map[string][]*model.EnvVar)
 
-func (svc *Gateway) UninstallArgoCDHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println(r.Body)
-		fmt.Println("TESTHANDLER1")
-	}
-}
-
 func (svc *Gateway) TestHandler2() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(r.Body)
@@ -501,6 +494,7 @@ func (svc *Gateway) GetProgressHandler() http.HandlerFunc {
 		vars := mux.Vars(r)
 		image := vars["image"]
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
 
 		b, err := json.Marshal(progress.Map[image])
 		if err != nil {
@@ -536,10 +530,11 @@ func (svc *Gateway) ApiOptionsHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		userName := vars["userName"]
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		b, _ := io.ReadAll(r.Body)
 
 		usr := model.User{}
@@ -566,15 +561,7 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 func (svc *Gateway) createProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 		b, _ := io.ReadAll(r.Body)
@@ -611,16 +598,7 @@ func (svc *Gateway) createProjectHandler() http.HandlerFunc {
 func (svc *Gateway) apiUpdateUserRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -653,15 +631,7 @@ func (svc *Gateway) apiUpdateUserRoleHandler() http.HandlerFunc {
 func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -687,15 +657,7 @@ func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
 func (svc *Gateway) createRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -720,37 +682,11 @@ func (svc *Gateway) createRoleHandler() http.HandlerFunc {
 		w.WriteHeader(http.StatusOK)
 	}
 }
-
-func (svc *Gateway) apiPostPodHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-
-		b, _ := io.ReadAll(r.Body)
-		pod := deployPb.Pod{}
-		json.Unmarshal(b, &pod)
-
-		c := deployPb.NewDeployClient(svc.ClientSet.DeployGrpcClient.GetConnection())
-		_, err := c.DeployPod(context.TODO(), &deployPb.DeployPodRequest{
-			Pod: &deployPb.Pod{
-				Name:          pod.GetName(),
-				Namespace:     pod.GetNamespace(),
-				Image:         pod.GetImage(),
-				ContainerPort: pod.GetContainerPort(),
-			},
-		})
-		if err != nil {
-			fmt.Println("ERR POSTTING NEW POD :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
 func (svc *Gateway) createPolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		b, _ := io.ReadAll(r.Body)
 
 		role := rbacPb.Policy{}
@@ -778,15 +714,7 @@ func (svc *Gateway) createPolicyHandler() http.HandlerFunc {
 func (svc *Gateway) apiDeletePolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		vars := mux.Vars(r)
 		policyId := vars["policyId"]
@@ -811,15 +739,7 @@ func (svc *Gateway) apiDeletePolicyHandler() http.HandlerFunc {
 func (svc *Gateway) apiUpdatePolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		vars := mux.Vars(r)
 		policyId := vars["policyId"]
@@ -856,15 +776,7 @@ func (svc *Gateway) apiUpdatePolicyHandler() http.HandlerFunc {
 func (svc *Gateway) apiDeleteRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -889,16 +801,7 @@ func (svc *Gateway) apiDeleteRoleHandler() http.HandlerFunc {
 func (svc *Gateway) apiDeleteUserHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
+		validateAuthn(w, withJWTAuth(r))
 		uid, _ := getToken(r)
 
 		var id float64
@@ -923,15 +826,7 @@ func (svc *Gateway) apiDeleteUserHandler() http.HandlerFunc {
 func (svc *Gateway) apiDeleteProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -957,6 +852,8 @@ func (svc *Gateway) apiDeleteProjectHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetDockerTraceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		dockerfileId := vars["dockerfileId"]
 
@@ -1019,6 +916,8 @@ func (svc *Gateway) apiGetDockerTraceHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		traceId := vars["traceId"]
 
@@ -1077,6 +976,8 @@ func (svc *Gateway) apiGetTraceHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
 		vars := mux.Vars(r)
 		projectName := vars["projectName"]
@@ -1163,6 +1064,9 @@ func (svc *Gateway) apiPostDockerfileHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		userName := vars["userName"]
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
@@ -1179,7 +1083,6 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(reply.GetDockerfiles())
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1188,6 +1091,8 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 func (svc *Gateway) getRoleListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
 
 		uid, _ := getToken(r)
@@ -1213,6 +1118,9 @@ func (svc *Gateway) getRoleListHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		userName := vars["userName"]
 
@@ -1224,9 +1132,6 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 
 		b, _ := json.Marshal(reply.GetRole())
 
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1234,6 +1139,8 @@ func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1257,15 +1164,7 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 func (svc *Gateway) getUserListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -1294,15 +1193,7 @@ func (svc *Gateway) getUserListHandler() http.HandlerFunc {
 func (svc *Gateway) getProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		switch withJWTAuth(r) {
-		case 401:
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		case 200:
-		default:
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -1329,6 +1220,9 @@ func (svc *Gateway) getProjectListHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		p := r.URL.Query().Get("names")
 		vars := mux.Vars(r)
 		project := vars["projectName"]
@@ -1339,14 +1233,15 @@ func (svc *Gateway) apiDeleteResourcesHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 	}
 }
 
 func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 		cm := vars["configmapName"]
@@ -1371,8 +1266,6 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(datas)
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1381,6 +1274,8 @@ func (svc *Gateway) apiGetConfigmapHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1396,6 +1291,8 @@ func (svc *Gateway) apiGetConfigmapsHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostSecretHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1428,6 +1325,8 @@ func (svc *Gateway) apiPostSecretHandler() http.HandlerFunc {
 func (svc *Gateway) apiPostConfigmapHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1460,6 +1359,11 @@ func (svc *Gateway) apiPostConfigmapHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
+		uid, _ := getToken(r)
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1472,26 +1376,52 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 
 		secrets := *svc.ClientSet.KubeClient.GetSecrets(proj)
 
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		log.Default().Printf("[User: %d] Trying to %s %s", uid, "list", "secrets")
+		resp, err := c.CheckPermission(context.TODO(), &rbacPb.CheckPermissionRequest{
+			Uid:      uid,
+			Action:   "list",
+			Resource: "secrets",
+		})
+		if err != nil {
+			fmt.Println("ERR GETTING USER POLICIES :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
 		for _, s := range secrets {
 			for k, v := range s.Data {
-				data = append(data, struct {
-					Key     string `json:"key"`
-					Value   string `json:"value"`
-					Creator string `json:"creator"`
-					Secret  string `json:"secret"`
-				}{
-					Key:     k,
-					Value:   string(v),
-					Creator: testUserName,
-					Secret:  s.Name,
-				})
+				if resp.Ok {
+					data = append(data, struct {
+						Key     string `json:"key"`
+						Value   string `json:"value"`
+						Creator string `json:"creator"`
+						Secret  string `json:"secret"`
+					}{
+						Key:     k,
+						Value:   string(v),
+						Creator: testUserName,
+						Secret:  s.Name,
+					})
+					log.Default().Printf("[User: %d] has permission to %s %s", uid, "list", "secrets")
+				} else {
+					data = append(data, struct {
+						Key     string `json:"key"`
+						Value   string `json:"value"`
+						Creator string `json:"creator"`
+						Secret  string `json:"secret"`
+					}{
+						Key:     k,
+						Value:   strings.Repeat("x", len(string(v))),
+						Creator: testUserName,
+						Secret:  s.Name,
+					})
+					log.Default().Printf("[User: %d] does not have permission to %s %s", uid, "list", "secrets")
+				}
 			}
 		}
 
 		b, _ := json.Marshal(data)
-
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1499,6 +1429,9 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
 
@@ -1517,8 +1450,6 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(data)
-		w.Header().Set("Access-Control-Allow-Headers", "*")
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1527,6 +1458,7 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 func (svc *Gateway) getPoliciyListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
 
 		uid, _ := getToken(r)
 
@@ -1555,6 +1487,8 @@ func (svc *Gateway) getPoliciyListHandler() http.HandlerFunc {
 func (svc *Gateway) apiGetPolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
+		validateAuthn(w, withJWTAuth(r))
+
 		vars := mux.Vars(r)
 		policyId := vars["policyId"]
 
@@ -1576,8 +1510,7 @@ func (svc *Gateway) apiGetPolicyHandler() http.HandlerFunc {
 
 func (svc *Gateway) apiGetRolePoliciesHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println()
-		fmt.Println("GET GET POLICIES REQUEST")
+		validateAuthn(w, withJWTAuth(r))
 
 		vars := mux.Vars(r)
 		roleId := vars["roleId"]
@@ -1784,4 +1717,16 @@ func getGatewayURL() string {
 	}
 
 	return fmt.Sprintf("%s://%s:%s", schema, env.Get("HOME_IDP_API_HOST"), env.Get("HOME_IDP_API_PORT"))
+}
+
+func validateAuthn(w http.ResponseWriter, statusCode int) {
+	switch statusCode {
+	case 401:
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	case 200:
+	default:
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
