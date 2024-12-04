@@ -31,8 +31,6 @@ func (c *InstallManagerKubeClient) ApplyHarborCredentialSecret() error {
 
 func (c *InstallManagerKubeClient) IsArgoCDRunning(ns string) bool {
 	if c.Client.IsServiceHealthy("home-idp-cd-argocd-applicationset-controller", ns) &&
-		c.Client.IsServiceHealthy("home-idp-cd-argocd-dex-server", ns) &&
-		c.Client.IsServiceHealthy("home-idp-cd-argocd-redis", ns) &&
 		c.Client.IsServiceHealthy("home-idp-cd-argocd-repo-server", ns) &&
 		c.Client.IsServiceHealthy("home-idp-cd-argocd-server", ns) {
 		return true
@@ -40,8 +38,8 @@ func (c *InstallManagerKubeClient) IsArgoCDRunning(ns string) bool {
 	return false
 }
 
-func (c *InstallManagerKubeClient) GetArgoCDPassword() string {
-	b := c.Client.GetSecret("argocd-initial-admin-secret", env.Get("HOME_IDP_NAMESPACE"), "password")
+func (c *InstallManagerKubeClient) GetArgoCDPassword(ns string) string {
+	b := c.Client.GetSecret("argocd-initial-admin-secret", ns, "password")
 	// pw, err := base64.StdEncoding.DecodeString(string(b))
 	// fmt.Println("TEST BASE64 DECODE ARGOCD PASSWORD ERR:", err)
 	// fmt.Println("TEST ARGOCD PASSWORD:", string(pw))

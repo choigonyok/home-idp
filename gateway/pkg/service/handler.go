@@ -1220,21 +1220,27 @@ func (svc *Gateway) createProjectHandler() http.HandlerFunc {
 			return
 		}
 
+		fmt.Println("TEST CREATING PROJECT1")
 		b, _ := io.ReadAll(r.Body)
+		fmt.Println("TEST CREATING PROJECT2")
 		p := rbacPb.Project{}
+		fmt.Println("TEST CREATING PROJECT3")
 		json.Unmarshal(b, &p)
+		fmt.Println("TEST CREATING PROJECT4")
 
 		if err := svc.ClientSet.HttpClient.CreateHarborProject(p.Name); err != nil {
 			log.Println("[ERROR] creating harbor project:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println("TEST CREATING PROJECT5")
 
 		if err := svc.ClientSet.HttpClient.CreateHarborWebhook(p.Name); err != nil {
 			log.Println("[ERROR] creating harbor webhook:", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println("TEST CREATING PROJECT6")
 
 		_, err = c.CreateProject(context.TODO(), &rbacPb.CreateProjectRequest{
 			ProjectName: p.GetName(),
@@ -1245,8 +1251,10 @@ func (svc *Gateway) createProjectHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		fmt.Println("TEST CREATING PROJECT7")
 
 		w.WriteHeader(http.StatusOK)
+		fmt.Println("TEST CREATING PROJECT8")
 	}
 }
 
@@ -1541,12 +1549,50 @@ func (svc *Gateway) apiPostConfigmapHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
+func (svc *Gateway) getSecretListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
+		uid, code := getToken(r)
+		log.Printf("[User: %d] Trying to %s %s", uid, "list", "secrets")
 
-		uid, _ := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		getAuth, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "GET",
+			Target: "secrets",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !getAuth.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		listAuth, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "LIST",
+			Target: "secrets",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !listAuth.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
 
 		vars := mux.Vars(r)
 		proj := vars["projectName"]
@@ -1560,22 +1606,9 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 
 		secrets := *svc.ClientSet.KubeClient.GetSecrets(proj)
 
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		log.Default().Printf("[User: %d] Trying to %s %s", uid, "list", "secrets")
-		resp, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
-			Uid:    uid,
-			Action: "list",
-			Target: "secrets",
-		})
-		if err != nil {
-			fmt.Println("ERR GETTING USER POLICIES :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
 		for _, s := range secrets {
 			for k, v := range s.Data {
-				if resp.Ok {
+				if getAuth.Ok {
 					data = append(data, struct {
 						Key     string `json:"key"`
 						Value   string `json:"value"`

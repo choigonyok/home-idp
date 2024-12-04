@@ -12,6 +12,7 @@ type Config struct {
 	Service *InstallManagerConfig `yaml:"install-manager,omitempty"`
 	Storage *config.Storage       `yaml:"storage,omitempty"`
 	Global  *config.GlobalConfig  `yaml:"global,omitempty"`
+	CD      *config.CD            `yaml:"cd,omitempty"`
 }
 
 type InstallManagerConfig struct {
@@ -55,6 +56,7 @@ func (cfg *Config) SetEnvVars() {
 	log.Printf("Start injecting appropriate environments variables...")
 	env.Set("HOME_IDP_ADMIN_PASSWORD", cfg.Global.AdminPassword)
 	env.Set("HOME_IDP_STORAGE_CLASS_NAME", cfg.Storage.Persistence.StorageClass)
+	env.Set("HOME_IDP_PREFIX", cfg.Global.Namespace)
 	env.Set("HOME_IDP_API_HOST", cfg.Global.Ingress.Host)
 	env.Set("HOME_IDP_API_PORT", strconv.Itoa(cfg.Global.Ingress.Port))
 	env.Set("HOME_IDP_GIT_USERNAME", cfg.Global.Git.Username)
@@ -71,4 +73,8 @@ func (cfg *Config) SetEnvVars() {
 	env.Set("INSTALL_MANAGER_SERVICE_PORT", strconv.Itoa(cfg.Global.Port))
 	env.Set("POSTGRES_STORAGECLASS", cfg.Storage.Persistence.StorageClass)
 	env.Set("POSTGRES_SIZE", cfg.Storage.Persistence.Size)
+	env.Set("HOME_IDP_CD_INSTALLATION", strconv.FormatBool(cfg.CD.Install))
+	env.Set("HOME_IDP_ARGOCD_SERVER_NAME", cfg.CD.Server.Service.Name)
+	env.Set("HOME_IDP_ARGOCD_TLS_ENABLED", strconv.FormatBool(cfg.CD.TLS.Enabled))
+	env.Set("HOME_IDP_ARGOCD_NAMESPACE", cfg.CD.Namespace)
 }

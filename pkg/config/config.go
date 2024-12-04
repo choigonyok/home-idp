@@ -41,6 +41,27 @@ type GlobalConfig struct {
 	AdminPassword string               `yaml:"adminPassword,omitempty"`
 	Harbor        *GlobalConfigHarbor  `yaml:"harbor,omitempty"`
 	UI            *GlobalConfigUI      `yaml:"ui,omitempty"`
+	Prefix        string               `yaml:"prefix,omitempty"`
+}
+
+type CD struct {
+	Type      string   `yaml:"type,omitempty"`
+	Install   bool     `yaml:"install,omitempty"`
+	Namespace string   `yaml:"namespace,omitempty"`
+	TLS       CDTLS    `yaml:"tls,omitempty"`
+	Server    CDServer `yaml:"server,omitempty"`
+}
+
+type CDTLS struct {
+	Enabled bool `yaml:"enabled,omitempty"`
+}
+
+type CDServer struct {
+	Service CDServerService `yaml:"service,omitempty"`
+}
+
+type CDServerService struct {
+	Name string `yaml:"name,omitempty"`
 }
 
 type GlobalConfigUI struct {

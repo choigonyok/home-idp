@@ -56,7 +56,23 @@ func (svc *InstallManager) Start() {
 func (svc *InstallManager) installDefaultServices() {
 	svc.installPostgresql()
 	svc.installHarbor()
-	svc.installArgoCD()
+	if env.Get("HOME_IDP_CD_INSTALLATION") == "true" {
+		ns := env.Get("HOME_IDP_NAMESPACE")
+		c := helm.NewArgoCDClient(ns, "home-idp-cd")
+		c.Install(*svc.ClientSet.HelmClient)
+		for {
+			ok := svc.ClientSet.KubeClient.IsArgoCDRunning(ns)
+			if ok {
+				fmt.Println("@@@TEST ARGOCD HEALTH CHECK SUCCESS@@@")
+				break
+			}
+			fmt.Println("TEST ARGOCD NOT RUNNING YET")
+			time.Sleep(time.Second * 1)
+		}
+		svc.InitializeCD(env.Get("HOME_IDP_NAMESPACE"))
+	} else {
+		svc.InitializeCD(env.Get("HOME_IDP_ARGOCD_NAMESPACE"))
+	}
 }
 
 func (svc *InstallManager) installPostgresql() {
@@ -66,25 +82,12 @@ func (svc *InstallManager) installPostgresql() {
 	c.Install(*svc.ClientSet.HelmClient)
 }
 
-func (svc *InstallManager) installArgoCD() {
-	c := helm.NewArgoCDClient(env.Get("HOME_IDP_NAMESPACE"), "home-idp-cd")
-
-	c.Install(*svc.ClientSet.HelmClient)
-
-	for {
-		ok := svc.ClientSet.KubeClient.IsArgoCDRunning(env.Get("HOME_IDP_NAMESPACE"))
-		if ok {
-			fmt.Println("@@@TEST ARGOCD HEALTH CHECK SUCCESS@@@")
-			break
-		}
-		fmt.Println("TEST ARGOCD NOT RUNNING YET")
-		time.Sleep(time.Second * 1)
-	}
-
-	pw := svc.ClientSet.KubeClient.GetArgoCDPassword()
+func (svc *InstallManager) InitializeCD(namespace string) {
+	pw := svc.ClientSet.KubeClient.GetArgoCDPassword(namespace)
 	fmt.Println("TEST ARGOCD PASSWORD:", pw)
 
-	token, err := svc.ClientSet.HttpClient.CreateArgoCDSessionToken(pw)
+	///
+	token, err := svc.ClientSet.HttpClient.CreateArgoCDSessionToken(pw, namespace)
 	if err != nil {
 		fmt.Println("TEST ARGOCD SESSION CREATE ERR:", err)
 	}
@@ -93,7 +96,7 @@ func (svc *InstallManager) installArgoCD() {
 		fmt.Println("TEST ARGOCD REPOSITORY CREATE ERR:", err)
 	}
 
-	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), env.Get("HOME_IDP_NAMESPACE"))
+	svc.ClientSet.GitClient.CreateArgoCDApplicationManifest(env.Get("HOME_IDP_GIT_USERNAME"), env.Get("HOME_IDP_GIT_EMAIL"), namespace)
 }
 
 func (svc *InstallManager) installHarbor() {

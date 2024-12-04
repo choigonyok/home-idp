@@ -59,16 +59,22 @@ func (c *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
 	return false, nil
 }
 
-func (c *InstallManagerHttpClient) CreateArgoCDSessionToken(password string) (string, error) {
+func (c *InstallManagerHttpClient) CreateArgoCDSessionToken(password, ns string) (string, error) {
 	data := map[string]interface{}{
 		"username": "admin",
 		"password": password,
 	}
 
-	r := http.NewRequest(http.Post, "http://home-idp-cd-argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/session", data)
+	var r *http.Request
+	if env.Get("HOME_IDP_CD_INSTALLATION") == "true" {
+		r = http.NewRequest(http.Post, env.Get("HOME_IDP_ARGOCD_TLS_ENABLED")+"://"+env.Get("HOME_IDP_ARGOCD_SERVER_NAME")+"."+env.Get("HOME_IDP_ARGOCD_NAMESPACE")+".svc.cluster.local/api/v1/repositories", data)
+	} else {
+		r = http.NewRequest(http.Post, "http://"+env.Get("HOME_IDP_PREFIX")+"-cd-argocd-server"+"."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local/api/v1/repositories", data)
+	}
 
 	r.SetHeader("Content-Type", "application/json")
-	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
+	r.SetBasicAuth("admin", password)
+	// r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
 
 	resp, err := c.Client.Request(r)
 	if err != nil {
@@ -110,7 +116,13 @@ func (c *InstallManagerHttpClient) CreateArgoCDRepository(password, token string
 		"enableLfs":          false,
 	}
 
-	r := http.NewRequest(http.Post, "http://home-idp-cd-argocd-server."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/repositories", data)
+	var r *http.Request
+	if env.Get("HOME_IDP_CD_INSTALLATION") == "true" {
+		r = http.NewRequest(http.Post, env.Get("HOME_IDP_ARGOCD_TLS_ENABLED")+"://"+env.Get("HOME_IDP_ARGOCD_SERVER_NAME")+"."+env.Get("HOME_IDP_ARGOCD_NAMESPACE")+".svc.cluster.local/api/v1/repositories", data)
+	} else {
+		r = http.NewRequest(http.Post, "http://"+env.Get("HOME_IDP_PREFIX")+"-cd-argocd-server"+"."+env.Get("HOME_IDP_NAMESPACE")+".svc.cluster.local:80/api/v1/repositories", data)
+	}
+
 	r.SetHeader("Content-Type", "application/json")
 	r.SetHeader("Authorization", "Bearer "+token)
 	r.SetBasicAuth("admin", password)

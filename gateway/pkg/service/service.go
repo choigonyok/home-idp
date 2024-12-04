@@ -37,6 +37,7 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.getRoleListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.getPolicyListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.getUserListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.getSecretListHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.createPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.createProjectHandler())
@@ -65,8 +66,6 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/traces/{traceId}", svc.apiGetTraceHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/dockerfiles/{dockerfileId}/trace", svc.apiGetDockerTraceHandler())
-
-	svr.Router.RegisterRoute(http.MethodGet, "/api/projects/{projectName}/secrets", svc.apiGetSecretsHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/secret", svc.apiPostSecretHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/projects/{projectName}/configmap", svc.apiPostConfigmapHandler())
 
