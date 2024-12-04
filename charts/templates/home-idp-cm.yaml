@@ -44,3 +44,13 @@ data:
       persistence:
         storageClass: {{ .Values.storage.persistence.storageClass }}
         size: {{ .Values.storage.persistence.size }}
+
+    cd:
+      type: {{ .Values.cd.type }}
+      install: {{ .Values.cd.install }}
+      namespace: {{ .Values.cd.namespace }}
+      tls:
+        enabled: {{ .Values.cd.tls.enabled }}
+      server: 
+        service:
+          name: {{ .Values.cd.server.service.name }}
