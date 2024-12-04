@@ -111,20 +111,20 @@ func (c *PostgresClient) CreateAdminUser(uid float64) error {
 
 func getAdminPolicy() string {
 	return `{
-		"policy": {
-			"effect": "Allow",
-			"target": "*",
-			"action": "*"
-		}
-	}`
+	"policy": {
+		"effect": "Allow",
+		"target": ["*"],
+		"action": ["*"]
+	}
+}`
 }
 
 func getApplicantPolicy() string {
 	return `{
 	"policy": {
 		"effect": "Deny",
-		"target": "*",
-		"action": "*"
+		"target": ["*"],
+		"action": ["*"]
 	}
 }`
 }

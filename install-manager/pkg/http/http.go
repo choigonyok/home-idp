@@ -24,7 +24,11 @@ func parseHttpClientFromInterface(i interface{}) *http.HttpClient {
 }
 
 func (c *InstallManagerHttpClient) IsHarborHealthy() (bool, error) {
-	r := http.NewRequest(http.Get, "http://"+env.Get("HOME_IDP_HARBOR_HOST")+":8080/api/v2.0/health", nil)
+	schema := "http"
+	if env.Get("HOME_IDP_HARBOR_TLS_ENABLED") == "true" {
+		schema = "https"
+	}
+	r := http.NewRequest(http.Get, schema+"://"+env.Get("HOME_IDP_HARBOR_HOST")+":"+env.Get("HOME_IDP_HARBOR_PORT")+"/api/v2.0/health", nil)
 	r.SetBasicAuth("admin", env.Get("HOME_IDP_ADMIN_PASSWORD"))
 
 	resp, err := c.Client.Request(r)

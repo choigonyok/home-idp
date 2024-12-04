@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 
@@ -24,9 +25,10 @@ type RbacServiceServer struct {
 	GitClient     *git.RbacGitClient
 }
 
-func (svr *RbacServiceServer) CheckPermission(ctx context.Context, in *pb.CheckPermissionRequest) (*pb.CheckPermissionReply, error) {
-	uid := in.GetUid()
-	r, err := svr.StorageClient.DB().Query(`SELECT rolepolicymapping.policy_id FROM users JOIN roles ON roles.id = users.role_id JOIN rolepolicymapping ON rolepolicymapping.role_id = roles.id WHERE users.id = '` + strconv.Itoa(int(uid)) + `'`)
+func (svr *RbacServiceServer) Authorize(ctx context.Context, in *pb.AuthorizeRequest) (*pb.AuthorizeReply, error) {
+	log.Printf("[UserID:%s] trying to %s %s  ", strconv.Itoa(int(in.GetUid())), in.GetAction(), in.GetTarget())
+
+	r, err := svr.StorageClient.DB().Query(`SELECT rolepolicymapping.policy_id FROM users JOIN roles ON roles.id = users.role_id JOIN rolepolicymapping ON rolepolicymapping.role_id = roles.id WHERE users.id = '` + strconv.Itoa(int(in.GetUid())) + `'`)
 	if err != nil {
 		return nil, err
 	}
@@ -44,12 +46,17 @@ func (svr *RbacServiceServer) CheckPermission(ctx context.Context, in *pb.CheckP
 		}{}
 
 		json.Unmarshal([]byte(j), &m)
+		fmt.Println("m.Action:", m.Action)
 
 		for _, a := range m.Action {
+			fmt.Println("a:", a)
 			if a == in.GetAction() || a == "*" {
+				fmt.Println("SUCCESS FIRST")
 				for _, t := range m.Target {
-					if t == in.GetResource() || t == "*" {
-						return &pb.CheckPermissionReply{
+					fmt.Println("t:", t)
+					if t == in.GetTarget() || t == "*" {
+						fmt.Println("SUCCESS SECOND")
+						return &pb.AuthorizeReply{
 							Ok: true,
 						}, nil
 					}
@@ -58,7 +65,7 @@ func (svr *RbacServiceServer) CheckPermission(ctx context.Context, in *pb.CheckP
 		}
 	}
 
-	return &pb.CheckPermissionReply{
+	return &pb.AuthorizeReply{
 		Ok: false,
 	}, nil
 }
@@ -110,25 +117,7 @@ func (svr *RbacServiceServer) GetRole(ctx context.Context, in *pb.GetRoleRequest
 	return &pb.GetRoleReply{Role: &role}, nil
 }
 
-func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesRequest) (*pb.GetRolesReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.GetRolesReply{
-			Error: &pb.Error{
-				Message:    "Your signing up request still waiting administrator's approval",
-				StatusCode: 403,
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "roles", "GET") {
-		return &pb.GetRolesReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *emptypb.Empty) (*pb.GetRolesReply, error) {
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, create_time FROM roles ORDER BY create_time DESC`)
 	if err != nil {
 		return nil, err
@@ -172,25 +161,7 @@ func (svr *RbacServiceServer) GetRoles(ctx context.Context, in *pb.GetRolesReque
 	}, nil
 }
 
-func (svr *RbacServiceServer) UpdateRole(ctx context.Context, in *pb.UpdateRoleRequest) (*pb.UpdateRoleReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.UpdateRoleReply{
-			Error: &pb.Error{
-				Message:    "Your signing up request still waiting administrator's approval",
-				StatusCode: 403,
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "roles", "UPDATE") {
-		return &pb.UpdateRoleReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) UpdateRole(ctx context.Context, in *pb.UpdateRoleRequest) (*emptypb.Empty, error) {
 	_, err := svr.StorageClient.DB().Exec(`DELETE FROM rolepolicymapping WHERE role_id = '` + in.GetRole().GetRole().GetId() + `'`)
 	if err != nil {
 		fmt.Println("TEST 1 ERR:", err)
@@ -211,33 +182,10 @@ func (svr *RbacServiceServer) UpdateRole(ctx context.Context, in *pb.UpdateRoleR
 		return nil, err
 	}
 
-	return &pb.UpdateRoleReply{
-		Error: &pb.Error{
-			StatusCode: 200,
-			Message:    "",
-		},
-	}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *pb.GetPoliciesRequest) (*pb.GetPoliciesReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.GetPoliciesReply{
-			Error: &pb.Error{
-				Message:    "Your signing up request still waiting administrator's approval",
-				StatusCode: 403,
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "policies", "GET") {
-		return &pb.GetPoliciesReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) GetPolicies(ctx context.Context, in *emptypb.Empty) (*pb.GetPoliciesReply, error) {
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, policy FROM policies ORDER BY create_time ASC`)
 	if err != nil {
 		fmt.Println("TEST GETPOLICIES FROM MAPPING QUERY ERR:", err)
@@ -293,25 +241,7 @@ func (svr *RbacServiceServer) GetPolicy(ctx context.Context, in *pb.GetPolicyReq
 	}, nil
 }
 
-func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *pb.GetProjectsRequest) (*pb.GetProjectsReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.GetProjectsReply{
-			Error: &pb.Error{
-				Message:    "Your signing up request still waiting administrator's approval",
-				StatusCode: 403,
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "projects", "GET") {
-		return &pb.GetProjectsReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) GetProjects(ctx context.Context, in *emptypb.Empty) (*pb.GetProjectsReply, error) {
 	r, err := svr.StorageClient.DB().Query(`SELECT id, name, creator_id FROM projects`)
 	if err != nil {
 		fmt.Println("ERR GETTING PROJECT QUERY :", err)
@@ -430,27 +360,7 @@ func (svr *RbacServiceServer) CheckApplicant(uid float64) bool {
 	return false
 }
 
-func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersRequest) (*pb.GetUsersReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.GetUsersReply{
-			Users: nil,
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "Your signing up request still waiting administrator's approval",
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "users", "GET") {
-		return &pb.GetUsersReply{
-			Users: nil,
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *emptypb.Empty) (*pb.GetUsersReply, error) {
 	r, err := svr.StorageClient.DB().Query(`SELECT users.id AS user_id, users.name AS username, roles.id AS role_id, roles.name AS role_name, users.create_time, projects.name AS project_name, projects.id AS project_id FROM users JOIN roles ON users.role_id = roles.id LEFT JOIN userprojectmapping ON userprojectmapping.user_id = users.id LEFT JOIN projects ON userprojectmapping.project_id = projects.id`)
 	if err != nil {
 		return nil, err
@@ -470,14 +380,14 @@ func (svr *RbacServiceServer) GetUsers(ctx context.Context, in *pb.GetUsersReque
 	}, nil
 }
 
-func (svr *RbacServiceServer) PostPolicy(ctx context.Context, in *pb.PostPolicyRequest) (*emptypb.Empty, error) {
+func (svr *RbacServiceServer) CreatePolicy(ctx context.Context, in *pb.CreatePolicyRequest) (*emptypb.Empty, error) {
 	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO policies (id, name, policy) VALUES ('` + uuid.NewString() + `', '` + in.Policy.GetName() + `', '` + in.Policy.GetJson() + `')`); err != nil {
 		return nil, err
 	}
 	return nil, nil
 }
 
-func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjectRequest) (*pb.PostProjectReply, error) {
+func (svr *RbacServiceServer) CreateProject(ctx context.Context, in *pb.CreateProjectRequest) (*emptypb.Empty, error) {
 	projectName := in.GetProjectName()
 	uid := strconv.FormatFloat(in.GetCreatorId(), 'e', -1, 64)
 
@@ -494,45 +404,17 @@ func (svr *RbacServiceServer) PostProject(ctx context.Context, in *pb.PostProjec
 	return nil, nil
 }
 
-func (svr *RbacServiceServer) UpdateUserRole(ctx context.Context, in *pb.UpdateUserRoleRequest) (*pb.UpdateUserRoleReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.UpdateUserRoleReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "Your signing up request still waiting administrator's approval",
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "users", "UPDATE") {
-		return &pb.UpdateUserRoleReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) UpdateUserRole(ctx context.Context, in *pb.UpdateUserRoleRequest) (*emptypb.Empty, error) {
 	userId := in.GetUser().GetId()
 	username := in.GetUser().GetName()
 	roleId := in.GetRole().GetId()
 
 	if _, err := svr.StorageClient.DB().Exec(`UPDATE users SET name = '` + username + `', role_id = '` + roleId + `' WHERE id = ` + strconv.FormatFloat(userId, 'e', -1, 64)); err != nil {
 		fmt.Println("ERR CREATING NEW ROLE :", err)
-		return &pb.UpdateUserRoleReply{
-			Error: &pb.Error{
-				StatusCode: 500,
-				Message:    err.Error(),
-			},
-		}, err
+		return &emptypb.Empty{}, err
 	}
 
-	return &pb.UpdateUserRoleReply{
-		Error: &pb.Error{
-			StatusCode: 200,
-			Message:    "",
-		},
-	}, nil
+	return &emptypb.Empty{}, nil
 }
 
 func (svr *RbacServiceServer) DeletePolicy(ctx context.Context, in *pb.DeletePolicyRequest) (*pb.DeletePolicyReply, error) {
@@ -759,79 +641,29 @@ func (svr *RbacServiceServer) DeleteUser(ctx context.Context, in *pb.DeleteUserR
 	}, nil
 }
 
-func (svr *RbacServiceServer) UpdatePolicy(ctx context.Context, in *pb.UpdatePolicyRequest) (*pb.UpdatePolicyReply, error) {
-	uid := in.GetUid()
-	if svr.CheckApplicant(uid) {
-
-		return &pb.UpdatePolicyReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "Your signing up request still waiting administrator's approval",
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(uid, "policies", "UPDATE") {
-		return &pb.UpdatePolicyReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) UpdatePolicy(ctx context.Context, in *pb.UpdatePolicyRequest) (*emptypb.Empty, error) {
 	id := in.GetPolicy().GetId()
 	name := in.GetPolicy().GetName()
 	json := in.GetPolicy().GetJson()
 
 	if _, err := svr.StorageClient.DB().Exec(`UPDATE policies SET name = '` + name + `', policy = '` + json + `' WHERE id = '` + id + `'`); err != nil {
 		fmt.Println("ERR CREATING NEW ROLE :", err)
-		return &pb.UpdatePolicyReply{
-			Error: &pb.Error{
-				StatusCode: 500,
-				Message:    err.Error(),
-			},
-		}, err
+		return &emptypb.Empty{}, err
 	}
 
-	return &pb.UpdatePolicyReply{
-		Error: &pb.Error{
-			StatusCode: 200,
-			Message:    "",
-		},
-	}, nil
+	return &emptypb.Empty{}, nil
 }
 
-func (svr *RbacServiceServer) PostRole(ctx context.Context, in *pb.PostRoleRequest) (*pb.PostRoleReply, error) {
-	if svr.CheckApplicant(in.GetUid()) {
-		return &pb.PostRoleReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "Your signing up request still waiting administrator's approval",
-			},
-		}, nil
-	}
-
-	if !svr.CheckPolicy(in.GetUid(), "role", "CREATE") {
-		return &pb.PostRoleReply{
-			Error: &pb.Error{
-				StatusCode: 403,
-				Message:    "You do not have permission to access this page. Please contact to your administrator.",
-			},
-		}, nil
-	}
-
+func (svr *RbacServiceServer) CreateRole(ctx context.Context, in *pb.CreateRoleRequest) (*emptypb.Empty, error) {
 	roleName := in.GetRole().GetName()
 	id := uuid.NewString()
 
 	if _, err := svr.StorageClient.DB().Exec(`INSERT INTO roles (id, name) VALUES ('` + id + `', '` + roleName + `')`); err != nil {
-		fmt.Println("ERR CREATING NEW ROLE :", err)
 		return nil, err
 	}
 
 	for _, p := range in.GetPolicies() {
 		if _, err := svr.StorageClient.DB().Exec(`INSERT INTO rolepolicymapping (role_id, policy_id) VALUES ('` + id + `', '` + p.GetId() + `')`); err != nil {
-			fmt.Println("ERR CREATING NEW ROLE POLICY MAPPING :", err)
 			return nil, err
 		}
 	}

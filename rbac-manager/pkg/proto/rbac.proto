@@ -9,35 +9,36 @@ option go_package = "./";
 
 service RbacService {
   rpc DeleteRole (DeleteRoleRequest) returns (DeleteRoleReply) {}
-  rpc GetRoles (GetRolesRequest) returns (GetRolesReply) {}
   rpc GetRole (GetRoleRequest) returns (GetRoleReply) {}
-  rpc PostRole (PostRoleRequest) returns (PostRoleReply) {}
-  rpc UpdateRole (UpdateRoleRequest) returns (UpdateRoleReply) {}
-  rpc CheckPermission (CheckPermissionRequest) returns (CheckPermissionReply) {} 
   
   rpc Check (RbacRequest) returns (RbacReply) {}
   
-  rpc PostPolicy (PostPolicyRequest) returns (google.protobuf.Empty) {}
+  rpc CreateProject (CreateProjectRequest) returns (google.protobuf.Empty) {}
+  rpc CreateRole (CreateRoleRequest) returns (google.protobuf.Empty) {}
+  rpc CreatePolicy (CreatePolicyRequest) returns (google.protobuf.Empty) {}
+  rpc UpdateRole (UpdateRoleRequest) returns (google.protobuf.Empty) {}
+  rpc UpdateUserRole (UpdateUserRoleRequest) returns (google.protobuf.Empty) {}
+  rpc UpdatePolicy (UpdatePolicyRequest) returns (google.protobuf.Empty) {}
   
   rpc DeletePolicy (DeletePolicyRequest) returns (DeletePolicyReply) {}
   rpc DeleteProject (DeleteProjectRequest) returns (DeleteProjectReply) {}
   rpc DeleteUser (DeleteUserRequest) returns (DeleteUserReply) {}
-
+  
   rpc GetPolicy (GetPolicyRequest) returns (GetPolicyReply) {}
-  rpc UpdatePolicy (UpdatePolicyRequest) returns (UpdatePolicyReply) {}
-
-  rpc GetPolicies (GetPoliciesRequest) returns (GetPoliciesReply) {}
+  
   rpc GetPolicyJson (GetPolicyJsonRequest) returns (GetPolicyJsonReply) {}
-
-  rpc GetProjects (GetProjectsRequest) returns (GetProjectsReply) {}
+  
+  rpc GetProjects (google.protobuf.Empty) returns (GetProjectsReply) {}
+  rpc GetRoles (google.protobuf.Empty) returns (GetRolesReply) {}
+  rpc GetPolicies (google.protobuf.Empty) returns (GetPoliciesReply) {}
+  rpc GetUsers (google.protobuf.Empty) returns (GetUsersReply) {}
+  
+  
   rpc GetUsersInProject (GetUsersInProjectRequest) returns (GetUsersInProjectReply) {}
-  rpc GetUsers (GetUsersRequest) returns (GetUsersReply) {}
   rpc IsUserExist (IsUserExistRequest) returns (IsUserExistReply) {}
 
   rpc PostUser (PostUserRequest) returns (google.protobuf.Empty) {}
-  rpc UpdateUserRole (UpdateUserRoleRequest) returns (UpdateUserRoleReply) {}
   
-  rpc PostProject (PostProjectRequest) returns (PostProjectReply) {}
   rpc PutUser (PutUserRequest) returns (PutUserReply) {}
 
   rpc GetDockerfiles (GetDockerfilesRequest) returns (GetDockerfilesReply) {}
@@ -47,6 +48,8 @@ service RbacService {
   
   rpc GetTraceId (GetTraceIdRequest) returns (GetTraceIdReply) {}
   rpc GetTraceIdByDockerfileId (GetTraceIdByDockerfileIdRequest) returns (GetTraceIdByDockerfileIdReply) {}
+
+  rpc Authorize (AuthorizeRequest) returns (AuthorizeReply) {}
 }
 
 enum Action {
@@ -68,16 +71,6 @@ enum Result {
   ERROR = 3;
 }
 
-message CheckPermissionRequest {
-  int64 uid = 1;
-  string action = 2;
-  string resource = 3;
-}
-
-message CheckPermissionReply {
-  bool ok = 1;
-}
-
 message GetTraceIdByDockerfileIdRequest {
   string dockerfile_id = 1;
 }
@@ -85,6 +78,19 @@ message GetTraceIdByDockerfileIdRequest {
 message GetTraceIdByDockerfileIdReply {
   string trace_id = 1;
 }
+
+
+message AuthorizeRequest {
+  int32 uid = 1;
+  string action = 2;
+  string target = 3;
+}
+
+message AuthorizeReply {
+  bool ok = 1;
+}
+
+
 
 
 message GetTraceIdRequest {
@@ -113,19 +119,13 @@ message Role {
   string create_time = 3;
 }
 
-message PostProjectRequest {
+message CreateProjectRequest {
   string projectName = 1;
   double creatorId = 2;
 }
 
-message PostProjectReply {}
-
-message GetRolesRequest {
-  double uid = 1;
-}
 message GetRolesReply {
   repeated RolePolicy rolePolicies = 1;
-  Error error = 2;
 }
 
 message Error {
@@ -161,9 +161,7 @@ message GetPolicyReply {
   repeated Policy policies = 1;
 }
 
-message GetPoliciesRequest {
-  double uid = 1;
-}
+
 message GetPoliciesReply {
   repeated Policy policies = 1;
   Error error = 2;
@@ -176,12 +174,8 @@ message Project {
   string creator_id = 3;
 }
 
-message GetProjectsRequest {
-  double uid = 1 ;
-}
 message GetProjectsReply {
   repeated Project projects = 1;
-  Error error = 2;
 }
 
 message User {
@@ -202,9 +196,6 @@ message GetUsersInProjectReply {
   repeated User users = 1;
 }
 
-message GetUsersRequest {
-  double uid = 1;
-}
 message GetUsersReply {
   repeated User users = 1;
   Error error = 2;
@@ -225,13 +216,10 @@ message PutUserReply {
   Error error = 1;
 }
 
-message PostRoleRequest {
+message CreateRoleRequest {
   Role role = 1;
   repeated Policy policies = 2;
   double uid = 3;
-}
-message PostRoleReply {
-  Error error = 1;
 }
 
 
@@ -258,7 +246,7 @@ message PostDockerfileRequest {
   string project_id = 2; 
 }
 
-message PostPolicyRequest {
+message CreatePolicyRequest {
   Policy policy = 1;
 }
 
@@ -277,13 +265,10 @@ message IsUserExistReply {
 }
 
 message UpdateUserRoleRequest {
-  double uid = 1;
   User user = 2;
   Role role = 3;
 }
-message UpdateUserRoleReply {
-  Error error = 1;
-}
+
 
 message DeletePolicyRequest {
   double uid = 1;
@@ -318,20 +303,13 @@ message DeleteUserReply {
 }
 
 message UpdatePolicyRequest {
-  double uid = 1;
   Policy policy = 2;
-}
-message UpdatePolicyReply {
-  Error error = 1;
 }
 
 message UpdateRoleRequest {
-  double uid = 1;
   RolePolicy role = 2;
 }
-message UpdateRoleReply {
-  Error error = 1;
-}
+
 
 
 

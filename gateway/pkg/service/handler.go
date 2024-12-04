@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/oauth2"
 	oauthGit "golang.org/x/oauth2/github"
+	"google.golang.org/protobuf/types/known/emptypb"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1 "k8s.io/api/networking/v1"
@@ -558,159 +559,6 @@ func (svc *Gateway) apiPutUserHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) createProjectHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-		b, _ := io.ReadAll(r.Body)
-		p := rbacPb.Project{}
-		json.Unmarshal(b, &p)
-
-		if err := svc.ClientSet.HttpClient.CreateHarborProject(p.Name); err != nil {
-			fmt.Println("[ERROR] CREATE HARBOR PROJECT:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if err := svc.ClientSet.HttpClient.CreateHarborWebhook(p.Name); err != nil {
-			fmt.Println("[ERROR] CREATE HARBOR WEBHOOK:", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.PostProject(context.TODO(), &rbacPb.PostProjectRequest{
-			ProjectName: p.GetName(),
-			CreatorId:   float64(uid),
-		})
-		if err != nil {
-			fmt.Println("ERR POSTING PROJECT :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func (svc *Gateway) apiUpdateUserRoleHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		data := struct {
-			UserID   float64 `json:"user_id"`
-			RoleID   string  `json:"role_id"`
-			Username string  `json:"username"`
-		}{}
-
-		b, _ := io.ReadAll(r.Body)
-		json.Unmarshal(b, &data)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, _ := c.UpdateUserRole(context.TODO(), &rbacPb.UpdateUserRoleRequest{
-			Uid: float64(uid),
-			User: &rbacPb.User{
-				Id:   data.UserID,
-				Name: data.Username,
-			},
-			Role: &rbacPb.Role{
-				Id: data.RoleID,
-			},
-		})
-		w.WriteHeader(int(reply.GetError().GetStatusCode()))
-		w.Write([]byte(reply.GetError().GetMessage()))
-		return
-	}
-}
-
-func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		role := rbacPb.RolePolicy{}
-		b, _ := io.ReadAll(r.Body)
-		json.Unmarshal(b, &role)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.UpdateRole(context.TODO(), &rbacPb.UpdateRoleRequest{
-			Uid:  float64(uid),
-			Role: &role,
-		})
-		if err != nil {
-			fmt.Println("ERR POSTING NEW ROLE :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func (svc *Gateway) createRoleHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		role := rbacPb.RolePolicy{}
-		b, _ := io.ReadAll(r.Body)
-		json.Unmarshal(b, &role)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.PostRole(context.TODO(), &rbacPb.PostRoleRequest{
-			Role: &rbacPb.Role{
-				Name: role.Role.Name,
-			},
-			Policies: role.GetPolicies(),
-			Uid:      float64(uid),
-		})
-		if err != nil {
-			fmt.Println("ERR POSTING NEW ROLE :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-func (svc *Gateway) createPolicyHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		b, _ := io.ReadAll(r.Body)
-
-		role := rbacPb.Policy{}
-
-		json.Unmarshal(b, &role)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.PostPolicy(context.TODO(), &rbacPb.PostPolicyRequest{
-			Policy: &rbacPb.Policy{
-				Id:   uuid.NewString(),
-				Name: role.Name,
-				Json: role.Json,
-			},
-		})
-		if err != nil {
-			fmt.Println("ERR POSTING NEW ROLE :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
 func (svc *Gateway) apiDeletePolicyHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -725,43 +573,6 @@ func (svc *Gateway) apiDeletePolicyHandler() http.HandlerFunc {
 		_, err := c.DeletePolicy(context.TODO(), &rbacPb.DeletePolicyRequest{
 			Uid:      float64(uid),
 			PolicyId: policyId,
-		})
-		if err != nil {
-			fmt.Println("ERR POSTING NEW ROLE :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.WriteHeader(http.StatusOK)
-	}
-}
-
-func (svc *Gateway) apiUpdatePolicyHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		vars := mux.Vars(r)
-		policyId := vars["policyId"]
-
-		uid, _ := getToken(r)
-		b, _ := io.ReadAll(r.Body)
-
-		data := struct {
-			Name string `json:"name"`
-			Json string `json:"json"`
-		}{}
-
-		json.Unmarshal(b, &data)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		_, err := c.UpdatePolicy(context.TODO(), &rbacPb.UpdatePolicyRequest{
-			Uid: float64(uid),
-			Policy: &rbacPb.Policy{
-				Id:   policyId,
-				Name: data.Name,
-				Json: data.Json,
-			},
 		})
 		if err != nil {
 			fmt.Println("ERR POSTING NEW ROLE :", err)
@@ -1088,34 +899,6 @@ func (svc *Gateway) apiGetDockerfilesHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) getRoleListHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		conn := svc.ClientSet.RbacGrpcClient.GetConnection()
-
-		uid, _ := getToken(r)
-
-		c := rbacPb.NewRbacServiceClient(conn)
-		reply, _ := c.GetRoles(context.TODO(), &rbacPb.GetRolesRequest{
-			Uid: float64(uid),
-		})
-
-		if reply.GetError().GetStatusCode() == 403 {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(reply.GetError().GetMessage()))
-			return
-		}
-
-		rps := reply.GetRolePolicies()
-		b, _ := json.Marshal(rps)
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}
-}
-
 func (svc *Gateway) apiGetRoleHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -1161,60 +944,461 @@ func (svc *Gateway) apiGetUsersInProjectHandler() http.HandlerFunc {
 	}
 }
 
-func (svc *Gateway) getUserListHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetUsers(context.TODO(), &rbacPb.GetUsersRequest{
-			Uid: float64(uid),
-		})
-
-		if err != nil {
-			fmt.Println("GET USERS GRPC ERR:", err)
-		}
-
-		if reply.GetError().GetStatusCode() == 403 {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(reply.GetError().GetMessage()))
-			return
-		}
-
-		b, _ := json.Marshal(reply.GetUsers())
-
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}
-}
-
 func (svc *Gateway) getProjectListHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetProjects(context.TODO(), &rbacPb.GetProjectsRequest{
-			Uid: float64(uid),
-		})
-		if err != nil {
-			fmt.Println("ERR GET PROJECT LIST :", err)
-		}
-
-		if reply.GetError().GetStatusCode() == 403 {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(reply.GetError().GetMessage()))
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("UNAUTHORIZED"))
 			return
 		}
 
-		b, _ := json.Marshal(reply.GetProjects())
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "LIST",
+			Target: "projects",
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		reply, err := c.GetProjects(context.TODO(), &emptypb.Empty{})
+		if err != nil {
+			fmt.Println("ERR GET PROJECT LIST :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		data, _ := json.Marshal(reply.GetProjects())
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
+
+func (svc *Gateway) getRoleListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("UNAUTHORIZED"))
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "LIST",
+			Target: "roles",
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		reply, err := c.GetRoles(context.TODO(), &emptypb.Empty{})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		data, _ := json.Marshal(reply.GetRolePolicies())
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
+
+func (svc *Gateway) getPolicyListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.WriteHeader(http.StatusUnauthorized)
+			w.Write([]byte("UNAUTHORIZED"))
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "LIST",
+			Target: "policies",
+		})
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		reply, err := c.GetPolicies(context.TODO(), &emptypb.Empty{})
+		if err != nil {
+			fmt.Println("ERR GETTING POLICIES :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		data, _ := json.Marshal(reply.GetPolicies())
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
+
+func (svc *Gateway) getUserListHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "LIST",
+			Target: "users",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		reply, err := c.GetUsers(context.TODO(), &emptypb.Empty{})
+		if err != nil {
+			log.Println("[ERROR] getting user list:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		data, _ := json.Marshal(reply.GetUsers())
+		w.WriteHeader(http.StatusOK)
+		w.Write(data)
+	}
+}
+
+func (svc *Gateway) createRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "CREATE",
+			Target: "roles",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		role := rbacPb.RolePolicy{}
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &role)
+
+		_, err = c.CreateRole(context.TODO(), &rbacPb.CreateRoleRequest{
+			Role: &rbacPb.Role{
+				Name: role.Role.Name,
+			},
+			Policies: role.GetPolicies(),
+			Uid:      float64(uid),
+		})
+		if err != nil {
+			fmt.Println("ERR POSTING NEW ROLE :", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		w.WriteHeader(http.StatusOK)
-		w.Write(b)
+	}
+}
+
+func (svc *Gateway) createPolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "CREATE",
+			Target: "policies",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		p := rbacPb.Policy{}
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &p)
+
+		_, err = c.CreatePolicy(context.TODO(), &rbacPb.CreatePolicyRequest{
+			Policy: &rbacPb.Policy{
+				Id:   uuid.NewString(),
+				Name: p.Name,
+				Json: p.Json,
+			},
+		})
+		if err != nil {
+			log.Println("[ERROR] posting new role:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) createProjectHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "CREATE",
+			Target: "projects",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		b, _ := io.ReadAll(r.Body)
+		p := rbacPb.Project{}
+		json.Unmarshal(b, &p)
+
+		if err := svc.ClientSet.HttpClient.CreateHarborProject(p.Name); err != nil {
+			log.Println("[ERROR] creating harbor project:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		if err := svc.ClientSet.HttpClient.CreateHarborWebhook(p.Name); err != nil {
+			log.Println("[ERROR] creating harbor webhook:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		_, err = c.CreateProject(context.TODO(), &rbacPb.CreateProjectRequest{
+			ProjectName: p.GetName(),
+			CreatorId:   float64(uid),
+		})
+		if err != nil {
+			log.Println("[ERROR] creating new project:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) updateUserRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "UPDATE",
+			Target: "users",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		data := struct {
+			UserID   float64 `json:"user_id"`
+			RoleID   string  `json:"role_id"`
+			Username string  `json:"username"`
+		}{}
+
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &data)
+
+		if _, err := c.UpdateUserRole(context.TODO(), &rbacPb.UpdateUserRoleRequest{
+			User: &rbacPb.User{
+				Id:   data.UserID,
+				Name: data.Username,
+			},
+			Role: &rbacPb.Role{
+				Id: data.RoleID,
+			},
+		}); err != nil {
+			log.Println("[ERROR] updating user role failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+}
+
+func (svc *Gateway) apiUpdateRoleHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "UPDATE",
+			Target: "roles",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		role := rbacPb.RolePolicy{}
+		b, _ := io.ReadAll(r.Body)
+		json.Unmarshal(b, &role)
+
+		if _, err := c.UpdateRole(context.TODO(), &rbacPb.UpdateRoleRequest{
+			Role: &role,
+		}); err != nil {
+			log.Println("[ERROR] updating role:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+	}
+}
+
+func (svc *Gateway) apiUpdatePolicyHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		uid, code := getToken(r)
+		if code != http.StatusOK {
+			w.Write([]byte("UNAUTHORIZED"))
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
+		a, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "UPDATE",
+			Target: "roles",
+		})
+		if err != nil {
+			log.Println("[ERROR] authentication failed:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !a.Ok {
+			log.Println("[ERROR] authentication forbidden:", err)
+			w.WriteHeader(http.StatusForbidden)
+			return
+		}
+
+		vars := mux.Vars(r)
+		policyId := vars["policyId"]
+		b, _ := io.ReadAll(r.Body)
+
+		data := struct {
+			Name string `json:"name"`
+			Json string `json:"json"`
+		}{}
+
+		json.Unmarshal(b, &data)
+
+		if _, err := c.UpdatePolicy(context.TODO(), &rbacPb.UpdatePolicyRequest{
+			Policy: &rbacPb.Policy{
+				Id:   policyId,
+				Name: data.Name,
+				Json: data.Json,
+			},
+		}); err != nil {
+			log.Println("[ERROR] updating policy:", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
 	}
 }
 
@@ -1378,10 +1562,10 @@ func (svc *Gateway) apiGetSecretsHandler() http.HandlerFunc {
 
 		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
 		log.Default().Printf("[User: %d] Trying to %s %s", uid, "list", "secrets")
-		resp, err := c.CheckPermission(context.TODO(), &rbacPb.CheckPermissionRequest{
-			Uid:      uid,
-			Action:   "list",
-			Resource: "secrets",
+		resp, err := c.Authorize(context.TODO(), &rbacPb.AuthorizeRequest{
+			Uid:    uid,
+			Action: "list",
+			Target: "secrets",
 		})
 		if err != nil {
 			fmt.Println("ERR GETTING USER POLICIES :", err)
@@ -1450,35 +1634,6 @@ func (svc *Gateway) apiGetResourcesHandler() http.HandlerFunc {
 		}
 
 		b, _ := json.Marshal(data)
-		w.WriteHeader(http.StatusOK)
-		w.Write(b)
-	}
-}
-
-func (svc *Gateway) getPoliciyListHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		validateAuthn(w, withJWTAuth(r))
-
-		uid, _ := getToken(r)
-
-		c := rbacPb.NewRbacServiceClient(svc.ClientSet.RbacGrpcClient.GetConnection())
-		reply, err := c.GetPolicies(context.TODO(), &rbacPb.GetPoliciesRequest{
-			Uid: float64(uid),
-		})
-		if err != nil {
-			fmt.Println("ERR GETTING POLICIES :", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		if reply.GetError().GetStatusCode() == 403 {
-			w.WriteHeader(http.StatusForbidden)
-			w.Write([]byte(reply.GetError().GetMessage()))
-			return
-		}
-
-		b, _ := json.Marshal(reply.GetPolicies())
 		w.WriteHeader(http.StatusOK)
 		w.Write(b)
 	}
@@ -1675,7 +1830,7 @@ func withJWTAuth(r *http.Request) int {
 	return http.StatusOK
 }
 
-func getToken(r *http.Request) (uid int64, statusCode int) {
+func getToken(r *http.Request) (uid int32, statusCode int) {
 	tokenString := r.Header.Get("Authorization")
 	tokenString = tokenString[len("Bearer "):]
 
@@ -1693,7 +1848,7 @@ func getToken(r *http.Request) (uid int64, statusCode int) {
 	if claims, ok := token.Claims.(jwt.MapClaims); ok {
 		githubID := claims["github_id"]
 		fmt.Println("GITHUB ID FROM JWT HEADER:", githubID)
-		return int64(githubID.(float64)), http.StatusOK
+		return int32(githubID.(float64)), http.StatusOK
 	} else {
 		return 0, http.StatusUnauthorized
 	}

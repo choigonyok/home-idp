@@ -35,19 +35,19 @@ func New(port int, opts ...pkgclient.ClientOption) *Gateway {
 
 	svr.Router.RegisterRoute(http.MethodGet, "/api/projects", svc.getProjectListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/roles", svc.getRoleListHandler())
-	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.getPoliciyListHandler())
+	svr.Router.RegisterRoute(http.MethodGet, "/api/policies", svc.getPolicyListHandler())
 	svr.Router.RegisterRoute(http.MethodGet, "/api/users", svc.getUserListHandler())
 
 	svr.Router.RegisterRoute(http.MethodPost, "/api/policy", svc.createPolicyHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/project", svc.createProjectHandler())
 	svr.Router.RegisterRoute(http.MethodPost, "/api/role", svc.createRoleHandler())
-
+	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}/role", svc.updateUserRoleHandler())
 	svr.Router.RegisterRoute(http.MethodPut, "/api/roles/{roleId}", svc.apiUpdateRoleHandler())
+	svr.Router.RegisterRoute(http.MethodPut, "/api/policies/{policyId}", svc.apiUpdatePolicyHandler())
+
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/roles/{roleId}", svc.apiDeleteRoleHandler())
-	svr.Router.RegisterRoute(http.MethodPut, "/api/users/{username}/role", svc.apiUpdateUserRoleHandler())
 
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/policies/{policyId}", svc.apiDeletePolicyHandler())
-	svr.Router.RegisterRoute(http.MethodPut, "/api/policies/{policyId}", svc.apiUpdatePolicyHandler())
 
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/user", svc.apiDeleteUserHandler())
 	svr.Router.RegisterRoute(http.MethodDelete, "/api/project", svc.apiDeleteProjectHandler())
