@@ -1,0 +1,36 @@
+environment: test
+
+server:
+  port: 8800
+
+jenkins:
+  auth: apiToken
+  host: http://localhost:8080
+  credentials:
+    username: admin
+    apiToken:  # required, if 'jenkins.auth' is 'apiToken'
+
+k8s:
+  auth: kubeconfig
+
+aws:
+  auth: env
+
+grafana: 
+  auth: apiToken
+  host: http://localhost:8888
+  credentials:
+    apiToken: 
+  dataSources:
+    prometheus:
+      enabled: true
+      uid:  
+    tempo:
+      enabled: true
+      uid: 
+    pyroscope:  
+      enabled: true
+      uid: 
+
+pyroscope:
+  auth: env
