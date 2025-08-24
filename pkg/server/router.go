@@ -43,8 +43,21 @@ func setupRouter(engine *gin.Engine, h *handlers.Handler) {
 		k8s.GET("/pod")
 	}
 	{
+		traces := engine.Group("/traces")
+		// k8s.Use(handlers.JWTMiddleware())
+
+		traces.GET("/services/:serviceName", h.GetServiceTraces)
+		traces.GET("/:traceId", h.GetTrace)
+	}
+	{
 		grafana := engine.Group("/grafana")
 		// grafana.Use(handlers.JWTMiddleware())
 		grafana.POST("", h.QueryGrafana)
 	}
 }
+
+// curl http://localhost:3200/api/search\?start\=$(date -v -15M +%s)\&end=$(date +%s)\&limit=20\&service=home-idp.test123.querygrafana
+
+// curl http://localhost:3200/api/traces/90955ecb5225135cee22150ebbee1d97
+
+// curl http://localhost:3200/api/spans/90955ecb5225135cee22150ebbee1d97
