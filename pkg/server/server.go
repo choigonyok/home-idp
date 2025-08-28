@@ -2,12 +2,20 @@ package server
 
 import (
 	"fmt"
+	"net/http"
 	"strconv"
 
+	k8sclient "github.com/choigonyok/idp/pkg/client/k8s"
+	promclient "github.com/choigonyok/idp/pkg/client/prometheus"
 	"github.com/choigonyok/idp/pkg/handlers"
+	"github.com/choigonyok/idp/pkg/infra"
+	"github.com/choigonyok/idp/pkg/observability"
+	"github.com/choigonyok/idp/pkg/service"
 	"github.com/choigonyok/idp/pkg/store"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/go-resty/resty/v2"
+	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 )
 
@@ -19,15 +27,40 @@ type Server struct {
 	engine *gin.Engine
 }
 
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
+}
+
 func NewServer() *Server {
-	env := viper.GetString("environment")
+	v := viper.GetViper()
+	env := v.GetString("environment")
 	setGinMode(env)
 	engine := gin.Default()
 	cfg := getCORSConfig(env)
 	engine.Use(cors.New(*cfg))
 
 	db := store.NewSQLiteStore("idp.db")
-	h := handlers.NewHandler(db)
+	k8s := k8sclient.NewK8sClient(v)
+
+	infra := infra.NewInfra(db, k8s)
+	svc := service.NewService(db)
+	o11y := observability.NewObservability(
+		k8s,
+		&upgrader,
+		db,
+		promclient.NewPrometheusClient(v),
+		resty.New(),
+		v.GetString("traces.host"),
+	)
+
+	h := handlers.NewHandler(
+		db,
+		o11y,
+		svc,
+		infra,
+	)
 	setupRouter(engine, h)
 
 	return &Server{engine: engine}
@@ -54,8 +87,8 @@ func getCORSConfig(env string) *cors.Config {
 		return &cfg
 	case "test":
 		cfg.AllowOrigins = []string{"http://localhost:3000", "http://localhost:8800", "http://localhost:4040", "http://localhost:8080", "http://localhost:8888"}
-		cfg.AllowMethods = []string{"OPTIONS", "POST", "GET", "PUT", "DELETE"}
-		cfg.AllowHeaders = []string{"Origin", "Content-Type", "Authorization"}
+		cfg.AllowMethods = []string{"OPTIONS", "POST", "GET", "PUT", "DELETE", "*"}
+		cfg.AllowHeaders = []string{"Origin", "Content-Type", "Authorization", "*"}
 		return &cfg
 	default:
 		return nil

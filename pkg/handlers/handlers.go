@@ -8,6 +8,9 @@ import (
 	grafanacli "github.com/choigonyok/idp/pkg/client/grafana"
 	jenkinscli "github.com/choigonyok/idp/pkg/client/jenkins"
 	k8scli "github.com/choigonyok/idp/pkg/client/k8s"
+	"github.com/choigonyok/idp/pkg/infra"
+	"github.com/choigonyok/idp/pkg/observability"
+	"github.com/choigonyok/idp/pkg/service"
 	"github.com/choigonyok/idp/pkg/store"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -21,9 +24,13 @@ type Handler struct {
 	jenkins *jenkinscli.Jenkins
 	grafana *grafanacli.Grafana
 	Logger  *zap.SugaredLogger
+	o11y    *observability.Observability
+	db      *store.SQLiteStore
+	service *service.Service
+	infra   *infra.Infra
 }
 
-func NewHandler(s *store.SQLiteStore) *Handler {
+func NewHandler(s *store.SQLiteStore, o11y *observability.Observability, svc *service.Service, infra *infra.Infra) *Handler {
 	logger := &zap.SugaredLogger{}
 	v := viper.GetViper()
 	env := v.GetString("environment")
@@ -42,16 +49,19 @@ func NewHandler(s *store.SQLiteStore) *Handler {
 	}
 
 	return &Handler{
-		store:   s,
-		aws:     getAWSClient(v),
-		k8s:     getK8sClient(v),
-		jenkins: getJenkinsClient(v),
-		grafana: getGrafanaClient(v),
+		store: s,
+		// aws:     getAWSClient(v),
+		// k8s:     getK8sClient(v),
+		// jenkins: getJenkinsClient(v),
+		// grafana: getGrafanaClient(v),
 		Logger:  logger,
+		o11y:    o11y,
+		service: svc,
+		infra:   infra,
 	}
 }
 
-func getJenkinsClient(v *viper.Viper) *jenkinscli.Jenkins {
+func NewJenkinsClient(v *viper.Viper) *jenkinscli.Jenkins {
 	jenkinsHost := v.GetString("jenkins.host")
 	auth := v.GetString("jenkins.auth")
 	switch auth {
@@ -65,18 +75,7 @@ func getJenkinsClient(v *viper.Viper) *jenkinscli.Jenkins {
 	}
 }
 
-func getK8sClient(v *viper.Viper) *k8scli.K8s {
-	auth := v.GetString("k8s.auth")
-	switch auth {
-	case "kubeconfig":
-		return k8scli.NewFromKubeconfig()
-	default:
-		zap.S().Fatalf("%s: %s\n", "Invalid k8s auth method", auth)
-		return nil
-	}
-}
-
-func getAWSClient(v *viper.Viper) *awscli.AWS {
+func NewAWSClient(v *viper.Viper) *awscli.AWS {
 	auth := v.GetString("aws.auth")
 	switch auth {
 	case "env":
@@ -102,7 +101,7 @@ func getGrafanaDataSources(v *viper.Viper) *map[string]string {
 	return &m
 }
 
-func getGrafanaClient(v *viper.Viper) *grafanacli.Grafana {
+func NewGrafanaClient(v *viper.Viper) *grafanacli.Grafana {
 	host := v.GetString("grafana.host")
 	auth := v.GetString("grafana.auth")
 	m := getGrafanaDataSources(v)

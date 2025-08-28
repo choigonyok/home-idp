@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -17,7 +19,19 @@ type K8s struct {
 	clientset *kubernetes.Clientset
 }
 
-func NewFromKubeconfig() *K8s {
+func NewK8sClient(v *viper.Viper) *K8s {
+	auth := v.GetString("k8s.auth")
+	env := v.GetString("environment")
+	switch auth {
+	case "kubeconfig":
+		return newFromKubeconfig(env)
+	default:
+		zap.S().Fatalf("%s: %s\n", "Invalid k8s auth method", auth)
+		return nil
+	}
+}
+
+func newFromKubeconfig(env string) *K8s {
 	kubeconfig := filepath.Join("", "/Users/choigonyok/.kube/config")
 	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
 	if err != nil {
@@ -29,6 +43,7 @@ func NewFromKubeconfig() *K8s {
 			panic(err)
 		}
 	}
+
 	cs, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err)

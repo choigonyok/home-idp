@@ -25,16 +25,16 @@ func setupRouter(engine *gin.Engine, h *handlers.Handler) {
 			jobs.POST("/:jobName/build", h.BuildJenkinsJobs)
 		}
 	}
-	{
-		log := engine.Group("/log")
-		// k8s.Use(handlers.JWTMiddleware())
-		{
-			k8s := log.Group("/k8s")
-			k8s.GET("/pods/:name", h.LogsPod)
-		}
-		// log.GET("/aws", h.xxxx)
-		// log.GET("/jenkins", h.xxxx)
-	}
+	// {
+	// 	log := engine.Group("/log")
+	// 	// k8s.Use(handlers.JWTMiddleware())
+	// 	{
+	// 		k8s := log.Group("/k8s")
+	// 		k8s.GET("/pods/:name", h.LogsPod)
+	// 	}
+	// 	// log.GET("/aws", h.xxxx)
+	// 	// log.GET("/jenkins", h.xxxx)
+	// }
 	{
 		k8s := engine.Group("/k8s")
 		// k8s.Use(handlers.JWTMiddleware())
@@ -42,13 +42,29 @@ func setupRouter(engine *gin.Engine, h *handlers.Handler) {
 		k8s.GET("/namespace", h.ListK8sNamespaces)
 		k8s.GET("/pod")
 	}
-	{
-		traces := engine.Group("/traces")
-		// k8s.Use(handlers.JWTMiddleware())
+	// {
+	// 	traces := engine.Group("/traces")
+	// 	// k8s.Use(handlers.JWTMiddleware())
 
-		traces.GET("/services/:serviceName", h.GetServiceTraces)
-		traces.GET("/:traceId", h.GetTrace)
+	// 	traces.GET("/services/:serviceName", h.GetServiceTrace)
+	// 	traces.GET("/:traceId", h.GetTrace)
+	// }
+
+	{
+		services := engine.Group("/services")
+		{
+			service := services.Group("/:serviceID")
+			{
+				service.GET("/logs", h.GetServiceLogs)
+				service.GET("/metrics", h.GetServiceMetrics)
+				service.GET("/traces", h.GetServiceTraces)
+			}
+		}
 	}
+	engine.GET("/services", h.GetServices)
+	engine.POST("/service", h.CreateService)
+	engine.POST("/infra", h.CreateInfra)
+	engine.GET("/infra", h.ListInfra)
 	{
 		grafana := engine.Group("/grafana")
 		// grafana.Use(handlers.JWTMiddleware())
