@@ -12,6 +12,7 @@ import (
 	"github.com/choigonyok/idp/pkg/observability"
 	"github.com/choigonyok/idp/pkg/service"
 	"github.com/choigonyok/idp/pkg/store"
+	"github.com/choigonyok/idp/pkg/system"
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -28,9 +29,10 @@ type Handler struct {
 	db      *store.SQLiteStore
 	service *service.Service
 	infra   *infra.Infra
+	system  *system.System
 }
 
-func NewHandler(s *store.SQLiteStore, o11y *observability.Observability, svc *service.Service, infra *infra.Infra) *Handler {
+func NewHandler(s *store.SQLiteStore, o11y *observability.Observability, svc *service.Service, infra *infra.Infra, sys *system.System) *Handler {
 	logger := &zap.SugaredLogger{}
 	v := viper.GetViper()
 	env := v.GetString("environment")
@@ -58,6 +60,7 @@ func NewHandler(s *store.SQLiteStore, o11y *observability.Observability, svc *se
 		o11y:    o11y,
 		service: svc,
 		infra:   infra,
+		system:  sys,
 	}
 }
 

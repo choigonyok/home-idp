@@ -29,8 +29,16 @@ func (l *Log) GetK8sPodsLogFromServiceID(serviceID string, c *gin.Context) error
 	defer conn.Close()
 
 	ns, err := l.db.GetServiceNamespace(serviceID)
+	if err != nil {
+		return err
+	}
 
-	_, err = l.k8s.LogService(conn, serviceID, ns)
+	name, err := l.db.GetServiceNameFromServiceID(serviceID)
+	if err != nil {
+		return err
+	}
+
+	_, err = l.k8s.LogService(conn, name, serviceID, ns)
 	if err != nil {
 		return err
 	}

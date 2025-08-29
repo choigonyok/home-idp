@@ -3,56 +3,78 @@ package client
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 
+	"github.com/choigonyok/idp/pkg/model"
+	"github.com/choigonyok/idp/pkg/store"
 	"github.com/gorilla/websocket"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/client-go/informers"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
 func ptrInt64(v int64) *int64 { return &v }
 
 type K8s struct {
-	clientset *kubernetes.Clientset
+	clients map[string]*kubernetes.Clientset
+	db      *store.SQLiteStore
 }
 
-func NewK8sClient(v *viper.Viper) *K8s {
+func NewK8sClient(v *viper.Viper, db *store.SQLiteStore) *K8s {
 	auth := v.GetString("k8s.auth")
-	env := v.GetString("environment")
 	switch auth {
 	case "kubeconfig":
-		return newFromKubeconfig(env)
+		k := K8s{clients: make(map[string]*kubernetes.Clientset)}
+		infra, _ := db.ListInfra()
+		for _, i := range *infra {
+			if i.Platform.Kind == "K8s" {
+				fmt.Println(i.Platform.K8sCluster.Context)
+				k.AddClient(i.Platform.K8sCluster.Context)
+				go k.StartEventCheck(i.Platform.K8sCluster.Context)
+			}
+		}
+		return &k
+
 	default:
 		zap.S().Fatalf("%s: %s\n", "Invalid k8s auth method", auth)
 		return nil
 	}
 }
 
-func newFromKubeconfig(env string) *K8s {
+func (k *K8s) AddClient(context string) {
 	kubeconfig := filepath.Join("", "/Users/choigonyok/.kube/config")
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
+
+	loadingRules := &clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig}
+	overrides := &clientcmd.ConfigOverrides{CurrentContext: context}
+
+	clientConfig := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
+	config, err := clientConfig.ClientConfig()
 	if err != nil {
-		// fallback to in-cluster
-		config, err = clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-			&clientcmd.ClientConfigLoadingRules{ExplicitPath: kubeconfig},
-			&clientcmd.ConfigOverrides{}).ClientConfig()
-		if err != nil {
-			panic(err)
-		}
+		fmt.Println(err)
+		return
 	}
 
 	cs, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		panic(err)
 	}
-	return &K8s{clientset: cs}
+
+	k.clients[context] = cs
+	return
 }
 
-func (k *K8s) LogService(conn *websocket.Conn, serviceName string, env string) ([]string, error) {
-	req := k.clientset.CoreV1().Pods(env).GetLogs(serviceName, &corev1.PodLogOptions{
+func (k *K8s) LogService(conn *websocket.Conn, serviceName string, serviceID string, env string) ([]string, error) {
+	ctx, err := k.db.GetContextFromServiceID(serviceID)
+	if err != nil {
+		return nil, err
+	}
+	req := k.clients[ctx].CoreV1().Pods(env).GetLogs(serviceName, &corev1.PodLogOptions{
 		Follow: true,
 	})
 
@@ -93,4 +115,64 @@ func (k *K8s) LogService(conn *websocket.Conn, serviceName string, env string) (
 	}
 
 	return nil, nil
+}
+
+func (k *K8s) StartEventCheck(context string) {
+	factory := informers.NewSharedInformerFactory(k.clients[context], 0)
+	serviceInformer := factory.Core().V1().Services().Informer()
+	serviceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(obj interface{}) {
+			svc := obj.(*v1.Service)
+			fmt.Printf("Service create detected: %s/%s\n", svc.Namespace, svc.Name)
+			infra, err := k.db.GetInfraFromContext(context)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			k.db.CreateService(&model.Service{
+				Name:         svc.Name,
+				Status:       svc.Status.String(),
+				Version:      "todo",
+				Image:        "todo",
+				Tag:          "todo",
+				Namespace:    svc.Namespace,
+				Env:          infra.Env,
+				Assignee:     "todo",
+				Git:          "todo",
+				PlatformID:   infra.ID,
+				PlatformKind: infra.Platform.Kind,
+				PlatformName: infra.Platform.K8sCluster.Name,
+			})
+		},
+		DeleteFunc: func(obj interface{}) {
+			svc := obj.(*v1.Service)
+			fmt.Printf("Service delete detected: %s/%s\n", svc.Namespace, svc.Name)
+			// db.Create(&InfraService{
+			// 	Name:      svc.Name,
+			// 	Namespace: svc.Namespace,
+			// 	Cluster:   clusterName,
+			// 	CreatedAt: time.Now(),
+			// })
+		},
+		UpdateFunc: func(oldObj interface{}, newObj interface{}) {
+			oldSvc := oldObj.(*v1.Service)
+			newSvc := newObj.(*v1.Service)
+			fmt.Printf("Service update detected: %s -> %s\n", oldSvc.Name, newSvc.Name)
+			// db.Create(&InfraService{
+			// 	Name:      svc.Name,
+			// 	Namespace: svc.Namespace,
+			// 	Cluster:   clusterName,
+			// 	CreatedAt: time.Now(),
+			// })
+		},
+	})
+
+	stopCh := make(chan struct{})
+	factory.Start(stopCh)
+
+	if !cache.WaitForCacheSync(stopCh, serviceInformer.HasSynced) {
+		log.Fatal("Timed out waiting for caches to sync")
+	}
+
+	<-stopCh
 }

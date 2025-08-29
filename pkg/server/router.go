@@ -38,8 +38,8 @@ func setupRouter(engine *gin.Engine, h *handlers.Handler) {
 	{
 		k8s := engine.Group("/k8s")
 		// k8s.Use(handlers.JWTMiddleware())
-		k8s.POST("/deploy", h.CreateK8sDeployment)
-		k8s.GET("/namespace", h.ListK8sNamespaces)
+		// k8s.POST("/deploy", h.CreateK8sDeployment)
+		// k8s.GET("/namespace", h.ListK8sNamespaces)
 		k8s.GET("/pod")
 	}
 	// {
@@ -69,6 +69,16 @@ func setupRouter(engine *gin.Engine, h *handlers.Handler) {
 		grafana := engine.Group("/grafana")
 		// grafana.Use(handlers.JWTMiddleware())
 		grafana.POST("", h.QueryGrafana)
+	}
+	{
+		systems := engine.Group("/systems")
+		{
+
+			systems.GET("/roles/:id/permissions", h.ListRolePermissions)
+			systems.POST("/:type", h.CreateSystem)
+			systems.GET("/:type", h.ListSystem)
+			systems.PUT("/:type/:id", h.UpdateSystem)
+		}
 	}
 }
 

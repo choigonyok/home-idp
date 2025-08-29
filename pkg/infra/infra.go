@@ -24,7 +24,9 @@ func (i *Infra) Create(infra *model.Infra) error {
 		if err := i.k8s.SetContext(infra.Platform.K8sCluster); err != nil {
 			return err
 		}
-		v, err := i.k8s.Version()
+		i.k8s.AddClient(infra.Platform.K8sCluster.Context)
+		go i.k8s.StartEventCheck(infra.Platform.K8sCluster.Context)
+		v, err := i.k8s.Version(infra.Platform.K8sCluster.Context)
 		if err != nil {
 			return err
 		}

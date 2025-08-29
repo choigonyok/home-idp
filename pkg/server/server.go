@@ -12,6 +12,7 @@ import (
 	"github.com/choigonyok/idp/pkg/observability"
 	"github.com/choigonyok/idp/pkg/service"
 	"github.com/choigonyok/idp/pkg/store"
+	"github.com/choigonyok/idp/pkg/system"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/go-resty/resty/v2"
@@ -42,10 +43,11 @@ func NewServer() *Server {
 	engine.Use(cors.New(*cfg))
 
 	db := store.NewSQLiteStore("idp.db")
-	k8s := k8sclient.NewK8sClient(v)
+	k8s := k8sclient.NewK8sClient(v, db)
 
 	infra := infra.NewInfra(db, k8s)
 	svc := service.NewService(db)
+	sys := system.NewSystem(db)
 	o11y := observability.NewObservability(
 		k8s,
 		&upgrader,
@@ -60,6 +62,7 @@ func NewServer() *Server {
 		o11y,
 		svc,
 		infra,
+		sys,
 	)
 	setupRouter(engine, h)
 

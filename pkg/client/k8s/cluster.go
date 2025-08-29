@@ -10,8 +10,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-func (k *K8s) Version() (string, error) {
-	info, err := k.clientset.Discovery().ServerVersion()
+func (k *K8s) Version(context string) (string, error) {
+	info, err := k.clients[context].Discovery().ServerVersion()
 	if err != nil {
 		return "", err
 	}
@@ -19,7 +19,7 @@ func (k *K8s) Version() (string, error) {
 	return info.String(), nil
 }
 
-func (k *K8s) SetContext(c *model.Cluster) error {
+func (k *K8s) SetContext(c model.Cluster) error {
 	kubeconfigPath := filepath.Join("", "/Users/choigonyok/.kube/config")
 	config, err := clientcmd.LoadFromFile(kubeconfigPath)
 	if err != nil {
